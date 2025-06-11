@@ -1,107 +1,194 @@
 # TutorMatch - Système de Gestion d'Attribution des Stages
 
-TutorMatch est une application web complète pour la gestion des stages et l'attribution de tuteurs aux étudiants. Ce système permet aux établissements d'enseignement de gérer efficacement le processus d'affectation des tuteurs aux stages des étudiants, avec des algorithmes d'optimisation pour garantir les meilleures correspondances possibles.
+<p align="center">
+  <img src="assets/img/logo.png" alt="TutorMatch Logo" width="200" height="auto">
+</p>
 
-## Fonctionnalités principales
+TutorMatch est une application web complète pour la gestion des stages académiques et l'attribution de tuteurs aux étudiants. Ce système permet aux établissements d'enseignement de gérer efficacement l'ensemble du processus de stage, depuis la publication des offres jusqu'au suivi et à l'évaluation.
 
-- **Gestion des utilisateurs** : Administrateurs, coordinateurs, tuteurs et étudiants
-- **Gestion des stages** : Ajout, modification et suivi des offres de stage
-- **Gestion des entreprises** : Base de données des entreprises partenaires
-- **Système de préférences** : Les étudiants peuvent classer leurs stages préférés, les tuteurs peuvent définir leurs préférences
-- **Algorithmes d'affectation** : Différents algorithmes pour optimiser l'attribution des tuteurs
-- **Suivi des stages** : Documents, réunions, évaluations et rapports
-- **Messagerie intégrée** : Communication entre tuteurs et étudiants
-- **Tableaux de bord** : Statistiques et indicateurs de performance
-- **Génération de rapports** : Rapports d'affectation, statistiques, etc.
+## 🌟 Fonctionnalités principales
 
-## Architecture technique
+### Gestion des utilisateurs et des rôles
+- **Administrateurs** : Configuration du système et supervision générale
+- **Coordinateurs** : Gestion des affectations et supervision des stages
+- **Tuteurs** : Suivi et évaluation des stages des étudiants
+- **Étudiants** : Choix des stages, communication avec les tuteurs
 
-- **Backend** : PHP 8+
-- **Base de données** : MySQL
-- **Frontend** : HTML5, CSS3, JavaScript
-- **Frameworks** : Bootstrap 5
-- **Bibliothèques JS** : Chart.js, Flatpickr, etc.
-- **Sécurité** : Authentification, autorisations basées sur les rôles, protection CSRF
+### Gestion des stages et entreprises
+- Catalogue d'offres de stage avec filtres avancés
+- Base de données des entreprises partenaires
+- Publication et modification des offres
+- Système de recherche optimisé
 
-## Structure du projet
+### Système de préférences et d'affectation
+- Les étudiants peuvent classer leurs stages préférés
+- Les tuteurs peuvent définir leurs préférences (domaines, entreprises)
+- Plusieurs algorithmes d'affectation optimisés (glouton, hongrois, etc.)
+- Tableau de compatibilité et matrice d'affectation
 
-```
-tutoring/
-├── assets/
-│   ├── css/
-│   ├── js/
-│   └── img/
-├── config/
-├── controllers/
-├── database/
-├── includes/
-├── models/
-├── uploads/
-└── views/
-    ├── admin/
-    ├── common/
-    ├── student/
-    └── tutor/
-```
+### Suivi et évaluation
+- Gestion des documents relatifs aux stages
+- Planification et suivi des réunions
+- Évaluations à mi-parcours et finales
+- Génération de rapports et statistiques
 
-## Installation
+### Communication
+- Messagerie interne entre tuteurs et étudiants
+- Système de notifications pour les événements importants
+- Fil d'activité sur les tableaux de bord
 
-1. Cloner le dépôt dans votre dossier web (par exemple, htdocs pour XAMPP)
-2. Créer une base de données MySQL
-3. Importer le fichier SQL de structure : `database/create_database.sql`
-4. Configurer les informations de connexion dans `config/database.php`
-5. Lancer l'application dans votre navigateur
+## 🛠️ Architecture technique
 
-### Mise à jour de la base de données
+- **Backend** : PHP 8+ avec architecture MVC
+- **Base de données** : MySQL/MariaDB
+- **Frontend** : HTML5, CSS3, JavaScript (ES6+)
+- **Frameworks** : Bootstrap 5 pour l'UI, Stimulus.js pour les interactions
+- **Librairies** : Chart.js pour les visualisations, Flatpickr pour les calendriers
+- **API** : REST API pour les opérations côté client
+- **Sécurité** : Authentification JWT, sessions sécurisées, protection CSRF
 
-Si vous mettez à jour une installation existante, suivez ces étapes :
-
-1. Assurez-vous d'avoir une sauvegarde de votre base de données actuelle
-2. Accédez à la page `/update_database.php` depuis votre navigateur
-3. Vérifiez les modifications qui seront appliquées à votre base de données
-4. Confirmez pour exécuter les mises à jour
-
-Pour plus de détails sur les changements de structure de la base de données, consultez le guide de migration :
-`docs/DATABASE_MIGRATION_GUIDE.md`
-
-### Prérequis
+## 📋 Prérequis
 
 - PHP 8.0 ou supérieur
-- MySQL 5.7 ou supérieur
+- MySQL 5.7 ou supérieur (ou MariaDB équivalent)
 - Serveur web (Apache, Nginx)
 - Extensions PHP : PDO, PDO_MySQL, mbstring, json
+- Navigateur web moderne (Chrome, Firefox, Safari, Edge)
+
+## 🚀 Installation
+
+### Installation automatique (recommandée)
+
+1. Clonez le dépôt dans votre environnement web (par exemple, dans le dossier `htdocs` de XAMPP)
+   ```bash
+   git clone https://github.com/votre-utilisateur/tutormatch.git tutoring
+   cd tutoring
+   ```
+
+2. Accédez à l'installateur via votre navigateur :
+   ```
+   http://localhost/tutoring/database/install.php
+   ```
+
+3. Suivez les instructions à l'écran pour configurer la base de données
+
+### Installation manuelle
+
+1. Clonez le dépôt comme indiqué ci-dessus
+
+2. Créez une base de données MySQL
+   ```sql
+   CREATE DATABASE tutoring_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+3. Importez le schéma de base de données
+   ```bash
+   mysql -u votre_utilisateur -p tutoring_system < database/tutoring_system.sql
+   ```
+
+4. Créez ou modifiez le fichier de configuration
+   ```bash
+   cp config/database.example.php config/database.php
+   # Puis modifiez config/database.php avec vos informations de connexion
+   ```
+
+5. Assurez-vous que les dossiers suivants sont accessibles en écriture
+   ```bash
+   chmod -R 755 uploads/
+   chmod -R 755 temp/
+   ```
 
 ### Utilisateurs par défaut
 
 - **Administrateur** : admin / admin123
-- **Coordinateur** : test / test123
-- **Tuteur** : marie / password123
-- **Étudiant** : lucas / password123
+- **Coordinateur** : coordinator / coord123
+- **Tuteur** : tutor / tutor123
+- **Étudiant** : student / student123
 
-## Algorithmes d'affectation
+## 📐 Algorithmes d'affectation
 
-Le système propose différents algorithmes d'affectation :
+Le système propose plusieurs algorithmes pour optimiser l'affectation des tuteurs aux étudiants :
 
-1. **Algorithme Glouton** : Rapide mais sous-optimal, attribue les étudiants dans l'ordre
-2. **Algorithme Hongrois** : Trouve la solution optimale globale
-3. **Algorithme Génétique** : Optimise une solution existante avec une approche évolutive
-4. **Algorithme Hybride** : Combine plusieurs approches pour un équilibre performance/qualité
+### Algorithme Glouton (implémenté)
+- Approche rapide attribuant les étudiants par ordre de priorité
+- Complexité : O(n² log n) où n est le nombre d'étudiants
+- Idéal pour les ensembles de données moyens
 
-## Contribution
+### Algorithme Hongrois (en développement)
+- Solution d'optimisation globale garantissant le meilleur appariement
+- Complexité : O(n³)
+- Idéal quand l'optimalité est critique
 
-Les contributions à ce projet sont les bienvenues. Veuillez suivre ces étapes :
+### Algorithme Génétique (planifié)
+- Approche évolutive pour des contraintes complexes
+- Adaptatif à des critères multiples et variables
+- Idéal pour de grands ensembles de données
 
-1. Forker le dépôt
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/amazing-feature`)
-3. Effectuer vos modifications
-4. Commit vos changements (`git commit -m 'Add some amazing feature'`)
-5. Push vers la branche (`git push origin feature/amazing-feature`)
-6. Ouvrir une Pull Request
+## 📊 Tableaux de bord et rapports
 
-## Licence
+- **Tableau de bord administrateur** : Vue d'ensemble complète du système
+- **Tableau de bord coordinateur** : Gestion des affectations et statistiques
+- **Tableau de bord tuteur** : Suivi des étudiants assignés
+- **Tableau de bord étudiant** : Suivi du stage et communication
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+Rapports disponibles :
+- Statistiques d'affectation par département
+- Taux de satisfaction des étudiants et tuteurs
+- Rapports d'évaluation des stages
+- Métriques de performance du système
 
-## Contact
+## 🔍 Fonctionnalités avancées
 
-Pour toute question ou suggestion, veuillez contacter l'équipe de développement.
+- **Recherche avancée** : Filtres multiples, suggestions, tri des résultats
+- **Matrice d'affectation** : Visualisation interactive des compatibilités
+- **Système de thèmes** : Support des modes clair et sombre
+- **Exportation de données** : Formats PDF, Excel et CSV pour les rapports
+- **Responsive design** : Adapté à tous les appareils (desktop, tablette, mobile)
+
+## 🧪 Tests
+
+Le projet inclut des tests unitaires et fonctionnels pour les composants principaux :
+
+```bash
+# Exécuter tous les tests
+vendor/bin/phpunit
+
+# Exécuter les tests d'algorithmes d'affectation
+vendor/bin/phpunit tests/Algorithm/
+```
+
+## 📚 Documentation
+
+- [Architecture détaillée](architecture_documentation.md)
+- [Guide d'installation](docs/README_INSTALLATION.md)
+- [Documentation de l'API](docs/API.md)
+- [Migration de la base de données](docs/DATABASE_MIGRATION_GUIDE.md)
+- [Algorithmes d'affectation](src/Algorithm/README.md)
+
+## 📈 Feuille de route
+
+- Implémentation des algorithmes d'affectation avancés
+- Amélioration du système de recherche (voir [TODO-SEARCH-IMPROVEMENTS.md](TODO-SEARCH-IMPROVEMENTS.md))
+- Développement d'une application mobile
+- Internationalisation (support multilingue)
+- Intégration avec des systèmes de gestion académique externes
+
+## 👥 Contribution
+
+Les contributions sont les bienvenues ! Veuillez consulter [CONTRIBUTING.md](CONTRIBUTING.md) pour les directives de contribution et [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) pour notre code de conduite.
+
+## 📜 Licence
+
+Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+## 📬 Contact
+
+Pour toute question ou suggestion, veuillez contacter l'équipe de développement via :
+- Email : contact@tutormatch.example.com
+- Issues GitHub : [Créer une issue](https://github.com/votre-utilisateur/tutormatch/issues)
+
+---
+
+<p align="center">
+  Développé avec ❤️ pour optimiser la gestion des stages académiques
+</p>
