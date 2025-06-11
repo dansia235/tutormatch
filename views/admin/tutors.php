@@ -24,6 +24,9 @@ $stats = $statsController->getDashboardStats();
 // Instancier le contrôleur des tuteurs
 $teacherController = new TeacherController($db);
 
+// Instancier le modèle des affectations pour calculer la charge de travail
+$assignmentModel = new Assignment($db);
+
 // Récupérer la liste des tuteurs (avec filtres éventuels)
 $availableOnly = isset($_GET['available']) && $_GET['available'] === '1';
 $department = isset($_GET['department']) ? $_GET['department'] : null;
@@ -34,6 +37,11 @@ if (!empty($searchTerm)) {
     $teachers = $teacherController->search($searchTerm, $availableOnly);
 } else {
     $teachers = $teacherController->getTeachers($availableOnly);
+}
+
+// Récupérer le nombre réel d'étudiants pour chaque tuteur
+foreach ($teachers as $key => $teacher) {
+    $teachers[$key]['current_students'] = $assignmentModel->countByTeacherId($teacher['id']);
 }
 
 // Filtrer par département si nécessaire
@@ -293,6 +301,48 @@ include_once __DIR__ . '/../common/header.php';
         background-color: #fff;
         border-color: #dee2e6;
     }
+    
+    /* Styles pour l'autocomplétion */
+    .search-suggestions {
+        top: calc(100% + 5px);
+        background-color: white;
+        z-index: 1000;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+    }
+    
+    .suggestion-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .suggestion-item:hover, .suggestion-item.active {
+        background-color: #f8f9fa;
+    }
+    
+    .suggestion-item .suggestion-name {
+        font-weight: 500;
+        margin-bottom: 3px;
+    }
+    
+    .suggestion-item .suggestion-details {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .suggestion-item .highlight {
+        background-color: rgba(52, 152, 219, 0.2);
+        font-weight: bold;
+    }
+    
+    .suggestion-empty {
+        padding: 15px;
+        text-align: center;
+        color: #6c757d;
+    }
 </style>
 
 <div class="container-fluid">
@@ -382,17 +432,22 @@ include_once __DIR__ . '/../common/header.php';
                     <!-- Search and Filter -->
                     <div class="row mb-4">
                         <div class="col-md-6 mb-3 mb-md-0">
-                            <form action="" method="GET" class="search-box">
+                            <div class="search-box position-relative">
                                 <i class="bi bi-search icon"></i>
-                                <input type="text" class="form-control" name="term" placeholder="Rechercher un tuteur..." value="<?php echo h($searchTerm); ?>">
-                                <?php if ($availableOnly): ?>
-                                <input type="hidden" name="available" value="1">
-                                <?php endif; ?>
-                                <?php if (!empty($department)): ?>
-                                <input type="hidden" name="department" value="<?php echo h($department); ?>">
-                                <?php endif; ?>
-                                <button type="submit" class="d-none">Rechercher</button>
-                            </form>
+                                <input type="text" class="form-control" id="tutorSearch" name="term" placeholder="Rechercher un tuteur..." value="<?php echo h($searchTerm); ?>" autocomplete="off">
+                                <div id="searchSuggestions" class="search-suggestions shadow rounded position-absolute w-100 d-none"></div>
+                                <!-- Formulaire invisible pour la soumission traditionnelle (fallback) -->
+                                <form id="searchForm" action="" method="GET" class="d-none">
+                                    <input type="hidden" id="searchTermHidden" name="term" value="<?php echo h($searchTerm); ?>">
+                                    <?php if ($availableOnly): ?>
+                                    <input type="hidden" name="available" value="1">
+                                    <?php endif; ?>
+                                    <?php if (!empty($department)): ?>
+                                    <input type="hidden" name="department" value="<?php echo h($department); ?>">
+                                    <?php endif; ?>
+                                    <button type="submit">Rechercher</button>
+                                </form>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <div class="d-flex justify-content-md-end flex-wrap gap-2">
@@ -1116,6 +1171,166 @@ include_once __DIR__ . '/../common/header.php';
                             }
                         }
                     }
+                }
+            });
+        }
+        
+        // Fonctionnalité d'autocomplétion pour la recherche de tuteurs
+        const tutorSearch = document.getElementById('tutorSearch');
+        const searchSuggestions = document.getElementById('searchSuggestions');
+        const searchForm = document.getElementById('searchForm');
+        const searchTermHidden = document.getElementById('searchTermHidden');
+        
+        if (tutorSearch && searchSuggestions) {
+            let currentSelection = -1;
+            let suggestions = [];
+            let debounceTimer;
+            
+            // Fonction pour mettre en surbrillance le terme recherché
+            function highlightText(text, term) {
+                if (!term) return text;
+                const regex = new RegExp(`(${term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+                return text.replace(regex, '<span class="highlight">$1</span>');
+            }
+            
+            // Fonction pour afficher les suggestions
+            function displaySuggestions(results, term) {
+                searchSuggestions.innerHTML = '';
+                suggestions = results;
+                
+                if (results.length === 0) {
+                    searchSuggestions.innerHTML = '<div class="suggestion-empty">Aucun tuteur trouvé</div>';
+                    searchSuggestions.classList.remove('d-none');
+                    return;
+                }
+                
+                results.forEach((result, index) => {
+                    const suggestionItem = document.createElement('div');
+                    suggestionItem.className = 'suggestion-item';
+                    suggestionItem.dataset.index = index;
+                    
+                    // Mettre en surbrillance les correspondances
+                    const highlightedName = highlightText(result.label, term);
+                    const highlightedSpecialty = result.specialty ? highlightText(result.specialty, term) : '';
+                    
+                    suggestionItem.innerHTML = `
+                        <div class="suggestion-name">${highlightedName}</div>
+                        <div class="suggestion-details">
+                            <i class="bi bi-envelope-fill me-1"></i>${result.email}
+                            ${result.specialty ? '<br><i class="bi bi-briefcase-fill me-1"></i>' + highlightedSpecialty : ''}
+                        </div>
+                    `;
+                    
+                    // Gérer le clic sur une suggestion
+                    suggestionItem.addEventListener('click', () => {
+                        window.location.href = result.url;
+                    });
+                    
+                    searchSuggestions.appendChild(suggestionItem);
+                });
+                
+                searchSuggestions.classList.remove('d-none');
+            }
+            
+            // Gérer la saisie dans le champ de recherche
+            tutorSearch.addEventListener('input', function() {
+                const term = this.value.trim();
+                searchTermHidden.value = term;
+                
+                // Réinitialiser la sélection
+                currentSelection = -1;
+                
+                // Effacer le timer de debounce existant
+                clearTimeout(debounceTimer);
+                
+                if (term.length < 1) {
+                    searchSuggestions.classList.add('d-none');
+                    return;
+                }
+                
+                // Debounce pour éviter trop de requêtes
+                debounceTimer = setTimeout(() => {
+                    // Appel à l'API pour récupérer les suggestions
+                    const params = new URLSearchParams({
+                        term: term,
+                        limit: 10
+                    });
+                    
+                    <?php if ($availableOnly): ?>
+                    params.append('available', '1');
+                    <?php endif; ?>
+                    
+                    fetch(`/tutoring/api/teachers/search.php?${params.toString()}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            displaySuggestions(data, term);
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors de la recherche:', error);
+                        });
+                }, 300); // 300ms de délai
+            });
+            
+            // Gérer les touches fléchées et Entrée
+            tutorSearch.addEventListener('keydown', function(e) {
+                const suggestionItems = searchSuggestions.querySelectorAll('.suggestion-item');
+                
+                // Si les suggestions ne sont pas affichées, retourner
+                if (searchSuggestions.classList.contains('d-none')) {
+                    return;
+                }
+                
+                // Flèche Bas
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentSelection = Math.min(currentSelection + 1, suggestionItems.length - 1);
+                    
+                    suggestionItems.forEach((item, index) => {
+                        item.classList.toggle('active', index === currentSelection);
+                    });
+                    
+                    if (currentSelection >= 0) {
+                        suggestionItems[currentSelection].scrollIntoView({ block: 'nearest' });
+                    }
+                }
+                
+                // Flèche Haut
+                else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentSelection = Math.max(currentSelection - 1, -1);
+                    
+                    suggestionItems.forEach((item, index) => {
+                        item.classList.toggle('active', index === currentSelection);
+                    });
+                    
+                    if (currentSelection >= 0) {
+                        suggestionItems[currentSelection].scrollIntoView({ block: 'nearest' });
+                    }
+                }
+                
+                // Touche Entrée
+                else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    
+                    if (currentSelection >= 0 && currentSelection < suggestions.length) {
+                        window.location.href = suggestions[currentSelection].url;
+                    } else {
+                        // Soumission traditionnelle si aucune suggestion n'est sélectionnée
+                        searchForm.submit();
+                    }
+                }
+                
+                // Touche Échap
+                else if (e.key === 'Escape') {
+                    searchSuggestions.classList.add('d-none');
+                    currentSelection = -1;
+                }
+            });
+            
+            // Fermer les suggestions en cliquant en dehors
+            document.addEventListener('click', function(e) {
+                if (!tutorSearch.contains(e.target) && !searchSuggestions.contains(e.target)) {
+                    searchSuggestions.classList.add('d-none');
                 }
             });
         }
