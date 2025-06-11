@@ -1,0 +1,122 @@
+# Fichiers de configuration locaux
+/config/database.php
+
+# Dossiers et fichiers de dépendances
+/vendor/
+/node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Fichiers compilés et générés
+/public/build/
+/public/hot/
+/public/storage/
+/storage/*.key
+/.phpunit.result.cache
+/dist/
+
+# Dossiers et fichiers de dév/logs
+/logs/
+/.vscode/
+/.idea/
+/.phpintel/
+/.fleet/
+/.DS_Store
+Thumbs.db
+*.sublime-*
+*.swp
+*.swo
+.env.*.local
+
+# Fichiers d'environnement
+.env
+.env.backup
+.env.local
+.env.*.local
+
+# Dossiers de fichiers téléchargés
+/uploads/*
+!/uploads/.gitkeep
+
+# Dossiers de cache et sessions
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/app/*
+!/storage/app/public/
+/storage/app/public/*
+!/storage/app/public/.gitkeep
+
+# Fichiers temporaires
+*.tmp
+*.temp
+*.log
+*.cache
+.php_cs.cache
+.phpunit.result.cache
+
+# Fichiers sensibles
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Fichiers spécifiques au système de tutorat
+/database/backups/
+/public/uploads/*
+!/public/uploads/.gitkeep
+.htaccess.local
+phpunit.xml.local
+
+# Dossiers de données de test
+/test_data/temp/
+/backups/
+
+# Fichiers de build
+/dist/
+/build/
+/public/js/
+/public/css/
+/public/mix-manifest.json
+
+# Fichiers spécifiques à macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Fichiers spécifiques à Windows
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Fichiers spécifiques à Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
