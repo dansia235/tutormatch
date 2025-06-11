@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Étudiants | Admin TutorMatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
+        .student-card {
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.3s;
+        }
+        
+        .student-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-badge {
+            top: -10px;
+            right: -10px;
+        }
+        
+        .progress-thin {
+            height: 6px;
+        }
+        
+        #studentDetailsModal .nav-tabs .nav-link.active {
+            border-bottom: 3px solid var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .skill-badge {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar Admin -->
+        <div class="sidebar bg-dark text-white p-3" style="width: 250px;">
+            <div class="logo mb-4">
+                <h4>TutorMatch Admin</h4>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="dashboard.html">
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="etudiant.html">
+                        <i class="bi bi-people-fill me-2"></i> Étudiants
+                    </a>
+                </li>
+                <!-- Autres menus admin... -->
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content p-4 flex-grow-1">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-people-fill text-primary"></i> 
+                    Gestion des Étudiants
+                </h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                    <i class="bi bi-plus-lg"></i> Ajouter un étudiant
+                </button>
+            </div>
+
+            <!-- Filtres -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select class="form-select">
+                                <option selected>Toutes les promotions</option>
+                                <option>L3 Informatique 2023</option>
+                                <option>M1 MIAGE 2023</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select">
+                                <option selected>Tous les statuts</option>
+                                <option>En stage</option>
+                                <option>En recherche</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" placeholder="Rechercher...">
+                                <button class="btn btn-outline-secondary">Filtrer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des étudiants -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span>Liste des étudiants (142)</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="bi bi-download"></i> Exporter
+                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-list-ul"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-grid"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Nom</th>
+                                    <th>Promotion</th>
+                                    <th>Entreprise</th>
+                                    <th>Tuteur</th>
+                                    <th>Progression</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="student-card" data-bs-toggle="modal" data-bs-target="#studentDetailsModal">
+                                    <td>
+                                        <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" 
+                                             class="rounded-circle" width="40" height="40">
+                                    </td>
+                                    <td>
+                                        <strong>Jean Martin</strong>
+                                        <div class="text-muted small">jean.martin@etu.univ.fr</div>
+                                    </td>
+                                    <td>M2 Info 2023</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            <i class="bi bi-building"></i> Google
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">
+                                            Prof. Dupont
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="progress progress-thin">
+                                            <div class="progress-bar bg-success" style="width: 65%"></div>
+                                        </div>
+                                        <small class="text-muted">65%</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success rounded-pill">
+                                            <i class="bi bi-check-circle"></i> Actif
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- 10 autres étudiants... -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#">Précédent</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Suivant</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Étudiant -->
+    <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Détails de l'étudiant</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3 text-center">
+                            <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" 
+                                 class="rounded-circle mb-3" width="120" height="120">
+                            <h5>Jean Martin</h5>
+                            <span class="badge bg-success">Actif</span>
+                        </div>
+                        <div class="col-md-9">
+                            <ul class="nav nav-tabs">
+                                <li class="nav-item">
+                                    <a class="nav-link active" data-bs-toggle="tab" href="#infos">Informations</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#stage">Stage</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#documents">Documents</a>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content mt-3">
+                                <div class="tab-pane fade show active" id="infos">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Email:</strong> jean.martin@etu.univ.fr</p>
+                                            <p><strong>Téléphone:</strong> +33 6 12 34 56 78</p>
+                                            <p><strong>Promotion:</strong> M2 Informatique 2023</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Date naissance:</strong> 15/05/1998</p>
+                                            <p><strong>Inscrit le:</strong> 01/09/2022</p>
+                                            <p><strong>Dernière connexion:</strong> 02/06/2023 14:30</p>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <h6>Compétences techniques</h6>
+                                    <div>
+                                        <span class="badge skill-badge bg-primary">Java</span>
+                                        <span class="badge skill-badge bg-primary">Python</span>
+                                        <span class="badge skill-badge bg-primary">SQL</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="tab-pane fade" id="stage">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-building"></i> Google France
+                                        </h5>
+                                        <span class="badge bg-warning">En cours</span>
+                                    </div>
+                                    <p><strong>Poste:</strong> Développeur Full Stack</p>
+                                    <p><strong>Période:</strong> 15/05/2023 - 15/11/2023</p>
+                                    <p><strong>Tuteur entreprise:</strong> Marie Dupont (marie.dupont@google.com)</p>
+                                    <hr>
+                                    <h6>Progression</h6>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar bg-success" style="width: 65%">65%</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Dernier rapport:</strong> 28/05/2023</p>
+                                        </div>
+                                        <div class="col-md-6 text-end">
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                Voir tous les rapports
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="tab-pane fade" id="documents">
+                                    <div class="list-group">
+                                        <a href="#" class="list-group-item list-group-item-action">
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                                    Convention_signee.pdf
+                                                </div>
+                                                <small class="text-muted">12/04/2023</small>
+                                            </div>
+                                        </a>
+                                        <!-- Autres documents... -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajout Étudiant -->
+    <div class="modal fade" id="addStudentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ajouter un étudiant</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Nom complet</label>
+                            <input type="text" class="form-control" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Téléphone</label>
+                                <input type="tel" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Promotion</label>
+                                <select class="form-select" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option>L3 Informatique</option>
+                                    <option>M1 MIAGE</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Année</label>
+                                <select class="form-select" required>
+                                    <option>2023</option>
+                                    <option>2024</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Photo</label>
+                            <input type="file" class="form-control" accept="image/*">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Scripts pour la gestion des étudiants
+        document.addEventListener('DOMContentLoaded', function() {
+            // Exemple : Gestion des clics sur les lignes étudiant
+            document.querySelectorAll('.student-card').forEach(row => {
+                row.addEventListener('click', function(e) {
+                    if(!e.target.closest('button')) {
+                        // Simuler l'ouverture du modal avec des données dynamiques
+                        const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+                        modal.show();
+                    }
+                });
+            });
+            
+            // Exemple : Validation du formulaire d'ajout
+            document.querySelector('#addStudentModal form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('Étudiant ajouté avec succès !');
+                // Ici, ajouter la logique AJAX pour sauvegarder
+            });
+        });
+    </script>
+</body>
+</html>

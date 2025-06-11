@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- [Head identique...] -->
+    <style>
+        /* [Styles identiques...] */
+        
+        .stage-card {
+            transition: all 0.3s;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .stage-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .company-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: 5px;
+            background: white;
+            padding: 5px;
+            border: 1px solid #eee;
+        }
+        
+        .stage-tag {
+            margin-right: 5px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+        
+        .stage-progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar identique -->
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
+            <!-- [Sidebar identique avec l'onglet Stages actif...] -->
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar identique -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+                <!-- [Navbar identique...] -->
+            </nav>
+
+            <!-- Stages Content -->
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2>Gestion des Stages</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="dashboard.html">Tableau de bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Stages</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Filtres et Actions -->
+                <div class="card mb-4 fade-in">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="search-box">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" class="form-control" placeholder="Rechercher un stage...">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select">
+                                    <option selected>Tous les statuts</option>
+                                    <option>Disponible</option>
+                                    <option>Pourvu</option>
+                                    <option>Terminé</option>
+                                    <option>Annulé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex justify-content-end">
+                                <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addStageModal">
+                                    <i class="bi bi-plus-circle me-1"></i>Ajouter
+                                </button>
+                                <button class="btn btn-outline-secondary">
+                                    <i class="bi bi-funnel me-1"></i>Filtrer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 fade-in delay-1">
+                        <div class="card stat-card">
+                            <div class="value">142</div>
+                            <div class="label">Stages actifs</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">+25% depuis l'an dernier</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-2">
+                        <div class="card stat-card">
+                            <div class="value">87%</div>
+                            <div class="label">Taux de placement</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 87%;" aria-valuenow="87" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">124/142 stages pourvus</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-3">
+                        <div class="card stat-card">
+                            <div class="value">63</div>
+                            <div class="label">Entreprises</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: 63%;" aria-valuenow="63" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">15 nouvelles cette année</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-4">
+                        <div class="card stat-card">
+                            <div class="value">4.3</div>
+                            <div class="label">Satisfaction</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 86%;" aria-valuenow="86" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Moyenne sur 5</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des Stages -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Liste des Stages</span>
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="stagesFilter" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-funnel"></i> Trier par
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="stagesFilter">
+                                        <li><a class="dropdown-item active" href="#">Date de création</a></li>
+                                        <li><a class="dropdown-item" href="#">Date de début</a></li>
+                                        <li><a class="dropdown-item" href="#">Entreprise</a></li>
+                                        <li><a class="dropdown-item" href="#">Domaine</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#">Satisfaction</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item stage-card">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-2">
+                                                <img src="https://logo.clearbit.com/google.com" alt="Google" class="company-logo">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h5 class="mb-1">Développement Web Frontend</h5>
+                                                <p class="mb-1">Google France - Paris</p>
+                                                <div>
+                                                    <span class="badge bg-primary stage-tag">React</span>
+                                                    <span class="badge bg-primary stage-tag">TypeScript</span>
+                                                    <span class="badge bg-primary stage-tag">UI/UX</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <small>15/05 - 15/11/2023</small>
+                                                    <span class="badge bg-success">Pourvu</span>
+                                                </div>
+                                                <div class="stage-progress">
+                                                    <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                                <small class="text-muted">12 semaines sur 18</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- [Autres stages...] -->
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <div>
+                                        <p class="small text-muted">Affichage de 1 à 5 sur 142 stages</p>
+                                    </div>
+                                    <nav aria-label="Page navigation">
+                                        <ul class="pagination">
+                                            <li class="page-item disabled">
+                                                <a class="page-link" href="#" aria-label="Previous">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="#" aria-label="Next">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Détails Stage -->
+                    <div class="col-lg-4">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Détails du Stage</span>
+                                <button class="btn btn-sm btn-outline-primary">Voir PDF</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-4">
+                                    <img src="https://logo.clearbit.com/google.com" alt="Google" class="company-logo mb-3" style="width: 100px; height: 100px;">
+                                    <h4>Développement Web Frontend</h4>
+                                    <p class="text-muted">Google France - Paris</p>
+                                    <span class="badge bg-success">Pourvu</span>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Description</h6>
+                                    <p>Développement d'une interface utilisateur innovante pour un produit interne utilisant React et TypeScript. Participation à l'ensemble du cycle de développement, des maquettes aux tests utilisateurs.</p>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <h6>Période</h6>
+                                        <p>15/05 - 15/11/2023<br>(6 mois)</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Localisation</h6>
+                                        <p>Paris 8ème<br>Télétravail partiel</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Compétences Requises</h6>
+                                    <div>
+                                        <span class="badge bg-primary stage-tag">React</span>
+                                        <span class="badge bg-primary stage-tag">TypeScript</span>
+                                        <span class="badge bg-primary stage-tag">UI/UX</span>
+                                        <span class="badge bg-primary stage-tag">Tests</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Rémunération</h6>
+                                    <p>1 200 €/mois + titres-restaurant</p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Contact Entreprise</h6>
+                                    <p>Marie Dupont<br>marie.dupont@google.com<br>+33 6 12 34 56 78</p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>Étudiant Affecté</h6>
+                                    <div class="d-flex align-items-center">
+                                        <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" alt="Étudiant" width="40" height="40" class="rounded-circle me-3">
+                                        <div>
+                                            <strong>Jean Martin</strong><br>
+                                            <small class="text-muted">M2 Informatique</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary">Modifier</button>
+                                    <button class="btn btn-outline-secondary">Voir l'étudiant</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Stage Modal -->
+    <div class="modal fade" id="addStageModal" tabindex="-1" aria-labelledby="addStageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addStageModalLabel">Ajouter un Stage</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Titre du stage</label>
+                                    <input type="text" class="form-control" placeholder="Ex: Développement Web Frontend" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Entreprise</label>
+                                    <select class="form-select" required>
+                                        <option value="">Sélectionner...</option>
+                                        <option>Google France</option>
+                                        <option>Amazon</option>
+                                        <option>Microsoft</option>
+                                        <option value="new">+ Ajouter une nouvelle entreprise</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Description détaillée</label>
+                            <textarea class="form-control" rows="4" required></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Date de début</label>
+                                    <input type="date" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Date de fin</label>
+                                    <input type="date" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Domaine principal</label>
+                                    <select class="form-select" required>
+                                        <option value="">Sélectionner...</option>
+                                        <option>Développement Web</option>
+                                        <option>Data Science</option>
+                                        <option>IA/Machine Learning</option>
+                                        <option>Cybersécurité</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Compétences requises</label>
+                                    <select class="form-select" multiple>
+                                        <option>JavaScript</option>
+                                        <option>Python</option>
+                                        <option>Java</option>
+                                        <option>SQL</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Localisation</label>
+                                    <input type="text" class="form-control" placeholder="Ville, Pays">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Mode de travail</label>
+                                    <select class="form-select">
+                                        <option>Présentiel</option>
+                                        <option>Hybride</option>
+                                        <option>Distanciel</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Rémunération (€/mois)</label>
+                                    <input type="number" class="form-control" min="0" step="50" value="1000">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Contact entreprise</label>
+                                    <input type="text" class="form-control" placeholder="Nom, email, téléphone">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- [Scripts identiques...] -->
+</body>
+</html>

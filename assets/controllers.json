@@ -1,0 +1,35 @@
+{
+  "controllers": {
+    "@symfony/ux-chartjs": {
+      "chart": {
+        "enabled": true,
+        "fetch": "eager"
+      }
+    }
+  },
+  "entrypoints": {
+    "app": {
+      "js": [
+        "./assets/js/app.js"
+      ],
+      "css": [
+        "./assets/css/app.css"
+      ]
+    },
+    "admin": {
+      "js": [
+        "./assets/js/admin.js"
+      ]
+    },
+    "student": {
+      "js": [
+        "./assets/js/student.js"
+      ]
+    },
+    "tutor": {
+      "js": [
+        "./assets/js/tutor.js"
+      ]
+    }
+  }
+}

@@ -1,0 +1,210 @@
+/* Theme clair pour l'application TutorMatch */
+
+:root.light-theme {
+    /* Couleurs principales */
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --accent-color: #e74c3c;
+    
+    /* Couleurs de base */
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    
+    /* Couleurs de fond */
+    --bg-color: #f5f7fa;
+    --card-bg-color: #ffffff;
+    --sidebar-bg-color: #2c3e50;
+    --header-bg-color: #ffffff;
+    --navbar-bg-color: #ffffff;
+    
+    /* Couleurs de texte */
+    --text-color: #2c3e50;
+    --text-muted: #95a5a6;
+    --link-color: #3498db;
+    
+    /* Couleurs des éléments d'interface */
+    --border-color: #dee2e6;
+    --input-bg-color: #ffffff;
+    --input-text-color: #2c3e50;
+    --input-border-color: #ced4da;
+    
+    /* Couleurs de statut */
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+    
+    /* Ombres */
+    --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Styles de base */
+.light-theme body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* Sidebar */
+.light-theme .sidebar {
+    background-color: var(--sidebar-bg-color);
+    color: white;
+}
+
+.light-theme .sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.light-theme .sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.light-theme .sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Navbar */
+.light-theme .navbar {
+    background-color: var(--navbar-bg-color);
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Recherche */
+.light-theme .search-box input {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--input-border-color);
+}
+
+.light-theme .search-box i {
+    color: var(--text-muted);
+}
+
+/* Cards */
+.light-theme .card {
+    background-color: var(--card-bg-color);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.light-theme .card-header {
+    background-color: var(--card-bg-color);
+    border-bottom-color: var(--border-color);
+    color: var(--text-color);
+}
+
+/* Tableaux */
+.light-theme .table {
+    color: var(--text-color);
+}
+
+.light-theme .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.light-theme .table th {
+    border-top-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.light-theme .table td {
+    border-top-color: var(--border-color);
+}
+
+/* Formulaires */
+.light-theme .form-control {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--input-border-color);
+}
+
+.light-theme .form-control:focus {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Liens */
+.light-theme a {
+    color: var(--link-color);
+}
+
+.light-theme a:hover {
+    color: #2980b9;
+}
+
+/* Texte muted */
+.light-theme .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Button styles for light theme */
+.light-theme .btn-primary:hover,
+.light-theme .btn-primary:focus,
+.light-theme .btn-primary:active,
+.light-theme .btn-secondary:hover,
+.light-theme .btn-secondary:focus,
+.light-theme .btn-secondary:active,
+.light-theme .btn-success:hover,
+.light-theme .btn-success:focus,
+.light-theme .btn-success:active,
+.light-theme .btn-danger:hover,
+.light-theme .btn-danger:focus,
+.light-theme .btn-danger:active,
+.light-theme .btn-warning:hover,
+.light-theme .btn-warning:focus,
+.light-theme .btn-warning:active,
+.light-theme .btn-info:hover,
+.light-theme .btn-info:focus,
+.light-theme .btn-info:active {
+    color: white !important;
+}
+
+.light-theme .btn-outline-primary:hover,
+.light-theme .btn-outline-primary:focus,
+.light-theme .btn-outline-primary:active,
+.light-theme .btn-outline-secondary:hover,
+.light-theme .btn-outline-secondary:focus,
+.light-theme .btn-outline-secondary:active,
+.light-theme .btn-outline-success:hover,
+.light-theme .btn-outline-success:focus,
+.light-theme .btn-outline-success:active,
+.light-theme .btn-outline-danger:hover,
+.light-theme .btn-outline-danger:focus,
+.light-theme .btn-outline-danger:active,
+.light-theme .btn-outline-warning:hover,
+.light-theme .btn-outline-warning:focus,
+.light-theme .btn-outline-warning:active,
+.light-theme .btn-outline-info:hover,
+.light-theme .btn-outline-info:focus,
+.light-theme .btn-outline-info:active {
+    color: white !important;
+}
+
+/* Theme card pour le sélecteur de thème */
+.light-theme .theme-card {
+    border-color: var(--border-color);
+}
+
+.light-theme .theme-card.active {
+    border-color: var(--primary-color);
+}
+
+.light-theme .theme-preview {
+    border-color: var(--border-color);
+}
+
+/* Options de couleur */
+.light-theme .color-preview {
+    border-color: var(--border-color);
+}
+
+.light-theme input[type="radio"]:checked + .color-preview {
+    border-color: #000;
+}

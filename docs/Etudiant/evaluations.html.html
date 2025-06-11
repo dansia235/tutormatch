@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <!-- [Head identique] -->
+    <style>
+        /* [Styles identiques] */
+        
+        .evaluation-card {
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s;
+        }
+        
+        .evaluation-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .rating-stars {
+            color: #f39c12;
+            font-size: 1.2rem;
+        }
+        
+        .criteria-progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+    </style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⭐</text></svg>">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar identique -->
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
+            <!-- [Sidebar avec l'onglet Évaluations actif] -->
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar identique -->
+            
+            <!-- Évaluations Content -->
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2>Évaluations</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="#">Tableau de bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Évaluations</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 fade-in delay-1">
+                        <div class="card stat-card">
+                            <div class="value">4.8</div>
+                            <div class="label">Moyenne générale</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" style="width: 96%;" aria-valuenow="96" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Sur 5.0</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-2">
+                        <div class="card stat-card">
+                            <div class="value">3</div>
+                            <div class="label">Évaluations</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 60%;" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">3/5 complétées</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-3">
+                        <div class="card stat-card">
+                            <div class="value">4.5</div>
+                            <div class="label">Technique</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: 90%;" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Compétences</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-4">
+                        <div class="card stat-card">
+                            <div class="value">5.0</div>
+                            <div class="label">Professionnel</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Comportement</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des Évaluations -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Mes Évaluations</span>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#selfEvaluationModal">
+                                    <i class="bi bi-pencil me-1"></i>Auto-évaluation
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Type</th>
+                                                <th>Évaluateur</th>
+                                                <th>Note</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="evaluation-card">
+                                                <td>10/06/2023</td>
+                                                <td>Mi-parcours</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="https://ui-avatars.com/api/?name=Prof+Dupont&background=3498db&color=fff" alt="Tuteur" width="30" height="30" class="rounded-circle me-2">
+                                                        <span>Prof. Dupont</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="rating-stars">
+                                                        <i class="bi bi-star-fill"></i>
+                                                        <i class="bi bi-star-fill"></i>
+                                                        <i class="bi bi-star-fill"></i>
+                                                        <i class="bi bi-star-fill"></i>
+                                                        <i class="bi bi-star"></i>
+                                                        <span class="ms-2">4.0</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></button>
+                                                </td>
+                                            </tr>
+                                            <!-- [Autres évaluations...] -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Détails Évaluation -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Détails de l'Évaluation</span>
+                                <button class="btn btn-sm btn-outline-secondary">Exporter PDF</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-4">
+                                    <h4>Évaluation Mi-parcours</h4>
+                                    <p class="text-muted">Effectuée par Prof. Dupont le 10/06/2023</p>
+                                    <div class="rating-stars display-4 mb-3">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star"></i>
+                                        <span class="ms-3">4.0/5.0</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5>Commentaires</h5>
+                                    <div class="card p-3 bg-light">
+                                        <p>"Jean a montré une excellente progression technique depuis le début du stage. Il a rapidement pris en main les technologies utilisées et fait preuve d'une grande autonomie. Quelques améliorations possibles dans la documentation du code."</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5>Critères d'évaluation</h5>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Compétences techniques</span>
+                                            <span>4.5/5</span>
+                                        </div>
+                                        <div class="criteria-progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 90%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Autonomie</span>
+                                            <span>4.0/5</span>
+                                        </div>
+                                        <div class="criteria-progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 80%;"></div>
+                                        </div>
+                                    </div>
+                                    <!-- [Autres critères...] -->
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h5>Objectifs pour la prochaine période</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item">Améliorer la documentation du code</li>
+                                        <li class="list-group-item">Participer plus activement aux réunions d'équipe</li>
+                                        <li class="list-group-item">Finaliser le module API pour la prochaine évaluation</li>
+                                    </ul>
+                                </div>
+                                
+                                <button class="btn btn-primary w-100 mt-3">
+                                    <i class="bi bi-download me-1"></i>Télécharger le rapport complet
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Comparaison et Objectifs -->
+                    <div class="col-lg-4">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Progression</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="evaluationChart"></canvas>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-primary me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>Technique</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-success me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>Professionnel</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card fade-in">
+                            <div class="card-header">
+                                <span>Objectifs à venir</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 30px; height: 30px;">1</div>
+                                            <div>
+                                                <strong>Documentation du code</strong>
+                                                <p class="mb-0 small">À compléter pour la prochaine évaluation</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- [Autres objectifs...] -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Self Evaluation Modal -->
+    <div class="modal fade" id="selfEvaluationModal" tabindex="-1" aria-labelledby="selfEvaluationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="selfEvaluationModalLabel">Auto-évaluation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-4">
+                            <h5>Compétences techniques</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Maîtrise des technologies</label>
+                                <select class="form-select">
+                                    <option value="" disabled selected>Sélectionnez une note</option>
+                                    <option>1 - Débutant</option>
+                                    <option>2 - En progression</option>
+                                    <option>3 - Intermédiaire</option>
+                                    <option>4 - Avancé</option>
+                                    <option>5 - Expert</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Qualité du code</label>
+                                <select class="form-select">
+                                    <option value="" disabled selected>Sélectionnez une note</option>
+                                    <option>1 - Insuffisant</option>
+                                    <option>2 - Satisfaisant</option>
+                                    <option>3 - Bon</option>
+                                    <option>4 - Très bon</option>
+                                    <option>5 - Excellent</option>
+                                </select>
+                            </div>
+                            <!-- [Autres critères techniques...] -->
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5>Compétences professionnelles</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Autonomie</label>
+                                <select class="form-select">
+                                    <option value="" disabled selected>Sélectionnez une note</option>
+                                    <option>1 - Faible</option>
+                                    <option>2 - Moyenne</option>
+                                    <option>3 - Bonne</option>
+                                    <option>4 - Très bonne</option>
+                                    <option>5 - Excellente</option>
+                                </select>
+                            </div>
+                            <!-- [Autres critères professionnels...] -->
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h5>Commentaires</h5>
+                            <textarea class="form-control" rows="4" placeholder="Décrivez vos points forts, difficultés rencontrées et axes d'amélioration..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary">Soumettre l'auto-évaluation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- [Scripts identiques + Chart JS] -->
+</body>
+</html>

@@ -1,0 +1,25 @@
+# Activer le moteur de réécriture
+RewriteEngine On
+
+# Définir le répertoire de base pour les règles de réécriture
+RewriteBase /tutoring/api/
+
+# Rediriger toutes les requêtes vers index.php sauf pour les fichiers et répertoires existants
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Permettre les méthodes HTTP pour les requêtes CORS
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+
+# Gérer les requêtes OPTIONS pour CORS
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Définir le type de contenu par défaut pour l'API
+Header always set Content-Type "application/json; charset=UTF-8" env=API_RESPONSE
+
+# Désactiver l'affichage des index de répertoire
+Options -Indexes

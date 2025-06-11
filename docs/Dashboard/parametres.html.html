@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres | TutorMatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        /* [Styles identiques aux autres pages...] */
+        
+        .settings-card {
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s;
+        }
+        
+        .settings-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-switch .form-check-input {
+            width: 3em;
+            height: 1.5em;
+        }
+    </style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar identique -->
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
+            <!-- [Sidebar identique avec l'onglet Paramètres actif...] -->
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar identique -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+                <!-- [Navbar identique...] -->
+            </nav>
+
+            <!-- Paramètres Content -->
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2>Paramètres</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="dashboard.html">Tableau de bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Paramètres</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Navigation Paramètres -->
+                    <div class="col-lg-3">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-body p-0">
+                                <ul class="nav nav-pills flex-column">
+                                    <li class="nav-item">
+                                        <a class="nav-link active" href="#profile" data-bs-toggle="pill">
+                                            <i class="bi bi-person me-2"></i> Profil
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#account" data-bs-toggle="pill">
+                                            <i class="bi bi-lock me-2"></i> Compte
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#notifications" data-bs-toggle="pill">
+                                            <i class="bi bi-bell me-2"></i> Notifications
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#privacy" data-bs-toggle="pill">
+                                            <i class="bi bi-shield-lock me-2"></i> Confidentialité
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#preferences" data-bs-toggle="pill">
+                                            <i class="bi bi-sliders me-2"></i> Préférences
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contenu Paramètres -->
+                    <div class="col-lg-9">
+                        <div class="tab-content">
+                            <!-- Onglet Profil -->
+                            <div class="tab-pane fade show active" id="profile">
+                                <div class="card mb-4 fade-in settings-card">
+                                    <div class="card-header">
+                                        <span>Informations personnelles</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="text-center mb-4">
+                                            <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" alt="Profil" class="profile-avatar mb-3">
+                                            <button class="btn btn-sm btn-outline-primary">Changer la photo</button>
+                                        </div>
+                                        
+                                        <form>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Prénom</label>
+                                                    <input type="text" class="form-control" value="Jean">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Nom</label>
+                                                    <input type="text" class="form-control" value="Martin">
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Email</label>
+                                                <input type="email" class="form-control" value="jean.martin@etu.univ.fr">
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Téléphone</label>
+                                                <input type="tel" class="form-control" value="+33 6 12 34 56 78">
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Adresse</label>
+                                                <textarea class="form-control" rows="2">15 Rue des Écoles, 75005 Paris</textarea>
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Date de naissance</label>
+                                                    <input type="date" class="form-control" value="1998-05-15">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Promotion</label>
+                                                    <input type="text" class="form-control" value="Master 2 Informatique 2023">
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="d-flex justify-content-end">
+                                                <button type="button" class="btn btn-primary">Enregistrer les modifications</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Compte -->
+                            <div class="tab-pane fade" id="account">
+                                <div class="card mb-4 fade-in settings-card">
+                                    <div class="card-header">
+                                        <span>Sécurité du compte</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-warning mb-4">
+                                            <i class="bi bi-exclamation-triangle me-2"></i> Pour des raisons de sécurité, certaines modifications peuvent nécessiter une reconnexion.
+                                        </div>
+                                        
+                                        <form>
+                                            <div class="mb-3">
+                                                <label class="form-label">Nom d'utilisateur</label>
+                                                <input type="text" class="form-control" value="j.martin">
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Mot de passe actuel</label>
+                                                <input type="password" class="form-control" placeholder="Entrez votre mot de passe actuel">
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Nouveau mot de passe</label>
+                                                <input type="password" class="form-control" placeholder="Entrez un nouveau mot de passe">
+                                                <small class="text-muted">Minimum 8 caractères avec chiffres et caractères spéciaux</small>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Confirmer le nouveau mot de passe</label>
+                                                <input type="password" class="form-control" placeholder="Confirmez le nouveau mot de passe">
+                                            </div>
+                                            
+                                            <div class="d-flex justify-content-end">
+                                                <button type="button" class="btn btn-primary">Mettre à jour le mot de passe</button>
+                                            </div>
+                                        </form>
+                                        
+                                        <hr class="my-4">
+                                        
+                                        <h5 class="mb-3">Connexions actives</h5>
+                                        <div class="list-group mb-3">
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <strong>Chrome sur Windows</strong>
+                                                        <p class="mb-0 small text-muted">Paris, France - 12/06/2023 10:15</p>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-danger">Déconnecter</button>
+                                                </div>
+                                            </div>
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <strong>Safari sur iPhone</strong>
+                                                        <p class="mb-0 small text-muted">Lyon, France - 10/06/2023 14:30</p>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-danger">Déconnecter</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-end">
+                                            <button type="button" class="btn btn-outline-danger">Déconnecter tous les appareils</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Notifications -->
+                            <div class="tab-pane fade" id="notifications">
+                                <div class="card mb-4 fade-in settings-card">
+                                    <div class="card-header">
+                                        <span>Préférences de notification</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <form>
+                                            <h5 class="mb-3">Notifications par email</h5>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="emailMessages" checked>
+                                                <label class="form-check-label" for="emailMessages">Nouveaux messages</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="emailReports" checked>
+                                                <label class="form-check-label" for="emailReports">Feedback sur les rapports</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="emailMeetings">
+                                                <label class="form-check-label" for="emailMeetings">Rappels de réunions</label>
+                                            </div>
+                                            
+                                            <h5 class="mb-3 mt-4">Notifications sur le site</h5>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="siteMessages" checked>
+                                                <label class="form-check-label" for="siteMessages">Nouveaux messages</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="siteTasks" checked>
+                                                <label class="form-check-label" for="siteTasks">Tâches à faire</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="siteDeadlines">
+                                                <label class="form-check-label" for="siteDeadlines">Échéances</label>
+                                            </div>
+                                            
+                                            <h5 class="mb-3 mt-4">Fréquence des notifications</h5>
+                                            <select class="form-select mb-4">
+                                                <option selected>En temps réel</option>
+                                                <option>Quotidiennement</option>
+                                                <option>Hebdomadairement</option>
+                                            </select>
+                                            
+                                            <div class="d-flex justify-content-end">
+                                                <button type="button" class="btn btn-primary">Enregistrer les préférences</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Confidentialité -->
+                            <div class="tab-pane fade" id="privacy">
+                                <div class="card mb-4 fade-in settings-card">
+                                    <div class="card-header">
+                                        <span>Paramètres de confidentialité</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <form>
+                                            <h5 class="mb-3">Visibilité du profil</h5>
+                                            <div class="mb-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="profileVisibility" id="visibilityPublic" checked>
+                                                    <label class="form-check-label" for="visibilityPublic">
+                                                        Public (visible par tous les utilisateurs de la plateforme)
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="profileVisibility" id="visibilityRestricted">
+                                                    <label class="form-check-label" for="visibilityRestricted">
+                                                        Restreint (visible uniquement par les tuteurs et administrateurs)
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="profileVisibility" id="visibilityPrivate">
+                                                    <label class="form-check-label" for="visibilityPrivate">
+                                                        Privé (visible uniquement par vous)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <h5 class="mb-3 mt-4">Partage de données</h5>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="shareProgress" checked>
+                                                <label class="form-check-label" for="shareProgress">
+                                                    Autoriser le partage de ma progression avec mon tuteur
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="shareEvaluations">
+                                                <label class="form-check-label" for="shareEvaluations">
+                                                    Autoriser le partage de mes évaluations avec l'entreprise
+                                                </label>
+                                            </div>
+                                            
+                                            <h5 class="mb-3 mt-4">Export des données</h5>
+                                            <p class="mb-3">Vous pouvez demander une copie de toutes vos données personnelles stockées sur notre plateforme.</p>
+                                            <button type="button" class="btn btn-outline-primary">Demander une export des données</button>
+                                            
+                                            <hr class="my-4">
+                                            
+                                            <h5 class="mb-3">Suppression du compte</h5>
+                                            <p class="mb-3 text-danger">Attention : Cette action est irréversible. Toutes vos données seront définitivement supprimées.</p>
+                                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                                                Supprimer mon compte
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Préférences -->
+                            <div class="tab-pane fade" id="preferences">
+                                <div class="card mb-4 fade-in settings-card">
+                                    <div class="card-header">
+                                        <span>Préférences de l'application</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <form>
+                                            <h5 class="mb-3">Langue et région</h5>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Langue</label>
+                                                    <select class="form-select">
+                                                        <option selected>Français</option>
+                                                        <option>English</option>
+                                                        <option>Español</option>
+                                                        <option>Deutsch</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Fuseau horaire</label>
+                                                    <select class="form-select">
+                                                        <option selected>Europe/Paris (UTC+2)</option>
+                                                        <option>UTC</option>
+                                                        <option>America/New_York (UTC-4)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            
+                                            <h5 class="mb-3 mt-4">Apparence</h5>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Thème</label>
+                                                    <select class="form-select">
+                                                        <option selected>Clair</option>
+                                                        <option>Sombre</option>
+                                                        <option>Système</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Densité d'affichage</label>
+                                                    <select class="form-select">
+                                                        <option selected>Par défaut</option>
+                                                        <option>Compact</option>
+                                                        <option>Comfortable</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            
+                                            <h5 class="mb-3 mt-4">Accessibilité</h5>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="highContrast">
+                                                <label class="form-check-label" for="highContrast">Mode contraste élevé</label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="textSize">
+                                                <label class="form-check-label" for="textSize">Texte plus grand</label>
+                                            </div>
+                                            
+                                            <div class="d-flex justify-content-end">
+                                                <button type="button" class="btn btn-primary">Enregistrer les préférences</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Modal -->
+    <div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteAccountModalLabel">Confirmer la suppression du compte</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-octagon-fill me-2"></i> Cette action est irréversible. Toutes vos données seront définitivement supprimées.
+                    </div>
+                    <p>Pour confirmer la suppression de votre compte, veuillez saisir votre mot de passe :</p>
+                    <input type="password" class="form-control" placeholder="Votre mot de passe">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger">Confirmer la suppression</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Gestion des paramètres
+        document.querySelectorAll('.form-check-input, .form-select').forEach(element => {
+            element.addEventListener('change', function() {
+                // Ici, vous pourriez sauvegarder automatiquement les préférences
+                console.log('Préférence modifiée');
+            });
+        });
+    </script>
+</body>
+</html>

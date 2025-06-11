@@ -1,0 +1,742 @@
+/* Styles principaux pour l'application TutorMatch */
+
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --accent-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+    --muted-color: #95a5a6;
+}
+
+/* Global Button Reset - Fix hover text visibility */
+.btn {
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.btn:hover, .btn:focus, .btn:active {
+    text-decoration: none;
+    color: inherit;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    color: var(--dark-color);
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: var(--secondary-color);
+    color: white;
+    height: 100vh;
+    position: fixed;
+    transition: all 0.3s;
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 5px;
+    border-radius: 5px;
+    padding: 10px 15px;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.sidebar .nav-link i {
+    margin-right: 10px;
+}
+
+/* Logo */
+.logo {
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo img, .logo svg {
+    max-width: 80%;
+    height: auto;
+}
+
+/* Graduation Cap Logo */
+.graduation-cap-logo {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.graduation-cap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+}
+
+.logo-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 10px;
+    color: white;
+}
+
+/* Profil utilisateur */
+.user-profile {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: auto;
+    margin-bottom: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.user-profile img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.user-profile .user-info {
+    line-height: 1.2;
+}
+
+.user-profile .user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-profile .user-role {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    transition: all 0.3s;
+    width: calc(100% - 250px);
+}
+
+/* Navbar */
+.navbar {
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+
+/* Recherche */
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box input {
+    padding-left: 40px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #95a5a6;
+    z-index: 1;
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Stat Cards */
+.stat-card {
+    text-align: center;
+    padding: 20px;
+}
+
+.stat-card .value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-card .label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Badges */
+.badge-primary {
+    background-color: var(--primary-color);
+}
+
+.badge-success {
+    background-color: var(--success-color);
+}
+
+.badge-warning {
+    background-color: var(--warning-color);
+}
+
+.badge-danger {
+    background-color: var(--danger-color);
+}
+
+.badge-info {
+    background-color: var(--info-color);
+}
+
+/* Tables */
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white !important;
+}
+
+.btn-primary:hover, 
+.btn-primary:focus, 
+.btn-primary:active {
+    background-color: #2980b9;
+    border-color: #2980b9;
+    color: white !important;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover, 
+.btn-outline-primary:focus, 
+.btn-outline-primary:active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white !important;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white !important;
+}
+
+.btn-secondary:hover, 
+.btn-secondary:focus, 
+.btn-secondary:active {
+    background-color: #1a2530;
+    border-color: #1a2530;
+    color: white !important;
+}
+
+.btn-outline-secondary {
+    color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    background-color: transparent;
+}
+
+.btn-outline-secondary:hover, 
+.btn-outline-secondary:focus, 
+.btn-outline-secondary:active {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white !important;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: white !important;
+}
+
+.btn-success:hover, 
+.btn-success:focus, 
+.btn-success:active {
+    background-color: #27ae60;
+    border-color: #27ae60;
+    color: white !important;
+}
+
+.btn-outline-success {
+    color: var(--success-color);
+    border-color: var(--success-color);
+    background-color: transparent;
+}
+
+.btn-outline-success:hover, 
+.btn-outline-success:focus, 
+.btn-outline-success:active {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: white !important;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+    color: white !important;
+}
+
+.btn-danger:hover, 
+.btn-danger:focus, 
+.btn-danger:active {
+    background-color: #c0392b;
+    border-color: #c0392b;
+    color: white !important;
+}
+
+.btn-outline-danger {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+    background-color: transparent;
+}
+
+.btn-outline-danger:hover, 
+.btn-outline-danger:focus, 
+.btn-outline-danger:active {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+    color: white !important;
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    border-color: var(--warning-color);
+    color: white !important;
+}
+
+.btn-warning:hover, 
+.btn-warning:focus, 
+.btn-warning:active {
+    background-color: #e67e22;
+    border-color: #e67e22;
+    color: white !important;
+}
+
+.btn-outline-warning {
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+    background-color: transparent;
+}
+
+.btn-outline-warning:hover, 
+.btn-outline-warning:focus, 
+.btn-outline-warning:active {
+    background-color: var(--warning-color);
+    border-color: var(--warning-color);
+    color: white !important;
+}
+
+.btn-info {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+    color: white !important;
+}
+
+.btn-info:hover, 
+.btn-info:focus, 
+.btn-info:active {
+    background-color: #2980b9;
+    border-color: #2980b9;
+    color: white !important;
+}
+
+.btn-outline-info {
+    color: var(--info-color);
+    border-color: var(--info-color);
+    background-color: transparent;
+}
+
+.btn-outline-info:hover, 
+.btn-outline-info:focus, 
+.btn-outline-info:active {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+    color: white !important;
+}
+
+/* Ensure button text is visible in all states */
+.btn:hover, .btn:focus, .btn:active {
+    text-decoration: none;
+    opacity: 0.9;
+    transition: all 0.3s;
+}
+
+/* Progress Bars */
+.progress {
+    height: 8px;
+    border-radius: 4px;
+}
+
+.progress-bar {
+    background-color: var(--primary-color);
+}
+
+/* Charts */
+.chart-container {
+    position: relative;
+    height: 250px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.chart-container canvas {
+    max-width: 100%;
+}
+
+/* Dashboard Charts */
+.dashboard-chart {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    padding: 15px;
+    transition: transform 0.3s;
+}
+
+.dashboard-chart:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-align: center;
+    color: var(--secondary-color);
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0 10px 5px 0;
+}
+
+.chart-legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 5px;
+}
+
+.chart-legend-label {
+    font-size: 0.85rem;
+    color: var(--muted-color);
+}
+
+/* Timelines */
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    border: 2px solid white;
+}
+
+/* Forms */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Document Cards */
+.document-card {
+    border-left: 4px solid #6c757d;
+    transition: all 0.3s;
+}
+
+.document-card:hover {
+    transform: translateX(5px);
+}
+
+/* Assignment Cards */
+.assignment-card {
+    border-left: 4px solid var(--primary-color);
+}
+
+.assignment-card.confirmed {
+    border-left-color: var(--success-color);
+}
+
+.assignment-card.pending {
+    border-left-color: var(--warning-color);
+}
+
+.assignment-card.conflict {
+    border-left-color: var(--accent-color);
+}
+
+/* Skill Badges */
+.skill-badge {
+    margin-right: 5px;
+    margin-bottom: 5px;
+    display: inline-block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        margin-left: -250px;
+    }
+    
+    .sidebar.active {
+        margin-left: 0;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .navbar-toggler {
+        display: block;
+    }
+}
+
+/* Styles spécifiques pour le layout admin Bootstrap */
+.sidebar {
+    background-color: var(--secondary-color);
+    color: white;
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding-top: 20px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+}
+
+.sidebar .nav {
+    padding: 0 15px;
+}
+
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 5px;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    text-decoration: none;
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.sidebar .nav-link svg {
+    margin-right: 10px;
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.main-content.sidebar-open {
+    margin-left: 250px;
+}
+
+@media (max-width: 991.98px) {
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .sidebar {
+        margin-left: -250px;
+    }
+    
+    .sidebar.active {
+        margin-left: 0;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+
+/* Pour les listes déroulantes avec recherche */
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+    border-color: #ddd;
+    border-radius: 8px;
+}
+
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default .select2-selection--multiple:focus {
+    border-color: var(--primary-color);
+}
+
+/* Pour les calendriers */
+.fc-button-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.fc-button-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+}
+
+.fc-event {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Pagination */
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.pagination .page-link {
+    color: var(--primary-color);
+}
+
+/* Messages */
+.message-item {
+    border-left: 4px solid var(--primary-color);
+    margin-bottom: 10px;
+    padding: 10px;
+    transition: all 0.3s;
+}
+
+.message-item.unread {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.message-item:hover {
+    transform: translateX(5px);
+}

@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attribution de Tuteurs | Suivi de Stage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+        }
+        
+        .sidebar {
+            background-color: var(--secondary-color);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding-top: 20px;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 5px;
+            border-radius: 5px;
+            padding: 10px 15px;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-card .label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .badge-primary {
+            background-color: var(--primary-color);
+        }
+        
+        .badge-success {
+            background-color: var(--success-color);
+        }
+        
+        .badge-warning {
+            background-color: #f39c12;
+        }
+        
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+        }
+        
+        .logo {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .logo img {
+            max-width: 80%;
+            height: auto;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 10px;
+            color: white;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: auto;
+            margin-bottom: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .user-profile .user-info {
+            line-height: 1.2;
+        }
+        
+        .user-profile .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .user-profile .user-role {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        .progress-bar {
+            background-color: var(--primary-color);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+        
+        .assignment-card {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .assignment-card.confirmed {
+            border-left-color: var(--success-color);
+        }
+        
+        .assignment-card.pending {
+            border-left-color: #f39c12;
+        }
+        
+        .assignment-card.conflict {
+            border-left-color: var(--accent-color);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-left: 40px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 10px;
+            color: #95a5a6;
+        }
+        
+        .heatmap {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 15px;
+        }
+        
+        .heatmap-cell {
+            height: 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .heatmap-cell:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 100;
+        }
+        
+        .ai-suggestion {
+            border: 2px dashed var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        .draggable {
+            cursor: move;
+            transition: transform 0.2s;
+        }
+        
+        .draggable.dragging {
+            opacity: 0.5;
+            transform: scale(1.02);
+        }
+        
+        .dropzone {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            transition: background-color 0.3s;
+        }
+        
+        .dropzone.active {
+            border-color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        .chat-container {
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .chat-message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 80%;
+        }
+        
+        .chat-message.sent {
+            background-color: var(--primary-color);
+            color: white;
+            margin-left: auto;
+        }
+        
+        .chat-message.received {
+            background-color: #e9ecef;
+            margin-right: auto;
+        }
+        
+        .constraint-badge {
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .constraint-badge.active {
+            background-color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-left: -250px;
+            }
+            
+            .sidebar.active {
+                margin-left: 0;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .navbar-toggler {
+                display: block;
+            }
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 2px solid white;
+        }
+        
+        /* Skill matrix */
+        .skill-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        
+        .skill-item {
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        
+        .skill-item.high-demand {
+            background-color: #ffeeba;
+        }
+    </style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨‍🏫</text></svg>">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                    <path d="M8 3.5a.5.5 0 0 0-1 0v9a.5.5 0 0 0 1 0v-9z"/>
+                    <path d="M5.5 8a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+                <div class="logo-text">TutorMatch Pro</div>
+            </div>
+            <hr>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" id="dashboard-tab">
+                        <i class="bi bi-speedometer2"></i>
+                        Tableau de bord
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="students-tab">
+                        <i class="bi bi-people"></i>
+                        Étudiants
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="tutors-tab">
+                        <i class="bi bi-person-badge"></i>
+                        Tuteurs
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="internships-tab">
+                        <i class="bi bi-briefcase"></i>
+                        Stages
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="assignments-tab">
+                        <i class="bi bi-diagram-3"></i>
+                        Affectations
+                        <span class="badge bg-danger ms-1">Nouveau</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="communication-tab">
+                        <i class="bi bi-chat-left-text"></i>
+                        Messagerie
+                        <span class="notification-badge">5</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="reports-tab">
+                        <i class="bi bi-graph-up"></i>
+                        Rapports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="settings-tab">
+                        <i class="bi bi-gear"></i>
+                        Paramètres
+                    </a>
+                </li>
+            </ul>
+            <hr>
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=3498db&color=fff" alt="User">
+                <div class="user-info">
+                    <div class="user-name">Admin User</div>
+                    <div class="user-role">Responsable des stages</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="search-box me-auto ms-3">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="form-control" placeholder="Rechercher..." id="globalSearch">
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown me-3">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-bell fs-5 position-relative">
+                                    <span class="notification-badge">3</span>
+                                </i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
+                                <li><h6 class="dropdown-header">Notifications</h6></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Nouvelle demande de suivi</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-hourglass-split text-info me-2"></i>2 affectations en attente</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text text-primary me-2"></i>Rapport hebdomadaire disponible</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-bell-fill me-2"></i>Voir toutes les notifications</a></li>
+                            </ul>
+                        </div>
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="d-none d-sm-inline mx-1">Admin</span>
+                                <img src="https://ui-avatars.com/api/?name=Admin+User&background=3498db&color=fff" alt="User" width="32" height="32" class="rounded-circle">
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profil</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Paramètres</a></li>
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#aiAssistantModal"><i class="bi bi-robot me-2"></i>Assistant IA</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Dashboard Content -->
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2>Tableau de bord</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Tableau de bord</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 fade-in delay-1">
+                        <div class="card stat-card">
+                            <div class="value">142</div>
+                            <div class="label">Étudiants</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" style="width: 85%;" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">+12% depuis le mois dernier</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-2">
+                        <div class="card stat-card">
+                            <div class="value">32</div>
+                            <div class="label">Tuteurs</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">+3% depuis le mois dernier</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-3">
+                        <div class="card stat-card">
+                            <div class="value">118</div>
+                            <div class="label">Stages</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" style="width: 78%;" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">+15% depuis le mois dernier</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-4">
+                        <div class="card stat-card">
+                            <div class="value">94%</div>
+                            <div class="label">Satisfaction</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 94%;" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">8 retours positifs</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Row -->
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-lg-8">
+                        <!-- Assignments Overview -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>État des affectations</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#algorithmSettingsModal">
+                                        <i class="bi bi-gear me-1"></i>Paramètres
+                                    </button>
+                                    <button class="btn btn-sm btn-primary ms-2" id="generateAssignmentsBtn">
+                                        <i class="bi bi-magic me-1"></i>Générer les affectations
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info d-flex align-items-center">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    <div>
+                                        Utilisez l'algorithme intelligent pour générer des affectations optimales basées sur les préférences et contraintes.
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h5>Contraintes d'affectation</h5>
+                                    <div id="constraintsContainer">
+                                        <span class="badge constraint-badge active" data-constraint="expertise">Correspondance expertise</span>
+                                        <span class="badge constraint-badge active" data-constraint="availability">Disponibilité</span>
+                                        <span class="badge constraint-badge" data-constraint="department">Même département</span>
+                                        <span class="badge constraint-badge active" data-constraint="capacity">Capacité tuteur</span>
+                                        <span class="badge constraint-badge" data-constraint="history">Historique précédent</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="assignmentsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Tuteur</th>
+                                                <th>Étudiant</th>
+                                                <th>Stage</th>
+                                                <th>Score</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="draggable" draggable="true" data-id="1">
+                                                <td>Prof. Dupont</td>
+                                                <td>Jean Martin</td>
+                                                <td>Développement Web - Google</td>
+                                                <td><span class="badge bg-primary">92%</span></td>
+                                                <td><span class="badge bg-success">Confirmée</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary view-assignment"><i class="bi bi-eye"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary ms-1 edit-assignment"><i class="bi bi-pencil"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr class="draggable" draggable="true" data-id="2">
+                                                <td>Prof. Leroy</td>
+                                                <td>Marie Dubois</td>
+                                                <td>Analyse de données - Amazon</td>
+                                                <td><span class="badge bg-primary">87%</span></td>
+                                                <td><span class="badge bg-warning text-dark">En attente</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary view-assignment"><i class="bi bi-eye"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary ms-1 edit-assignment"><i class="bi bi-pencil"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr class="draggable ai-suggestion" draggable="true" data-id="3">
+                                                <td>Prof. Simon</td>
+                                                <td>Sophie Petit</td>
+                                                <td>IA et Machine Learning - Microsoft</td>
+                                                <td><span class="badge bg-primary">95%</span></td>
+                                                <td><span class="badge bg-secondary">Suggestion IA</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary view-assignment"><i class="bi bi-eye"></i></button>
+                                                    <button class="btn btn-sm btn-success ms-1 confirm-assignment"><i class="bi bi-check"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr class="draggable" draggable="true" data-id="4">
+                                                <td>Prof. Moreau</td>
+                                                <td>Pierre Bernard</td>
+                                                <td>Sécurité informatique - IBM</td>
+                                                <td><span class="badge bg-danger">45%</span></td>
+                                                <td><span class="badge bg-danger">Conflit</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary view-assignment"><i class="bi bi-eye"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary ms-1 edit-assignment"><i class="bi bi-pencil"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr class="draggable ai-suggestion" draggable="true" data-id="5">
+                                                <td>Prof. Laurent</td>
+                                                <td>Thomas Robert</td>
+                                                <td>Cloud Computing - Oracle</td>
+                                                <td><span class="badge bg-primary">89%</span></td>
+                                                <td><span class="badge bg-secondary">Suggestion IA</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary view-assignment"><i class="bi bi-eye"></i></button>
+                                                    <button class="btn btn-sm btn-success ms-1 confirm-assignment"><i class="bi bi-check"></i></button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Exporter</button>
+                                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-printer"></i> Imprimer</button>
+                                    </div>
+                                    <nav aria-label="Page navigation">
+                                        <ul class="pagination">
+                                            <li class="page-item disabled">
+                                                <a class="page-link" href="#" aria-label="Previous">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="#" aria-label="Next">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Skills Matrix -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Matrice des Compétences</span>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#skillsMatrixCollapse">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </div>
+                            <div class="card-body collapse show" id="skillsMatrixCollapse">
+                                <p class="text-muted mb-3">Visualisation des compétences disponibles vs. demandées</p>
+                                <div class="heatmap mb-3">
+                                    <div class="heatmap-cell" style="background-color: #e3f2fd;" data-tooltip="Développement Web: 12 tuteurs"></div>
+                                    <div class="heatmap-cell" style="background-color: #bbdefb;" data-tooltip="Développement Web: 8 tuteurs"></div>
+                                    <div class="heatmap-cell" style="background-color: #90caf9;" data-tooltip="Développement Web: 15 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #64b5f6;" data-tooltip="Développement Web: 12 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #42a5f5;" data-tooltip="Développement Web: 8 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #2196f3;" data-tooltip="Développement Web: 5 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #1e88e5;" data-tooltip="Développement Web: 3 étudiants"></div>
+                                    
+                                    <div class="heatmap-cell" style="background-color: #e8f5e9;" data-tooltip="Data Science: 8 tuteurs"></div>
+                                    <div class="heatmap-cell" style="background-color: #c8e6c9;" data-tooltip="Data Science: 5 tuteurs"></div>
+                                    <div class="heatmap-cell" style="background-color: #a5d6a7;" data-tooltip="Data Science: 10 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #81c784;" data-tooltip="Data Science: 15 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #66bb6a;" data-tooltip="Data Science: 12 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #4caf50;" data-tooltip="Data Science: 8 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #43a047;" data-tooltip="Data Science: 5 étudiants"></div>
+                                    
+                                    <div class="heatmap-cell" style="background-color: #fff3e0;" data-tooltip="IA: 5 tuteurs"></div>
+                                    <div class="heatmap-cell" style="background-color: #ffe0b2;" data-tooltip="IA: 3 tuteurs"></div>
+                                    <div class="heatmap-cell" style="background-color: #ffcc80;" data-tooltip="IA: 8 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #ffb74d;" data-tooltip="IA: 12 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #ffa726;" data-tooltip="IA: 15 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #ff9800;" data-tooltip="IA: 10 étudiants"></div>
+                                    <div class="heatmap-cell" style="background-color: #fb8c00;" data-tooltip="IA: 5 étudiants"></div>
+                                </div>
+                                
+                                <div class="skill-matrix">
+                                    <div class="skill-item high-demand">Développement Web <span class="badge bg-danger">15</span></div>
+                                    <div class="skill-item high-demand">Data Science <span class="badge bg-danger">12</span></div>
+                                    <div class="skill-item">IA <span class="badge bg-warning">8</span></div>
+                                    <div class="skill-item">Sécurité <span class="badge bg-primary">5</span></div>
+                                    <div class="skill-item">Cloud <span class="badge bg-primary">4</span></div>
+                                    <div class="skill-item">Mobile <span class="badge bg-primary">3</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                Activité récente
+                            </div>
+                            <div class="card-body">
+                                <div class="timeline">
+                                    <div class="timeline-item">
+                                        <h6>Nouvelle affectation générée</h6>
+                                        <p class="small text-muted">L'algorithme a proposé 5 nouvelles affectations optimales</p>
+                                        <small class="text-muted">Aujourd'hui, 09:32</small>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <h6>Conflit résolu</h6>
+                                        <p class="small text-muted">Le conflit entre Prof. Moreau et Pierre Bernard a été résolu</p>
+                                        <small class="text-muted">Hier, 16:45</small>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <h6>Feedback étudiant</h6>
+                                        <p class="small text-muted">Sophie Petit a donné un feedback positif sur son tuteur</p>
+                                        <small class="text-muted">Hier, 14:20</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-lg-4">
+                        <!-- Tutor Assignments -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                Répartition des tuteurs
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="tutorChart"></canvas>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-primary me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>Disponibles (12)</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-success me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>Affectés (18)</small>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-warning me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>Capacité maximale atteinte (2)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Communication Panel -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Messagerie Rapide</span>
+                                <span class="badge bg-primary">Nouveau</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="chat-container" id="quickChat">
+                                    <div class="chat-message received">
+                                        <strong>Prof. Dupont:</strong> Bonjour, je confirme le suivi de Jean Martin
+                                    </div>
+                                    <div class="chat-message sent">
+                                        Merci pour votre confirmation
+                                    </div>
+                                    <div class="chat-message received">
+                                        <strong>Marie Dubois:</strong> Pourriez-vous me préciser les dates de rencontre?
+                                    </div>
+                                </div>
+                                <div class="p-3 border-top">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" placeholder="Écrire un message...">
+                                        <button class="btn btn-primary" type="button"><i class="bi bi-send"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Assignments -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                Dernières affectations
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="assignmentsFilter" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-funnel"></i>
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="assignmentsFilter">
+                                        <li><a class="dropdown-item active" href="#">Toutes</a></li>
+                                        <li><a class="dropdown-item" href="#">Confirmées</a></li>
+                                        <li><a class="dropdown-item" href="#">En attente</a></li>
+                                        <li><a class="dropdown-item" href="#">Conflits</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#">Suggestions IA</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush" id="assignmentsDropzone">
+                                    <div class="list-group-item p-3 assignment-card confirmed draggable" draggable="true" data-id="1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong>Prof. Simon</strong>
+                                            <span class="badge bg-success">Confirmé</span>
+                                        </div>
+                                        <p class="mb-1 small">Sophie Petit - Microsoft</p>
+                                        <small class="text-muted">Aujourd'hui, 10:45</small>
+                                    </div>
+                                    <div class="list-group-item p-3 assignment-card pending draggable" draggable="true" data-id="2">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong>Prof. Leroy</strong>
+                                            <span class="badge bg-warning text-dark">En attente</span>
+                                        </div>
+                                        <p class="mb-1 small">Marie Dubois - Amazon</p>
+                                        <small class="text-muted">Hier, 16:30</small>
+                                    </div>
+                                    <div class="list-group-item p-3 assignment-card conflict draggable" draggable="true" data-id="4">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <strong>Prof. Moreau</strong>
+                                            <span class="badge bg-danger">Conflit</span>
+                                        </div>
+                                        <p class="mb-1 small">Pierre Bernard - IBM</p>
+                                        <small class="text-muted">Hier, 14:15</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card fade-in">
+                            <div class="card-header">
+                                Actions rapides
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                                    <i class="bi bi-plus-circle me-2"></i>Ajouter un étudiant
+                                </button>
+                                <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#addTutorModal">
+                                    <i class="bi bi-person-plus me-2"></i>Ajouter un tuteur
+                                </button>
+                                <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#addInternshipModal">
+                                    <i class="bi bi-briefcase me-2"></i>Enregistrer un stage
+                                </button>
+                                <button class="btn btn-primary w-100" id="quickGenerateBtn">
+                                    <i class="bi bi-magic me-2"></i>Générer les affectations
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Assignment Details Modal -->
+    <div class="modal fade" id="assignmentModal" tabindex="-1" aria-labelledby="assignmentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignmentModalLabel">Détails de l'affectation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6>Informations du tuteur</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <img src="https://ui-avatars.com/api/?name=Prof+Dupont&background=3498db&color=fff" alt="Tutor" class="rounded-circle me-3" width="60" height="60">
+                                        <div>
+                                            <h5 class="mb-0">Prof. Dupont</h5>
+                                            <small class="text-muted">Informatique</small>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Disponibilité:</strong> 3/5 étudiants
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Expertise:</strong>
+                                        <div class="mt-1">
+                                            <span class="badge bg-primary me-1">Développement Web</span>
+                                            <span class="badge bg-primary">JavaScript</span>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Préférences:</strong>
+                                        <ol>
+                                            <li>Projets innovants</li>
+                                            <li>Étudiants motivés</li>
+                                            <li>Rencontres hebdomadaires</li>
+                                        </ol>
+                                    </div>
+                                    <div>
+                                        <strong>Contact:</strong> prof.dupont@universite.fr
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6>Informations de l'étudiant</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" alt="Student" class="rounded-circle me-3" width="60" height="60">
+                                        <div>
+                                            <h5 class="mb-0">Jean Martin</h5>
+                                            <small class="text-muted">Master 2 Informatique</small>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Stage:</strong> Développement Web chez Google
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Période:</strong> 15/05/2023 - 15/11/2023
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Compétences:</strong>
+                                        <div class="mt-1">
+                                            <span class="badge bg-success me-1">React</span>
+                                            <span class="badge bg-success">Node.js</span>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Préférences:</strong>
+                                        <ol>
+                                            <li>Prof. Dupont</li>
+                                            <li>Prof. Simon</li>
+                                            <li>Prof. Laurent</li>
+                                        </ol>
+                                    </div>
+                                    <div>
+                                        <strong>Contact:</strong> jean.martin@etudiant.univ.fr
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6>Statut de l'affectation</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle-fill me-2"></i> Cette affectation a été confirmée par les deux parties.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Modifier le statut</label>
+                                <select class="form-select">
+                                    <option selected>Confirmée</option>
+                                    <option>En attente</option>
+                                    <option>Conflit</option>
+                                    <option>Annulée</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Score de compatibilité</label>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100">92%</div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Commentaire</label>
+                                <textarea class="form-control" rows="3" placeholder="Ajouter un commentaire..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary">Enregistrer les modifications</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Algorithm Settings Modal -->
+    <div class="modal fade" id="algorithmSettingsModal" tabindex="-1" aria-labelledby="algorithmSettingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="algorithmSettingsModalLabel">Paramètres de l'algorithme</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="algorithmSettingsForm">
+                        <div class="mb-3">
+                            <label class="form-label">Type d'algorithme</label>
+                            <select class="form-select">
+                                <option value="optimized" selected>Optimisé (préférences + contraintes)</option>
+                                <option value="fast">Rapide (affectation simple)</option>
+                                <option value="manual">Manuel (suggestions seulement)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Pondération des critères</label>
+                            
+                            <div class="mb-2">
+                                <label>Correspondance des compétences</label>
+                                <input type="range" class="form-range" min="0" max="100" value="70" id="expertiseWeight">
+                                <div class="d-flex justify-content-between">
+                                    <small>Faible</small>
+                                    <small>Fort</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label>Préférences des tuteurs</label>
+                                <input type="range" class="form-range" min="0" max="100" value="60" id="tutorPrefWeight">
+                                <div class="d-flex justify-content-between">
+                                    <small>Faible</small>
+                                    <small>Fort</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label>Préférences des étudiants</label>
+                                <input type="range" class="form-range" min="0" max="100" value="50" id="studentPrefWeight">
+                                <div class="d-flex justify-content-between">
+                                    <small>Faible</small>
+                                    <small>Fort</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Contraintes</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="respectCapacity" checked>
+                                <label class="form-check-label" for="respectCapacity">
+                                    Respecter la capacité maximale des tuteurs
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkAvailability" checked>
+                                <label class="form-check-label" for="checkAvailability">
+                                    Vérifier la disponibilité des tuteurs
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="preferSameDept">
+                                <label class="form-check-label" for="preferSameDept">
+                                    Privilégier le même département
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="saveAlgorithmSettings">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Modal -->
+    <div class="modal fade" id="aiAssistantModal" tabindex="-1" aria-labelledby="aiAssistantModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="aiAssistantModalLabel"><i class="bi bi-robot"></i> Assistant IA</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i> L'assistant IA peut vous aider à optimiser les affectations et répondre à vos questions.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Demandez à l'assistant :</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Ex: Comment améliorer les affectations pour les stages en IA?">
+                            <button class="btn btn-primary" type="button"><i class="bi bi-send"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            Suggestions IA pour les affectations
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <h6><i class="bi bi-lightbulb text-warning me-2"></i>Optimisation possible</h6>
+                                <p>L'algorithme a détecté que 3 tuteurs avec expertise en IA sont sous-utilisés, alors que 8 étudiants recherchent ce domaine.</p>
+                                <button class="btn btn-sm btn-outline-primary">Voir les suggestions</button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6><i class="bi bi-exclamation-triangle text-danger me-2"></i>Conflits potentiels</h6>
+                                <p>2 affectations proposées ont un faible score de compatibilité (<50%). Considérez des alternatives.</p>
+                                <button class="btn btn-sm btn-outline-primary">Examiner</button>
+                            </div>
+                            
+                            <div>
+                                <h6><i class="bi bi-graph-up text-success me-2"></i>Statistiques</h6>
+                                <p>Le taux de satisfaction moyen est de 94%, en hausse de 5% par rapport à l'année dernière.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary">Appliquer les suggestions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addStudentModalLabel">Ajouter un étudiant</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Nom complet</label>
+                            <input type="text" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Programme d'études</label>
+                            <select class="form-select" required>
+                                <option value="">Sélectionner...</option>
+                                <option>Informatique</option>
+                                <option>Génie Logiciel</option>
+                                <option>Data Science</option>
+                                <option>Cybersécurité</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stage prévu</label>
+                            <select class="form-select">
+                                <option value="">Aucun pour le moment</option>
+                                <option>Google - Développement Web</option>
+                                <option>Amazon - Data Science</option>
+                                <option>Microsoft - IA</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Préférences de tuteur (par ordre)</label>
+                            <select class="form-select mb-2">
+                                <option value="">Premier choix</option>
+                                <option>Prof. Dupont</option>
+                                <option>Prof. Simon</option>
+                            </select>
+                            <select class="form-select mb-2">
+                                <option value="">Deuxième choix</option>
+                                <option>Prof. Dupont</option>
+                                <option>Prof. Simon</option>
+                            </select>
+                            <select class="form-select">
+                                <option value="">Troisième choix</option>
+                                <option>Prof. Dupont</option>
+                                <option>Prof. Simon</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+    <script>
+        // Toggle sidebar on mobile
+        document.querySelector('.navbar-toggler').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+        // Tab switching
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update main content based on selected tab
+                const tabId = this.id;
+                console.log(`Switched to ${tabId}`);
+                // Here you would typically load the appropriate content for the tab
+            });
+        });
+
+        // Initialize charts
+        const tutorCtx = document.getElementById('tutorChart').getContext('2d');
+        const tutorChart = new Chart(tutorCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Disponibles', 'Affectés', 'Capacité max'],
+                datasets: [{
+                    data: [12, 18, 2],
+                    backgroundColor: [
+                        '#3498db',
+                        '#2ecc71',
+                        '#f39c12'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Show modal when view button is clicked
+        document.querySelectorAll('.view-assignment').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('assignmentModal'));
+                modal.show();
+            });
+        });
+
+        // Constraint toggles
+        document.querySelectorAll('.constraint-badge').forEach(badge => {
+            badge.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const constraint = this.dataset.constraint;
+                console.log(`Constraint ${constraint} toggled`);
+                // Here you would update the algorithm constraints
+            });
+        });
+
+        // Generate assignments button
+        document.getElementById('generateAssignmentsBtn').addEventListener('click', function() {
+            console.log('Generating assignments with current constraints...');
+            // Simulate API call
+            setTimeout(() => {
+                alert('Affectations générées avec succès ! 5 nouvelles suggestions ont été ajoutées.');
+                
+                // Add AI suggestions to the table
+                const table = document.querySelector('#assignmentsTable tbody');
+                const newRow = document.createElement('tr');
+                newRow.className = 'draggable ai-suggestion';
+                newRow.draggable = true;
+                newRow.dataset.id = '6';
+                newRow.innerHTML = `
+                    <td>Prof. Martinez</td>
+                    <td>Lucie Blanc</td>
+                    <td>Reconnaissance vocale - Apple</td>
+                    <td><span class="badge bg-primary">88%</span></td>
+                    <td><span class="badge bg-secondary">Suggestion IA</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary view-assignment"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-success ms-1 confirm-assignment"><i class="bi bi-check"></i></button>
+                    </td>
+                `;
+                table.appendChild(newRow);
+                
+                // Add event listeners to new buttons
+                newRow.querySelector('.view-assignment').addEventListener('click', function() {
+                    const modal = new bootstrap.Modal(document.getElementById('assignmentModal'));
+                    modal.show();
+                });
+            }, 1500);
+        });
+
+        // Quick generate button
+        document.getElementById('quickGenerateBtn').addEventListener('click', function() {
+            console.log('Quick generate assignments with default settings...');
+            // Simulate API call
+            setTimeout(() => {
+                alert('3 nouvelles affectations ont été générées avec les paramètres par défaut.');
+            }, 1000);
+        });
+
+        // Save algorithm settings
+        document.getElementById('saveAlgorithmSettings').addEventListener('click', function() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('algorithmSettingsModal'));
+            modal.hide();
+            alert('Paramètres de l\'algorithme enregistrés avec succès !');
+        });
+
+        // Drag and drop functionality
+        document.querySelectorAll('.draggable').forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', this.dataset.id);
+                this.classList.add('dragging');
+            });
+            
+            item.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+            });
+        });
+
+        document.getElementById('assignmentsDropzone').addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('active');
+        });
+
+        document.getElementById('assignmentsDropzone').addEventListener('dragleave', function() {
+            this.classList.remove('active');
+        });
+
+        document.getElementById('assignmentsDropzone').addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('active');
+            
+            const assignmentId = e.dataTransfer.getData('text/plain');
+            const draggedItem = document.querySelector(`[data-id="${assignmentId}"]`);
+            
+            if (draggedItem) {
+                // Here you would update the assignment status via API
+                console.log(`Assignment ${assignmentId} moved to dropzone`);
+                
+                // Visual feedback
+                draggedItem.querySelector('.badge').className = 'badge bg-warning text-dark';
+                draggedItem.querySelector('.badge').textContent = 'En attente';
+                
+                // Change confirm button to edit button
+                const confirmBtn = draggedItem.querySelector('.confirm-assignment');
+                if (confirmBtn) {
+                    confirmBtn.className = 'btn btn-sm btn-outline-primary ms-1 edit-assignment';
+                    confirmBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+                }
+            }
+        });
+
+        // Global search functionality
+        document.getElementById('globalSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            console.log(`Searching for: ${searchTerm}`);
+            
+            document.querySelectorAll('#assignmentsTable tbody tr').forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Animation on scroll
+        const animateOnScroll = () => {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach(element => {
+                const elementPosition = element.getBoundingClientRect().top;
+                const windowHeight = window.innerHeight;
+                
+                if (elementPosition < windowHeight - 100) {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        };
+
+        window.addEventListener('load', animateOnScroll);
+        window.addEventListener('scroll', animateOnScroll);
+
+        // Initialize date pickers
+        flatpickr(".datepicker", {
+            locale: "fr",
+            dateFormat: "d/m/Y",
+            allowInput: true
+        });
+
+        // AI Assistant simulation
+        document.querySelector('#aiAssistantModal .btn-primary').addEventListener('click', function() {
+            alert('Les suggestions IA ont été appliquées. 3 nouvelles affectations ont été créées.');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('aiAssistantModal'));
+            modal.hide();
+        });
+
+        // Confirm assignment buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.confirm-assignment')) {
+                const row = e.target.closest('tr');
+                const assignmentId = row.dataset.id;
+                console.log(`Confirming assignment ${assignmentId}`);
+                
+                // Simulate API call
+                setTimeout(() => {
+                    // Update UI
+                    const statusBadge = row.querySelector('.badge');
+                    statusBadge.className = 'badge bg-success';
+                    statusBadge.textContent = 'Confirmée';
+                    
+                    // Change button
+                    const confirmBtn = e.target.closest('.confirm-assignment');
+                    confirmBtn.className = 'btn btn-sm btn-outline-primary ms-1 edit-assignment';
+                    confirmBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+                    
+                    // Remove AI suggestion class
+                    row.classList.remove('ai-suggestion');
+                }, 500);
+            }
+        });
+
+        // Sample data for skills matrix tooltips
+        document.querySelectorAll('.heatmap-cell').forEach(cell => {
+            cell.addEventListener('click', function() {
+                const tooltip = this.dataset.tooltip;
+                alert(tooltip);
+            });
+        });
+    </script>
+</body>
+</html>

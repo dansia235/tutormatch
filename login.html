@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion | TutorMatch</title>
+    <link href="/tutoring/assets/css/bootstrap.css" rel="stylesheet">
+    <link href="/tutoring/login-styles.css" rel="stylesheet">
+    <!-- Icônes (Font Awesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">🎓</div>
+            <h1 class="login-title">TutorMatch</h1>
+            <p class="login-subtitle">Système de gestion des stages et du tutorat</p>
+        </div>
+        
+        <div class="login-card">
+            <h2 class="login-form-title">Connexion</h2>
+            
+            <!-- Message d'erreur -->
+            <div class="error-message hidden" id="error-message">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div id="error-text"></div>
+            </div>
+            
+            <!-- Loader -->
+            <div class="loading-indicator hidden" id="loading-indicator">
+                <div class="spinner"></div>
+                <p>Connexion en cours...</p>
+            </div>
+            
+            <!-- Formulaire de connexion -->
+            <form id="login-form">
+                <input type="hidden" name="csrf_token" id="csrf-token" value="">
+                
+                <div class="form-group">
+                    <label for="username" class="form-label">Nom d'utilisateur</label>
+                    <div class="input-container">
+                        <div class="input-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <input 
+                            id="username" 
+                            name="username" 
+                            type="text" 
+                            class="form-input" 
+                            placeholder="Nom d'utilisateur" 
+                            required
+                        >
+                    </div>
+                    <div class="error-feedback hidden" id="username-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Mot de passe</label>
+                    <div class="input-container">
+                        <div class="input-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <input 
+                            id="password" 
+                            name="password" 
+                            type="password" 
+                            class="form-input" 
+                            placeholder="Mot de passe" 
+                            required
+                        >
+                    </div>
+                    <div class="error-feedback hidden" id="password-error"></div>
+                </div>
+                
+                <button type="submit" class="login-button">
+                    <i class="fas fa-sign-in-alt button-icon"></i> Se connecter
+                </button>
+            </form>
+            
+            <a class="help-link" id="help-link">
+                Besoin d'aide pour vous connecter?
+            </a>
+        </div>
+        
+        <div class="login-footer">
+            <p>&copy; 2025 TutorMatch - Tous droits réservés</p>
+        </div>
+    </div>
+    
+    <!-- Modal d'aide -->
+    <div class="modal hidden" id="help-modal">
+        <div class="modal-overlay" id="modal-overlay"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-icon">
+                    <i class="fas fa-question"></i>
+                </div>
+                <h3 class="modal-title">Aide à la connexion</h3>
+            </div>
+            <div class="modal-body">
+                <div class="account-section">
+                    <h4 class="account-header">Comptes par défaut :</h4>
+                    <div class="account-item">
+                        <span class="account-type">Administrateur :</span>
+                        <p class="account-credentials">
+                            Nom d'utilisateur : admin<br>
+                            Mot de passe : admin123
+                        </p>
+                    </div>
+                    <div class="account-item">
+                        <span class="account-type">Coordinateur :</span>
+                        <p class="account-credentials">
+                            Nom d'utilisateur : test<br>
+                            Mot de passe : test123
+                        </p>
+                    </div>
+                    <div class="account-item">
+                        <span class="account-type">Enseignant :</span>
+                        <p class="account-credentials">
+                            Nom d'utilisateur : marie<br>
+                            Mot de passe : password123
+                        </p>
+                    </div>
+                    <div class="account-item">
+                        <span class="account-type">Étudiant :</span>
+                        <p class="account-credentials">
+                            Nom d'utilisateur : lucas<br>
+                            Mot de passe : password123
+                        </p>
+                    </div>
+                </div>
+                
+                <hr class="divider">
+                
+                <p class="contact-info">Si vous rencontrez des problèmes de connexion, veuillez contacter l'administrateur système.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-close-button" id="modal-close">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Références DOM
+            const helpLink = document.getElementById('help-link');
+            const helpModal = document.getElementById('help-modal');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalClose = document.getElementById('modal-close');
+            const loginForm = document.getElementById('login-form');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            
+            // Ouvrir le modal d'aide
+            helpLink.addEventListener('click', function() {
+                helpModal.classList.remove('hidden');
+            });
+            
+            // Fermer le modal d'aide
+            modalClose.addEventListener('click', function() {
+                helpModal.classList.add('hidden');
+            });
+            
+            modalOverlay.addEventListener('click', function() {
+                helpModal.classList.add('hidden');
+            });
+            
+            // Gestion du formulaire de connexion
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validation simple côté client
+                let isValid = true;
+                
+                if (!usernameInput.value.trim()) {
+                    document.getElementById('username-error').textContent = 'Le nom d\'utilisateur est requis';
+                    document.getElementById('username-error').classList.remove('hidden');
+                    isValid = false;
+                } else {
+                    document.getElementById('username-error').classList.add('hidden');
+                }
+                
+                if (!passwordInput.value) {
+                    document.getElementById('password-error').textContent = 'Le mot de passe est requis';
+                    document.getElementById('password-error').classList.remove('hidden');
+                    isValid = false;
+                } else {
+                    document.getElementById('password-error').classList.add('hidden');
+                }
+                
+                if (isValid) {
+                    // Simuler une soumission de formulaire réussie
+                    // Dans une application réelle, on ferait un fetch() ou un submit() vers le serveur
+                    document.getElementById('loading-indicator').classList.remove('hidden');
+                    
+                    // Soumettre le formulaire après un délai pour simuler un chargement
+                    setTimeout(function() {
+                        loginForm.submit();
+                    }, 1000);
+                }
+            });
+            
+            // Vérifier si le paramètre d'URL help existe
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('help')) {
+                helpModal.classList.remove('hidden');
+            }
+            
+            // Afficher une erreur passée via URL si elle existe
+            if (urlParams.has('error')) {
+                errorText.textContent = urlParams.get('error');
+                errorMessage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

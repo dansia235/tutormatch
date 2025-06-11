@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- [Head identique...] -->
+    <style>
+        /* [Styles identiques...] */
+        
+        .assignment-card {
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s;
+        }
+        
+        .assignment-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .assignment-card.confirmed {
+            border-left-color: var(--success-color);
+        }
+        
+        .assignment-card.pending {
+            border-left-color: #f39c12;
+        }
+        
+        .assignment-card.conflict {
+            border-left-color: var(--accent-color);
+        }
+        
+        .compatibility-badge {
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .preference-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .preference-1 { background-color: #2ecc71; }
+        .preference-2 { background-color: #3498db; }
+        .preference-3 { background-color: #9b59b6; }
+    </style>
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar identique -->
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
+            <!-- [Sidebar identique avec l'onglet Affectations actif...] -->
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar identique -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+                <!-- [Navbar identique...] -->
+            </nav>
+
+            <!-- Affectations Content -->
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2>Gestion des Affectations</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="dashboard.html">Tableau de bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Affectations</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Filtres et Actions -->
+                <div class="card mb-4 fade-in">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="search-box">
+                                    <i class="bi bi-search"></i>
+                                    <input type="text" class="form-control" placeholder="Rechercher une affectation...">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select">
+                                    <option selected>Tous les statuts</option>
+                                    <option>Confirmées</option>
+                                    <option>En attente</option>
+                                    <option>Conflits</option>
+                                    <option>Non attribuées</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex justify-content-end">
+                                <button class="btn btn-primary me-2" id="generateAssignmentsBtn">
+                                    <i class="bi bi-magic me-1"></i>Générer
+                                </button>
+                                <button class="btn btn-success">
+                                    <i class="bi bi-check-circle me-1"></i>Valider
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 fade-in delay-1">
+                        <div class="card stat-card">
+                            <div class="value">124</div>
+                            <div class="label">Affectations</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" style="width: 87%;" aria-valuenow="87" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">87% des stages pourvus</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-2">
+                        <div class="card stat-card">
+                            <div class="value">92%</div>
+                            <div class="label">Satisfaction</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Moyenne des préférences</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-3">
+                        <div class="card stat-card">
+                            <div class="value">18</div>
+                            <div class="label">En attente</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 36%;" aria-valuenow="36" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">18/50 non confirmées</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-4">
+                        <div class="card stat-card">
+                            <div class="value">5</div>
+                            <div class="label">Conflits</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">5 affectations problématiques</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des Affectations -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Affectations en cours</span>
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="assignmentsFilter" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-funnel"></i> Filtres avancés
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="assignmentsFilter">
+                                        <li><a class="dropdown-item active" href="#">Toutes</a></li>
+                                        <li><a class="dropdown-item" href="#">Confirmées</a></li>
+                                        <li><a class="dropdown-item" href="#">En attente</a></li>
+                                        <li><a class="dropdown-item" href="#">Conflits</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#">Par département</a></li>
+                                        <li><a class="dropdown-item" href="#">Par entreprise</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Étudiant</th>
+                                                <th>Tuteur</th>
+                                                <th>Stage</th>
+                                                <th>Préférences</th>
+                                                <th>Compatibilité</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="assignment-card confirmed">
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" alt="Étudiant" width="40" height="40" class="rounded-circle me-3">
+                                                        <div>
+                                                            <strong>Jean Martin</strong><br>
+                                                            <small class="text-muted">M2 Info</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="https://ui-avatars.com/api/?name=Prof+Dupont&background=3498db&color=fff" alt="Tuteur" width="40" height="40" class="rounded-circle me-3">
+                                                        <div>
+                                                            <strong>Prof. Dupont</strong><br>
+                                                            <small class="text-muted">Informatique</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <strong>Dev Web - Google</strong><br>
+                                                    <small class="text-muted">15/05 - 15/11/2023</small>
+                                                </td>
+                                                <td>
+                                                    <span class="preference-indicator preference-1" title="1er choix"></span>
+                                                    <span class="preference-indicator preference-2" title="2ème choix"></span>
+                                                    <span class="preference-indicator preference-3" title="3ème choix"></span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary compatibility-badge">94%</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-success">Confirmée</span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary ms-1"><i class="bi bi-pencil"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger ms-1"><i class="bi bi-x-circle"></i></button>
+                                                </td>
+                                            </tr>
+                                            <!-- [Autres affectations...] -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-flex justify-content-between mt-3">
+                                    <div>
+                                        <p class="small text-muted">Affichage de 1 à 10 sur 124 affectations</p>
+                                    </div>
+                                    <nav aria-label="Page navigation">
+                                        <ul class="pagination">
+                                            <li class="page-item disabled">
+                                                <a class="page-link" href="#" aria-label="Previous">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="#" aria-label="Next">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Algorithm Results -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Résultats de l'algorithme</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 250px;">
+                                    <canvas id="algorithmChart"></canvas>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-primary me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>1er choix (42%)</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-success me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>2ème choix (38%)</small>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-warning me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
+                                        <small>3ème choix (12%)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Statistiques</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Affectations optimales</span>
+                                        <span class="badge bg-primary rounded-pill">87</span>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Conflits résolus</span>
+                                        <span class="badge bg-success rounded-pill">12</span>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Conflits restants</span>
+                                        <span class="badge bg-danger rounded-pill">5</span>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Tuteurs sous-utilisés</span>
+                                        <span class="badge bg-warning rounded-pill">3</span>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>Étudiants non attribués</span>
+                                        <span class="badge bg-secondary rounded-pill">18</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Assignment Details Modal -->
+    <div class="modal fade" id="assignmentDetailsModal" tabindex="-1" aria-labelledby="assignmentDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignmentDetailsModalLabel">Détails de l'Affectation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6>Informations de l'Étudiant</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" alt="Étudiant" class="rounded-circle me-3" width="80" height="80">
+                                        <div>
+                                            <h4 class="mb-0">Jean Martin</h4>
+                                            <small class="text-muted">Master 2 Informatique</small>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Préférences de tuteur :</strong>
+                                        <ol>
+                                            <li>Prof. Dupont (Informatique)</li>
+                                            <li>Prof. Simon (Data Science)</li>
+                                            <li>Prof. Laurent (Web)</li>
+                                        </ol>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Compétences :</strong>
+                                        <div class="mt-1">
+                                            <span class="badge bg-primary me-1">JavaScript</span>
+                                            <span class="badge bg-primary">React</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6>Informations du Tuteur</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <img src="https://ui-avatars.com/api/?name=Prof+Dupont&background=3498db&color=fff" alt="Tuteur" class="rounded-circle me-3" width="80" height="80">
+                                        <div>
+                                            <h4 class="mb-0">Prof. Dupont</h4>
+                                            <small class="text-muted">Maître de Conférences - Informatique</small>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Expertise :</strong>
+                                        <div class="mt-1">
+                                            <span class="badge bg-primary me-1">Développement Web</span>
+                                            <span class="badge bg-primary">JavaScript</span>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Disponibilité :</strong> 3/5 étudiants
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Contact :</strong> p.dupont@univ.fr
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6>Détails du Stage</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <img src="https://logo.clearbit.com/google.com" alt="Google" class="rounded me-3" width="60" height="60">
+                                <div>
+                                    <h5 class="mb-0">Développement Web Frontend</h5>
+                                    <small class="text-muted">Google France - Paris (15/05 - 15/11/2023)</small>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Description :</strong>
+                                <p>Développement d'une interface utilisateur innovante pour un produit interne utilisant React et TypeScript.</p>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Compétences requises :</strong>
+                                <div class="mt-1">
+                                    <span class="badge bg-primary me-1">React</span>
+                                    <span class="badge bg-primary">TypeScript</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6>Statut de l'Affectation</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle-fill me-2"></i> Cette affectation a été confirmée par les deux parties.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Score de compatibilité</label>
+                                <div class="progress">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 94%;" aria-valuenow="94" aria-valuemin="0" aria-valuemax="100">94%</div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Modifier le statut</label>
+                                <select class="form-select">
+                                    <option selected>Confirmée</option>
+                                    <option>En attente</option>
+                                    <option>Conflit</option>
+                                    <option>Annulée</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Commentaire</label>
+                                <textarea class="form-control" rows="3" placeholder="Ajouter un commentaire..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary">Enregistrer les modifications</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // [Scripts identiques...]
+        
+        // Generate assignments button
+        document.getElementById('generateAssignmentsBtn').addEventListener('click', function() {
+            // Simulate algorithm processing
+            const modal = new bootstrap.Modal(document.getElementById('algorithmProcessingModal'));
+            modal.show();
+            
+            setTimeout(() => {
+                modal.hide();
+                alert('Affectations générées avec succès ! 15 nouvelles affectations proposées.');
+                
+                // Update UI with new assignments
+                const table = document.querySelector('table tbody');
+                // Add new rows dynamically...
+            }, 2000);
+        });
+        
+        // Initialize chart
+        const algorithmCtx = document.getElementById('algorithmChart').getContext('2d');
+        const algorithmChart = new Chart(algorithmCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['1er choix', '2ème choix', '3ème choix', 'Autre'],
+                datasets: [{
+                    data: [42, 38, 12, 8],
+                    backgroundColor: [
+                        '#3498db',
+                        '#2ecc71',
+                        '#f39c12',
+                        '#e74c3c'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

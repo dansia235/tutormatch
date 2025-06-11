@@ -1,0 +1,414 @@
+/* Theme sombre pour l'application TutorMatch */
+
+:root.dark-theme {
+    /* Couleurs principales */
+    --primary-color: #3498db;
+    --secondary-color: #1e272e;
+    --accent-color: #e74c3c;
+    
+    /* Couleurs de base */
+    --light-color: #2c3e50;
+    --dark-color: #ecf0f1;
+    
+    /* Couleurs de fond */
+    --bg-color: #121212;
+    --card-bg-color: #1e1e1e;
+    --sidebar-bg-color: #1e272e;
+    --header-bg-color: #1e1e1e;
+    --navbar-bg-color: #1e1e1e;
+    
+    /* Couleurs de texte */
+    --text-color: #ecf0f1;
+    --text-muted: #95a5a6;
+    --link-color: #3498db;
+    
+    /* Couleurs des éléments d'interface */
+    --border-color: #2c3e50;
+    --input-bg-color: #2c3e50;
+    --input-text-color: #ecf0f1;
+    --input-border-color: #34495e;
+    
+    /* Couleurs de statut */
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+    
+    /* Ombres */
+    --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.7);
+}
+
+/* Styles de base */
+.dark-theme body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* Sidebar */
+.dark-theme .sidebar {
+    background-color: var(--sidebar-bg-color);
+    color: var(--text-color);
+}
+
+.dark-theme .sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.dark-theme .sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+}
+
+.dark-theme .sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+}
+
+/* Navbar */
+.dark-theme .navbar {
+    background-color: var(--navbar-bg-color);
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Recherche */
+.dark-theme .search-box input {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--input-border-color);
+}
+
+.dark-theme .search-box i {
+    color: var(--text-muted);
+}
+
+/* Cards */
+.dark-theme .card {
+    background-color: var(--card-bg-color);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.dark-theme .card-header {
+    background-color: var(--card-bg-color);
+    border-bottom-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.dark-theme .card-body {
+    background-color: var(--card-bg-color);
+}
+
+.dark-theme .card-footer {
+    background-color: var(--card-bg-color);
+    border-top-color: var(--border-color);
+}
+
+/* Tableaux */
+.dark-theme .table {
+    color: var(--text-color);
+}
+
+.dark-theme .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-theme .table th {
+    border-top-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.dark-theme .table td {
+    border-top-color: var(--border-color);
+}
+
+/* Formulaires */
+.dark-theme .form-control {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--input-border-color);
+}
+
+.dark-theme .form-control:focus {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.dark-theme .form-select {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--input-border-color);
+}
+
+.dark-theme .form-check-input {
+    background-color: var(--input-bg-color);
+    border-color: var(--input-border-color);
+}
+
+/* Boutons */
+.dark-theme .btn-light {
+    background-color: var(--input-bg-color);
+    color: var(--input-text-color);
+    border-color: var(--input-border-color);
+}
+
+.dark-theme .btn-light:hover,
+.dark-theme .btn-light:focus,
+.dark-theme .btn-light:active {
+    background-color: #2c3e50;
+    color: var(--input-text-color);
+    border-color: #34495e;
+}
+
+.dark-theme .btn-dark {
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    border-color: var(--secondary-color);
+}
+
+.dark-theme .btn-dark:hover,
+.dark-theme .btn-dark:focus,
+.dark-theme .btn-dark:active {
+    background-color: #121921;
+    color: var(--text-color);
+    border-color: #121921;
+}
+
+.dark-theme .btn-outline-dark {
+    color: var(--text-color);
+    border-color: var(--text-color);
+    background-color: transparent;
+}
+
+.dark-theme .btn-outline-dark:hover,
+.dark-theme .btn-outline-dark:focus,
+.dark-theme .btn-outline-dark:active {
+    background-color: var(--text-color);
+    color: var(--card-bg-color);
+    border-color: var(--text-color);
+}
+
+.dark-theme .btn-outline-light {
+    color: #ecf0f1;
+    border-color: #ecf0f1;
+    background-color: transparent;
+}
+
+.dark-theme .btn-outline-light:hover,
+.dark-theme .btn-outline-light:focus,
+.dark-theme .btn-outline-light:active {
+    background-color: #ecf0f1;
+    color: var(--card-bg-color);
+    border-color: #ecf0f1;
+}
+
+.dark-theme .btn-outline-secondary {
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.dark-theme .btn-outline-secondary:hover,
+.dark-theme .btn-outline-secondary:focus,
+.dark-theme .btn-outline-secondary:active {
+    background-color: var(--border-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+/* Conserver la couleur du texte sur les boutons outlined en mode dark */
+.dark-theme .btn-outline-primary:hover,
+.dark-theme .btn-outline-primary:focus,
+.dark-theme .btn-outline-primary:active,
+.dark-theme .btn-outline-success:hover,
+.dark-theme .btn-outline-success:focus,
+.dark-theme .btn-outline-success:active,
+.dark-theme .btn-outline-danger:hover,
+.dark-theme .btn-outline-danger:focus,
+.dark-theme .btn-outline-danger:active,
+.dark-theme .btn-outline-warning:hover,
+.dark-theme .btn-outline-warning:focus,
+.dark-theme .btn-outline-warning:active,
+.dark-theme .btn-outline-info:hover,
+.dark-theme .btn-outline-info:focus,
+.dark-theme .btn-outline-info:active {
+    color: #fff !important;
+}
+
+/* Fix for standard buttons in dark theme */
+.dark-theme .btn-primary:hover,
+.dark-theme .btn-primary:focus,
+.dark-theme .btn-primary:active,
+.dark-theme .btn-secondary:hover,
+.dark-theme .btn-secondary:focus,
+.dark-theme .btn-secondary:active,
+.dark-theme .btn-success:hover,
+.dark-theme .btn-success:focus,
+.dark-theme .btn-success:active,
+.dark-theme .btn-danger:hover,
+.dark-theme .btn-danger:focus,
+.dark-theme .btn-danger:active,
+.dark-theme .btn-warning:hover,
+.dark-theme .btn-warning:focus,
+.dark-theme .btn-warning:active,
+.dark-theme .btn-info:hover,
+.dark-theme .btn-info:focus,
+.dark-theme .btn-info:active {
+    color: #fff !important;
+}
+
+/* Modaux */
+.dark-theme .modal-content {
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.dark-theme .modal-header,
+.dark-theme .modal-footer {
+    border-color: var(--border-color);
+}
+
+/* Listes */
+.dark-theme .list-group-item {
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.dark-theme .list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Liens */
+.dark-theme a {
+    color: var(--link-color);
+}
+
+.dark-theme a:hover {
+    color: #2980b9;
+}
+
+/* Texte muted */
+.dark-theme .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Badges */
+.dark-theme .badge {
+    background-color: var(--secondary-color);
+}
+
+/* Statut du Badge */
+.dark-theme .badge.bg-light {
+    background-color: var(--input-bg-color) !important;
+    color: var(--text-color);
+}
+
+/* Pagination */
+.dark-theme .pagination .page-item .page-link {
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.dark-theme .pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Barre de progression */
+.dark-theme .progress {
+    background-color: var(--input-bg-color);
+}
+
+/* Alertes */
+.dark-theme .alert-secondary {
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+/* Onglets */
+.dark-theme .nav-tabs {
+    border-bottom-color: var(--border-color);
+}
+
+.dark-theme .nav-tabs .nav-link {
+    color: var(--text-color);
+}
+
+.dark-theme .nav-tabs .nav-link.active {
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color) var(--border-color) var(--card-bg-color);
+}
+
+/* Dropdown */
+.dark-theme .dropdown-menu {
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.dark-theme .dropdown-item {
+    color: var(--text-color);
+}
+
+.dark-theme .dropdown-item:hover, 
+.dark-theme .dropdown-item:focus {
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+}
+
+/* Tooltips */
+.dark-theme .tooltip-inner {
+    background-color: var(--secondary-color);
+}
+
+/* Styles personnalisés pour les éléments spécifiques au projet */
+.dark-theme .user-profile {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Theme card pour le sélecteur de thème */
+.dark-theme .theme-card {
+    border-color: var(--border-color);
+}
+
+.dark-theme .theme-card.active {
+    border-color: var(--primary-color);
+}
+
+.dark-theme .theme-preview {
+    border-color: var(--border-color);
+}
+
+/* Options de couleur */
+.dark-theme .color-preview {
+    border-color: var(--text-color);
+}
+
+.dark-theme input[type="radio"]:checked + .color-preview {
+    border-color: var(--primary-color);
+}
+
+/* Timeliné */
+.dark-theme .timeline::before {
+    background-color: var(--border-color);
+}
+
+/* Styles pour les tableaux de bord */
+.dark-theme .stat-card .value {
+    color: var(--primary-color);
+}
+
+.dark-theme .stat-card .label {
+    color: var(--text-muted);
+}

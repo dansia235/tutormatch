@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Étudiant | TutorMatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #2ecc71;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+        }
+        
+        .sidebar {
+            background-color: var(--secondary-color);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding-top: 20px;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 5px;
+            border-radius: 5px;
+            padding: 10px 15px;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-card .label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .badge-primary {
+            background-color: var(--primary-color);
+        }
+        
+        .badge-success {
+            background-color: var(--success-color);
+        }
+        
+        .badge-warning {
+            background-color: #f39c12;
+        }
+        
+        .table th {
+            border-top: none;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+        }
+        
+        .logo {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .logo img {
+            max-width: 80%;
+            height: auto;
+        }
+        
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 10px;
+            color: white;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: auto;
+            margin-bottom: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .user-profile .user-info {
+            line-height: 1.2;
+        }
+        
+        .user-profile .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .user-profile .user-role {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        .progress-bar {
+            background-color: var(--primary-color);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+        
+        .assignment-card {
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .assignment-card.confirmed {
+            border-left-color: var(--success-color);
+        }
+        
+        .assignment-card.pending {
+            border-left-color: #f39c12;
+        }
+        
+        .assignment-card.conflict {
+            border-left-color: var(--accent-color);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-left: 40px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 10px;
+            color: #95a5a6;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -30px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 2px solid white;
+        }
+        
+        .skill-badge {
+            margin-right: 5px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+        
+        .document-card {
+            border-left: 4px solid #6c757d;
+            transition: all 0.3s;
+        }
+        
+        .document-card:hover {
+            transform: translateX(5px);
+        }
+        
+        .stage-progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        
+        .stage-progress .progress-bar {
+            transition: width 1s ease-in-out;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-left: -250px;
+            }
+            
+            .sidebar.active {
+                margin-left: 0;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .navbar-toggler {
+                display: block;
+            }
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+    </style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨‍🎓</text></svg>">
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                    <path d="M8 3.5a.5.5 0 0 0-1 0v9a.5.5 0 0 0 1 0v-9z"/>
+                    <path d="M5.5 8a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+                <div class="logo-text">TutorMatch</div>
+            </div>
+            <hr>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="dashboard-tab">
+                        <i class="bi bi-speedometer2"></i>
+                        Tableau de bord
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" id="stage-tab">
+                        <i class="bi bi-briefcase"></i>
+                        Mon Stage
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="tuteur-tab">
+                        <i class="bi bi-person-badge"></i>
+                        Mon Tuteur
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="documents-tab">
+                        <i class="bi bi-folder"></i>
+                        Documents
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="reunions-tab">
+                        <i class="bi bi-calendar-event"></i>
+                        Réunions
+                        <span class="notification-badge">2</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="messagerie-tab">
+                        <i class="bi bi-chat-left-text"></i>
+                        Messagerie
+                        <span class="notification-badge">3</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="evaluations-tab">
+                        <i class="bi bi-clipboard-check"></i>
+                        Évaluations
+                    </a>
+                </li>
+            </ul>
+            <hr>
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" alt="User">
+                <div class="user-info">
+                    <div class="user-name">Jean Martin</div>
+                    <div class="user-role">Étudiant - M2 Info</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="search-box me-auto ms-3">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="form-control" placeholder="Rechercher...">
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown me-3">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-bell fs-5 position-relative">
+                                    <span class="notification-badge">3</span>
+                                </i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
+                                <li><h6 class="dropdown-header">Notifications</h6></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-calendar-check text-primary me-2"></i>Nouvelle réunion planifiée</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text text-info me-2"></i>Document à signer</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-chat-square-text text-success me-2"></i>Message de votre tuteur</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-bell-fill me-2"></i>Voir toutes les notifications</a></li>
+                            </ul>
+                        </div>
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="d-none d-sm-inline mx-1">Jean M.</span>
+                                <img src="https://ui-avatars.com/api/?name=Jean+Martin&background=2ecc71&color=fff" alt="User" width="32" height="32" class="rounded-circle">
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profil</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Paramètres</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Student Content -->
+            <div class="container-fluid">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h2>Mon Stage</h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="#">Tableau de bord</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Mon Stage</li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 fade-in delay-1">
+                        <div class="card stat-card">
+                            <div class="value">64%</div>
+                            <div class="label">Progression</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" style="width: 64%;" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">12 semaines sur 18</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-2">
+                        <div class="card stat-card">
+                            <div class="value">4.8</div>
+                            <div class="label">Évaluation</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 96%;" aria-valuenow="96" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">Sur 5.0 (mi-parcours)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-3">
+                        <div class="card stat-card">
+                            <div class="value">5</div>
+                            <div class="label">Réunions</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">5/10 prévues</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 fade-in delay-4">
+                        <div class="card stat-card">
+                            <div class="value">12</div>
+                            <div class="label">Tâches</div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 60%;" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">7 complétées</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Row -->
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-lg-8">
+                        <!-- Stage Details -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Détails du stage</span>
+                                <button class="btn btn-sm btn-outline-primary">Voir le contrat</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <h6>Entreprise</h6>
+                                            <div class="d-flex align-items-center">
+                                                <img src="https://logo.clearbit.com/google.com" alt="Google" width="40" height="40" class="rounded me-3">
+                                                <div>
+                                                    <strong>Google France</strong><br>
+                                                    <small class="text-muted">Paris, France</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <h6>Contact</h6>
+                                            <p class="mb-1">Marie Dupont</p>
+                                            <small class="text-muted">marie.dupont@google.com</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <h6>Période</h6>
+                                            <p>15/05/2023 - 15/11/2023</p>
+                                            <div class="stage-progress mt-2">
+                                                <div class="progress-bar" role="progressbar" style="width: 64%;" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <small class="text-muted">12 semaines sur 18 complétées</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <h6>Statut</h6>
+                                            <span class="badge bg-success">En cours</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <h6>Rémunération</hdiv>
+                                            <p>1 200 €/mois</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <h6>Description du stage</h6>
+                                    <p>Développement d'une application web innovante utilisant React et Node.js. Participation à l'ensemble du cycle de développement, de la conception à la mise en production. Collaboration avec une équipe internationale.</p>
+                                    
+                                    <h6 class="mt-3">Compétences développées</h6>
+                                    <div>
+                                        <span class="badge bg-primary skill-badge">React</span>
+                                        <span class="badge bg-primary skill-badge">Node.js</span>
+                                        <span class="badge bg-primary skill-badge">TypeScript</span>
+                                        <span class="badge bg-primary skill-badge">CI/CD</span>
+                                        <span class="badge bg-primary skill-badge">Agile</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tuteur Details -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Mon Tuteur Académique</span>
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#contactTutorModal">
+                                    <i class="bi bi-envelope me-1"></i>Contacter
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 text-center">
+                                        <img src="https://ui-avatars.com/api/?name=Prof+Dupont&background=3498db&color=fff" alt="Tuteur" class="rounded-circle mb-3" width="100" height="100">
+                                        <h5>Prof. Dupont</h5>
+                                        <small class="text-muted">Maître de conférences</small>
+                                        <div class="mt-2">
+                                            <span class="badge bg-info">Disponible</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <h6>Informations</h6>
+                                        <p class="mb-2"><i class="bi bi-envelope me-2"></i>p.dupont@universite.fr</p>
+                                        <p class="mb-2"><i class="bi bi-telephone me-2"></i>+33 6 12 34 56 78</p>
+                                        <p class="mb-2"><i class="bi bi-geo-alt me-2"></i>Bureau B204, Bâtiment Principal</p>
+                                        <p class="mb-2"><i class="bi bi-clock me-2"></i>Disponibilités: Lundi 14h-17h, Jeudi 10h-12h</p>
+                                        
+                                        <h6 class="mt-3">Expertise</h6>
+                                        <div>
+                                            <span class="badge bg-primary skill-badge">Développement Web</span>
+                                            <span class="badge bg-primary skill-badge">Architecture Logicielle</span>
+                                            <span class="badge bg-primary skill-badge">JavaScript</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6>Prochain rendez-vous</h6>
+                                        <div class="card bg-light p-3 mb-3">
+                                            <strong>Réunion de suivi</strong>
+                                            <p class="mb-1">Jeudi 15 juin, 10h30</p>
+                                            <small class="text-muted">Bureau B204 ou <a href="#">Zoom</a></small>
+                                        </div>
+                                        <h6>Dernier feedback</h6>
+                                        <div class="card bg-light p-3">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <strong>Évaluation mi-parcours</strong>
+                                                <span class="badge bg-success">4.8/5</span>
+                                            </div>
+                                            <small>"Excellent travail, bonne progression technique."</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tasks -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Tâches et Objectifs</span>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                                    <i class="bi bi-plus me-1"></i>Ajouter
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Tâche</th>
+                                                <th>Date limite</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Rapport hebdomadaire #12</td>
+                                                <td>12/06/2023</td>
+                                                <td><span class="badge bg-success">Terminé</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Présentation intermédiaire</td>
+                                                <td>20/06/2023</td>
+                                                <td><span class="badge bg-warning text-dark">En cours</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Implémentation module API</td>
+                                                <td>25/06/2023</td>
+                                                <td><span class="badge bg-info">À commencer</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Tests unitaires</td>
+                                                <td>30/06/2023</td>
+                                                <td><span class="badge bg-secondary">Pas commencé</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-lg-4">
+                        <!-- Upcoming Events -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Événements à venir</span>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Réunion avec tuteur</strong>
+                                            <span class="badge bg-primary">Confirmé</span>
+                                        </div>
+                                        <p class="mb-1 small">15 juin, 10h30 - Bureau B204</p>
+                                        <small class="text-muted">Préparer les questions sur l'architecture</small>
+                                    </div>
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Présentation intermédiaire</strong>
+                                            <span class="badge bg-warning text-dark">À préparer</span>
+                                        </div>
+                                        <p class="mb-1 small">20 juin, 14h00 - Salle C103</p>
+                                        <small class="text-muted">Envoyer les slides avant le 18</small>
+                                    </div>
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Date limite rapport</strong>
+                                            <span class="badge bg-info">Rappel</span>
+                                        </div>
+                                        <p class="mb-1 small">12 juin, 23h59 - Plateforme en ligne</p>
+                                        <small class="text-muted">Rapport hebdomadaire #12</small>
+                                    </div>
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Évaluation mi-parcours</strong>
+                                            <span class="badge bg-secondary">À venir</span>
+                                        </div>
+                                        <p class="mb-1 small">25 juin - 30 juin</p>
+                                        <small class="text-muted">Auto-évaluation + évaluation tuteur</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Documents -->
+                        <div class="card mb-4 fade-in">
+                            <div class="card-header">
+                                <span>Documents</span>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+                                    <i class="bi bi-upload"></i>
+                                </button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="list-group list-group-flush">
+                                    <a href="#" class="list-group-item list-group-item-action document-card">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
+                                                <strong>Convention de stage</strong>
+                                            </div>
+                                            <small class="text-muted">12/05/2023</small>
+                                        </div>
+                                        <small class="text-muted">Signée et complétée</small>
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action document-card">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                                                <strong>Rapport hebdomadaire #11</strong>
+                                            </div>
+                                            <small class="text-muted">05/06/2023</small>
+                                        </div>
+                                        <small class="text-muted">Validé par le tuteur</small>
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action document-card">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-file-earmark-ppt text-warning me-2"></i>
+                                                <strong>Présentation intermédiaire</strong>
+                                            </div>
+                                            <small class="text-muted">En cours</small>
+                                        </div>
+                                        <small class="text-muted">Version 0.3</small>
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action document-card">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-file-earmark-excel text-success me-2"></i>
+                                                <strong>Planning de stage</strong>
+                                            </div>
+                                            <small class="text-muted">10/05/2023</small>
+                                        </div>
+                                        <small class="text-muted">Mis à jour le 01/06</small>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card fade-in">
+                            <div class="card-header">
+                                Actions rapides
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#submitReportModal">
+                                    <i class="bi bi-file-earmark-text me-2"></i>Soumettre un rapport
+                                </button>
+                                <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#requestMeetingModal">
+                                    <i class="bi bi-calendar-plus me-2"></i>Demander un rendez-vous
+                                </button>
+                                <button class="btn btn-outline-primary w-100 mb-2" data-bs-toggle="modal" data-bs-target="#askQuestionModal">
+                                    <i class="bi bi-question-circle me-2"></i>Poser une question
+                                </button>
+                                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+                                    <i class="bi bi-chat-square-text me-2"></i>Donner un feedback
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Contact Tutor Modal -->
+    <div class="modal fade" id="contactTutorModal" tabindex="-1" aria-labelledby="contactTutorModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contactTutorModalLabel">Contacter mon tuteur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Sujet</label>
+                            <select class="form-select">
+                                <option selected>Question sur le stage</option>
+                                <option>Problème technique</option>
+                                <option>Demande de rendez-vous</option>
+                                <option>Rapport à valider</option>
+                                <option>Autre</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Message</label>
+                            <textarea class="form-control" rows="5" placeholder="Décrivez votre demande en détail..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Pièce jointe (optionnelle)</label>
+                            <input type="file" class="form-control">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary">Envoyer le message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTaskModalLabel">Ajouter une tâche</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Titre de la tâche</label>
+                            <input type="text" class="form-control" placeholder="Ex: Rédiger le rapport hebdomadaire">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" rows="3" placeholder="Détails de la tâche..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date limite</label>
+                            <input type="date" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Priorité</label>
+                            <select class="form-select">
+                                <option>Normale</option>
+                                <option>Élevée</option>
+                                <option>Urgente</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary">Ajouter la tâche</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Report Modal -->
+    <div class="modal fade" id="submitReportModal" tabindex="-1" aria-labelledby="submitReportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="submitReportModalLabel">Soumettre un rapport</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Type de rapport</label>
+                            <select class="form-select">
+                                <option selected>Hebdomadaire</option>
+                                <option>Intermédiaire</option>
+                                <option>Final</option>
+                                <option>Technique</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fichier</label>
+                            <input type="file" class="form-control" accept=".pdf,.doc,.docx">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Commentaires (optionnel)</label>
+                            <textarea class="form-control" rows="3" placeholder="Ajoutez des commentaires si nécessaire..."></textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="notifyTutor">
+                            <label class="form-check-label" for="notifyTutor">Notifier mon tuteur par email</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary">Soumettre</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+    <script>
+        // Toggle sidebar on mobile
+        document.querySelector('.navbar-toggler').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+
+        // Tab switching
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update main content based on selected tab
+                const tabId = this.id;
+                console.log(`Switched to ${tabId}`);
+                // Here you would typically load the appropriate content for the tab
+            });
+        });
+
+        // Initialize date pickers
+        flatpickr(".datepicker", {
+            locale: "fr",
+            dateFormat: "d/m/Y",
+            allowInput: true
+        });
+
+        // Animation on scroll
+        const animateOnScroll = () => {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach(element => {
+                const elementPosition = element.getBoundingClientRect().top;
+                const windowHeight = window.innerHeight;
+                
+                if (elementPosition < windowHeight - 100) {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        };
+
+        window.addEventListener('load', animateOnScroll);
+        window.addEventListener('scroll', animateOnScroll);
+
+        // Simulate progress animation
+        document.querySelectorAll('.progress-bar').forEach(bar => {
+            const targetWidth = bar.style.width;
+            bar.style.width = '0';
+            setTimeout(() => {
+                bar.style.width = targetWidth;
+            }, 500);
+        });
+
+        // Sample notification click handler
+        document.querySelectorAll('.notification-badge').forEach(badge => {
+            badge.addEventListener('click', function(e) {
+                e.stopPropagation();
+                alert(`Vous avez ${this.textContent} nouvelles notifications dans cette section`);
+            });
+        });
+    </script>
+</body>
+</html>
