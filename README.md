@@ -19,6 +19,8 @@ TutorMatch est une application web complète pour la gestion des stages académi
 - Base de données des entreprises partenaires
 - Publication et modification des offres
 - Système de recherche optimisé
+- **NOUVEAU** : Interface complète de gestion des entreprises (CRUD)
+- **NOUVEAU** : Support pour les logos d'entreprise et avatars automatiques
 
 ### Système de préférences et d'affectation
 - Les étudiants peuvent classer leurs stages préférés
@@ -155,6 +157,9 @@ vendor/bin/phpunit
 
 # Exécuter les tests d'algorithmes d'affectation
 vendor/bin/phpunit tests/Algorithm/
+
+# Tester l'interface de gestion des entreprises
+php test_companies.php
 ```
 
 ## 📚 Documentation
@@ -172,6 +177,18 @@ vendor/bin/phpunit tests/Algorithm/
 - Développement d'une application mobile
 - Internationalisation (support multilingue)
 - Intégration avec des systèmes de gestion académique externes
+
+## 🆕 Améliorations récentes
+
+- Interface complète de gestion des entreprises
+  - Ajout, modification et suppression d'entreprises
+  - Support pour les logos d'entreprise
+  - Avatars générés automatiquement pour les entreprises sans logo
+  - Visualisation des stages par entreprise
+  - Confirmation sécurisée pour la suppression
+- Correction des problèmes d'affichage dans la liste des tuteurs
+- Correction des bugs dans l'algorithme d'affectation
+- Amélioration des performances de recherche d'internships
 
 ## 👥 Statut du projet
 

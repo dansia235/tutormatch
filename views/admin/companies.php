@@ -295,7 +295,7 @@ include_once __DIR__ . '/../common/header.php';
         </div>
         
         <?php if (hasRole(['admin', 'coordinator'])): ?>
-        <a href="#" class="btn btn-primary add-button" onclick="alert('Fonctionnalité à implémenter');">
+        <a href="/tutoring/views/admin/companies/create.php" class="btn btn-primary add-button">
             <i class="bi bi-plus-circle"></i>Ajouter une entreprise
         </a>
         <?php endif; ?>
@@ -390,13 +390,13 @@ include_once __DIR__ . '/../common/header.php';
                         <div class="card-body">
                             <div class="company-actions">
                                 <div class="btn-group">
-                                    <a href="#" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails" onclick="alert('Fonctionnalité à implémenter');">
+                                    <a href="/tutoring/views/admin/companies/show.php?id=<?php echo $company['id']; ?>" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="#" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Modifier" onclick="alert('Fonctionnalité à implémenter');">
+                                    <a href="/tutoring/views/admin/companies/edit.php?id=<?php echo $company['id']; ?>" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Supprimer" onclick="alert('Fonctionnalité à implémenter');">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Supprimer" onclick="openDeleteModal(<?php echo $company['id']; ?>, '<?php echo h(addslashes($company['name'])); ?>');">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -480,6 +480,33 @@ include_once __DIR__ . '/../common/header.php';
     </div>
 </div>
 
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteCompanyModal" tabindex="-1" aria-labelledby="deleteCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCompanyModalLabel">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer l'entreprise <span id="companyNameToDelete" class="fw-bold"></span> ?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Cette action est irréversible. Tous les stages associés à cette entreprise seront également supprimés.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteCompanyForm" action="/tutoring/views/admin/companies/delete.php" method="POST">
+                    <input type="hidden" name="id" id="companyIdToDelete">
+                    <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialiser les tooltips
@@ -508,6 +535,16 @@ include_once __DIR__ . '/../common/header.php';
     
     // Ajouter un event listener pour la recherche en temps réel
     document.getElementById('search-company').addEventListener('keyup', filterCompanies);
+    
+    // Fonction pour ouvrir le modal de suppression
+    function openDeleteModal(id, name) {
+        document.getElementById('companyIdToDelete').value = id;
+        document.getElementById('companyNameToDelete').textContent = name;
+        
+        // Ouvrir le modal
+        var deleteModal = new bootstrap.Modal(document.getElementById('deleteCompanyModal'));
+        deleteModal.show();
+    }
 </script>
 
 <?php
