@@ -273,7 +273,7 @@ include_once __DIR__ . '/../common/header.php';
                                 <div class="row mb-3">
                                     <label for="specialty" class="col-sm-3 col-form-label">Spécialité</label>
                                     <div class="col-sm-9">
-                                        <input type="text" class="form-control" id="specialty" name="specialty" value="<?php echo h($teacher['specialty']); ?>">
+                                        <input type="text" class="form-control" id="specialty" name="specialty" value="<?php echo h(cleanSpecialty($teacher['specialty'])); ?>">
                                     </div>
                                 </div>
                                 

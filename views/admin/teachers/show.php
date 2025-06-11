@@ -22,11 +22,52 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 // Instancier le contrôleur
 $teacherController = new TeacherController($db);
 
-// Afficher les détails du tuteur
-$teacherController->show($_GET['id']);
+// Récupérer les données du tuteur
+$teacher = $teacherController->getTeacherDetails($_GET['id']);
+
+if (!$teacher) {
+    setFlashMessage('error', 'Enseignant non trouvé');
+    redirect('/tutoring/views/admin/tutors.php');
+    exit;
+}
+
+// Récupérer les données associées
+$preferences = $teacherController->getTeacherPreferences($_GET['id']);
+$assignments = $teacherController->getTeacherAssignments($_GET['id']);
+$students = $teacherController->getTeacherStudents($_GET['id']);
+
+// Inclure l'en-tête
+require_once __DIR__ . '/../../common/header.php';
 ?>
 
-<?php require_once __DIR__ . '/../../common/header.php'; ?>
+<style>
+    /* Styles pour les avatars */
+    .avatar-xl {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        background-color: #4e73df;
+        color: white;
+    }
+    
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        background-color: #4e73df;
+        color: white;
+    }
+</style>
 
 <div class="container-fluid">
     <!-- En-tête de page avec actions -->
@@ -104,7 +145,7 @@ $teacherController->show($_GET['id']);
                             </div>
                             <div class="col-sm-6">
                                 <p class="mb-0 text-muted">Spécialité</p>
-                                <p class="fw-bold"><?php echo h($teacher['specialty']); ?></p>
+                                <p class="fw-bold"><?php echo h(cleanSpecialty($teacher['specialty']) ?: 'Non spécifiée'); ?></p>
                             </div>
                             <div class="col-sm-6">
                                 <p class="mb-0 text-muted">Bureau</p>
@@ -330,12 +371,16 @@ $teacherController->show($_GET['id']);
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <a href="/tutoring/views/admin/students/show.php?id=<?php echo $student['student_id']; ?>" class="btn btn-sm btn-outline-info">
-                                                <i class="bi bi-person"></i>
+                                            <?php if (isset($student['id'])): ?>
+                                            <a href="/tutoring/views/admin/students/show.php?id=<?php echo $student['id']; ?>" title="Voir l'étudiant" class="btn btn-sm btn-outline-info">
+                                                <span class="bi bi-person"></span>
                                             </a>
-                                            <a href="/tutoring/views/admin/assignments/show.php?id=<?php echo $student['assignment_id']; ?>" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-diagram-3"></i>
+                                            <?php endif; ?>
+                                            <?php if (isset($student['assignment_id'])): ?>
+                                            <a href="/tutoring/views/admin/assignments/show.php?id=<?php echo $student['assignment_id']; ?>" title="Voir l'affectation" class="btn btn-sm btn-outline-primary">
+                                                <span class="bi bi-diagram-3"></span>
                                             </a>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

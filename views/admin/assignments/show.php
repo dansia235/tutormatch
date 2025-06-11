@@ -115,7 +115,7 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                             <h6 class="fw-bold">Score de compatibilité</h6>
                             <div class="d-flex align-items-center">
                                 <?php
-                                $compatibilityScore = $assignment['compatibility_score'] ?? 0;
+                                $compatibilityScore = min(10, $assignment['compatibility_score'] ?? 0);
                                 $compatibilityClass = 'bg-danger';
                                 
                                 if ($compatibilityScore >= 7) {
@@ -138,7 +138,7 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                             <h6 class="fw-bold mt-3">Score de satisfaction</h6>
                             <div class="d-flex align-items-center">
                                 <?php
-                                $satisfactionScore = $assignment['satisfaction_score'];
+                                $satisfactionScore = min(10, $assignment['satisfaction_score']);
                                 $satisfactionClass = 'bg-danger';
                                 
                                 if ($satisfactionScore >= 7) {
@@ -171,8 +171,8 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                     
                     <div class="mb-3 text-muted">
                         <small>
-                            <i class="bi bi-clock me-1"></i>Créé le <?php echo formatDate($assignment['created_at'], 'd/m/Y H:i'); ?>
-                            <?php if ($assignment['updated_at'] && $assignment['updated_at'] !== $assignment['created_at']): ?>
+                            <i class="bi bi-clock me-1"></i>Créé le <?php echo isset($assignment['created_at']) ? formatDate($assignment['created_at'], 'd/m/Y H:i') : 'N/A'; ?>
+                            <?php if (isset($assignment['updated_at']) && $assignment['updated_at'] && isset($assignment['created_at']) && $assignment['updated_at'] !== $assignment['created_at']): ?>
                             <span class="mx-2">|</span>
                             <i class="bi bi-pencil me-1"></i>Mis à jour le <?php echo formatDate($assignment['updated_at'], 'd/m/Y H:i'); ?>
                             <?php endif; ?>
@@ -284,7 +284,7 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                                         <h6 class="fw-bold mb-0">
                                             <?php echo $typeLabels[$evaluation['type']] ?? 'Évaluation'; ?>
                                             <span class="text-muted ms-2">
-                                                (<?php echo formatDate($evaluation['created_at'], 'd/m/Y'); ?>)
+                                                (<?php echo isset($evaluation['created_at']) ? formatDate($evaluation['created_at'], 'd/m/Y') : formatDate($evaluation['submission_date'], 'd/m/Y'); ?>)
                                             </span>
                                         </h6>
                                         <div class="d-flex align-items-center">
@@ -473,7 +473,7 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                     
                     <div class="mb-3">
                         <p class="mb-1"><strong>Email:</strong> <a href="mailto:<?php echo h($student['email']); ?>"><?php echo h($student['email']); ?></a></p>
-                        <?php if ($student['phone']): ?>
+                        <?php if (isset($student['phone']) && $student['phone']): ?>
                         <p class="mb-1"><strong>Téléphone:</strong> <a href="tel:<?php echo h($student['phone']); ?>"><?php echo h($student['phone']); ?></a></p>
                         <?php endif; ?>
                         <p class="mb-1"><strong>Niveau:</strong> <?php echo h($student['level']); ?></p>
@@ -507,13 +507,13 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                         <?php endif; ?>
                         <div>
                             <h5 class="mb-0"><?php echo h($teacher['first_name'] . ' ' . $teacher['last_name']); ?></h5>
-                            <p class="text-muted mb-0"><?php echo h($teacher['specialty']); ?></p>
+                            <p class="text-muted mb-0"><?php echo h(cleanSpecialty($teacher['specialty'])); ?></p>
                         </div>
                     </div>
                     
                     <div class="mb-3">
                         <p class="mb-1"><strong>Email:</strong> <a href="mailto:<?php echo h($teacher['email']); ?>"><?php echo h($teacher['email']); ?></a></p>
-                        <?php if ($teacher['phone']): ?>
+                        <?php if (isset($teacher['phone']) && $teacher['phone']): ?>
                         <p class="mb-1"><strong>Téléphone:</strong> <a href="tel:<?php echo h($teacher['phone']); ?>"><?php echo h($teacher['phone']); ?></a></p>
                         <?php endif; ?>
                         <p class="mb-1"><strong>Département:</strong> <?php echo h($teacher['department']); ?></p>

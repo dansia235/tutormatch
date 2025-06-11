@@ -166,7 +166,7 @@ include_once __DIR__ . '/../common/header.php';
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">Spécialité</h6>
                             </div>
-                            <p class="mb-1"><?php echo h($teacher['specialty']); ?></p>
+                            <p class="mb-1"><?php echo h(cleanSpecialty($teacher['specialty'])); ?></p>
                         </div>
                         <?php endif; ?>
                         

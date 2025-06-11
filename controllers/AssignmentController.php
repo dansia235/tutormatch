@@ -33,7 +33,7 @@ class AssignmentController {
         $assignments = $this->assignmentModel->getAll($status);
         
         // Afficher la vue
-        include ROOT_PATH . '/views/admin/assignments/index.php';
+        include ROOT_PATH . '/views/admin/assignments.php';
     }
     
     /**
@@ -115,42 +115,82 @@ class AssignmentController {
             return;
         }
         
-        // Calculer le score de compatibilité
-        $compatibilityScore = 0;
+        // Calculer le score de compatibilité (utilisant l'approche cohérente à 0-10)
         
-        // Vérifier si le stage est dans les préférences de l'étudiant
+        // Poids par défaut (similaires à ceux de l'algorithme de génération automatique)
+        $departmentWeight = 50; // Poids pour les préférences du tuteur (50%)
+        $preferenceWeight = 30; // Poids pour les préférences de l'étudiant (30%)
+        $workloadWeight = 20;   // Poids pour la charge de travail (20%)
+        
+        // Calculer le score de préférence de l'étudiant pour ce stage
+        $studentPrefScore = 0;
         $studentPreferences = $this->studentModel->getPreferences($_POST['student_id']);
         foreach ($studentPreferences as $preference) {
             if ($preference['internship_id'] == $_POST['internship_id']) {
-                // Plus l'ordre de préférence est bas, plus le score est élevé
-                $compatibilityScore += max(0, 10 - $preference['preference_order']);
+                // Plus l'ordre de préférence est bas, plus le score est élevé (échelle 0-10)
+                $studentPrefScore = max(0, 10 - $preference['preference_order']);
                 break;
             }
         }
         
-        // Vérifier si les préférences de l'enseignant correspondent au stage
+        // Calculer le score de préférence de l'enseignant
+        $teacherPrefScore = 0;
         $teacherPreferences = $this->teacherModel->getPreferences($_POST['teacher_id']);
         $internship = $this->internshipModel->getById($_POST['internship_id']);
+        $student = $this->studentModel->getById($_POST['student_id']);
         
-        if ($internship) {
+        if ($internship && $student) {
             foreach ($teacherPreferences as $preference) {
                 switch ($preference['preference_type']) {
                     case 'DOMAIN':
                         if ($preference['preference_value'] == $internship['domain']) {
-                            $compatibilityScore += $preference['priority_value'];
+                            $teacherPrefScore += $preference['priority_value'];
                         }
                         break;
                     case 'COMPANY':
                         if ($preference['preference_value'] == $internship['company_id']) {
-                            $compatibilityScore += $preference['priority_value'];
+                            $teacherPrefScore += $preference['priority_value'];
+                        }
+                        break;
+                    case 'DEPARTMENT':
+                        if ($preference['preference_value'] == $student['department']) {
+                            $teacherPrefScore += $preference['priority_value'];
+                        }
+                        break;
+                    case 'LEVEL':
+                        if ($preference['preference_value'] == $student['level']) {
+                            $teacherPrefScore += $preference['priority_value'];
+                        }
+                        break;
+                    case 'PROGRAM':
+                        if ($preference['preference_value'] == $student['program']) {
+                            $teacherPrefScore += $preference['priority_value'];
                         }
                         break;
                 }
             }
         }
         
-        // Normaliser le score de compatibilité (maximum 10)
-        $compatibilityScore = min(10, $compatibilityScore / 5);
+        // Normaliser le score de l'enseignant (échelle 0-10)
+        $teacherPrefScore = min(10, $teacherPrefScore / 5);
+        
+        // Calculer le score de charge de travail (équilibrage simple)
+        $workloadScore = 0;
+        $teacher = $this->teacherModel->getById($_POST['teacher_id']);
+        if ($teacher) {
+            $currentAssignments = $this->assignmentModel->countByTeacherId($_POST['teacher_id']);
+            $workloadScore = 10 * (1 - ($currentAssignments / max(1, $teacher['max_students'])));
+        }
+        
+        // Calculer le score total (sur une échelle de 0-10)
+        $compatibilityScore = (
+            ($departmentWeight / 100 * $teacherPrefScore) +
+            ($preferenceWeight / 100 * $studentPrefScore) +
+            ($workloadWeight / 100 * $workloadScore)
+        );
+        
+        // Garantir que le score est dans la plage 0-10
+        $compatibilityScore = min(10, max(0, $compatibilityScore));
         
         // Préparer les données
         $assignmentData = [
@@ -183,7 +223,7 @@ class AssignmentController {
             $this->sendAssignmentNotifications($assignmentId);
             
             setFlashMessage('success', 'Affectation créée avec succès');
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             
         } catch (Exception $e) {
             // Annuler la transaction en cas d'erreur
@@ -207,7 +247,7 @@ class AssignmentController {
         
         if (!$assignment) {
             setFlashMessage('error', 'Affectation non trouvée');
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             return;
         }
         
@@ -258,7 +298,7 @@ class AssignmentController {
         
         if (!$assignment) {
             setFlashMessage('error', 'Affectation non trouvée');
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             return;
         }
         
@@ -293,7 +333,7 @@ class AssignmentController {
         
         if (!$assignment) {
             setFlashMessage('error', 'Affectation non trouvée');
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             return;
         }
         
@@ -346,42 +386,82 @@ class AssignmentController {
             return;
         }
         
-        // Calculer le score de compatibilité
-        $compatibilityScore = 0;
+        // Calculer le score de compatibilité (utilisant l'approche cohérente à 0-10)
         
-        // Vérifier si le stage est dans les préférences de l'étudiant
+        // Poids par défaut (similaires à ceux de l'algorithme de génération automatique)
+        $departmentWeight = 50; // Poids pour les préférences du tuteur (50%)
+        $preferenceWeight = 30; // Poids pour les préférences de l'étudiant (30%)
+        $workloadWeight = 20;   // Poids pour la charge de travail (20%)
+        
+        // Calculer le score de préférence de l'étudiant pour ce stage
+        $studentPrefScore = 0;
         $studentPreferences = $this->studentModel->getPreferences($_POST['student_id']);
         foreach ($studentPreferences as $preference) {
             if ($preference['internship_id'] == $_POST['internship_id']) {
-                // Plus l'ordre de préférence est bas, plus le score est élevé
-                $compatibilityScore += max(0, 10 - $preference['preference_order']);
+                // Plus l'ordre de préférence est bas, plus le score est élevé (échelle 0-10)
+                $studentPrefScore = max(0, 10 - $preference['preference_order']);
                 break;
             }
         }
         
-        // Vérifier si les préférences de l'enseignant correspondent au stage
+        // Calculer le score de préférence de l'enseignant
+        $teacherPrefScore = 0;
         $teacherPreferences = $this->teacherModel->getPreferences($_POST['teacher_id']);
         $internship = $this->internshipModel->getById($_POST['internship_id']);
+        $student = $this->studentModel->getById($_POST['student_id']);
         
-        if ($internship) {
+        if ($internship && $student) {
             foreach ($teacherPreferences as $preference) {
                 switch ($preference['preference_type']) {
                     case 'DOMAIN':
                         if ($preference['preference_value'] == $internship['domain']) {
-                            $compatibilityScore += $preference['priority_value'];
+                            $teacherPrefScore += $preference['priority_value'];
                         }
                         break;
                     case 'COMPANY':
                         if ($preference['preference_value'] == $internship['company_id']) {
-                            $compatibilityScore += $preference['priority_value'];
+                            $teacherPrefScore += $preference['priority_value'];
+                        }
+                        break;
+                    case 'DEPARTMENT':
+                        if ($preference['preference_value'] == $student['department']) {
+                            $teacherPrefScore += $preference['priority_value'];
+                        }
+                        break;
+                    case 'LEVEL':
+                        if ($preference['preference_value'] == $student['level']) {
+                            $teacherPrefScore += $preference['priority_value'];
+                        }
+                        break;
+                    case 'PROGRAM':
+                        if ($preference['preference_value'] == $student['program']) {
+                            $teacherPrefScore += $preference['priority_value'];
                         }
                         break;
                 }
             }
         }
         
-        // Normaliser le score de compatibilité (maximum 10)
-        $compatibilityScore = min(10, $compatibilityScore / 5);
+        // Normaliser le score de l'enseignant (échelle 0-10)
+        $teacherPrefScore = min(10, $teacherPrefScore / 5);
+        
+        // Calculer le score de charge de travail (équilibrage simple)
+        $workloadScore = 0;
+        $teacher = $this->teacherModel->getById($_POST['teacher_id']);
+        if ($teacher) {
+            $currentAssignments = $this->assignmentModel->countByTeacherId($_POST['teacher_id']);
+            $workloadScore = 10 * (1 - ($currentAssignments / max(1, $teacher['max_students'])));
+        }
+        
+        // Calculer le score total (sur une échelle de 0-10)
+        $compatibilityScore = (
+            ($departmentWeight / 100 * $teacherPrefScore) +
+            ($preferenceWeight / 100 * $studentPrefScore) +
+            ($workloadWeight / 100 * $workloadScore)
+        );
+        
+        // Garantir que le score est dans la plage 0-10
+        $compatibilityScore = min(10, max(0, $compatibilityScore));
         
         // Préparer les données
         $assignmentData = [
@@ -421,7 +501,7 @@ class AssignmentController {
             $this->db->commit();
             
             setFlashMessage('success', 'Affectation mise à jour avec succès');
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             
         } catch (Exception $e) {
             // Annuler la transaction en cas d'erreur
@@ -443,7 +523,7 @@ class AssignmentController {
         // Vérifier le jeton CSRF
         if (!verifyCsrfToken($_POST['csrf_token'])) {
             setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             return;
         }
         
@@ -452,7 +532,7 @@ class AssignmentController {
         
         if (!$assignment) {
             setFlashMessage('error', 'Affectation non trouvée');
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             return;
         }
         
@@ -481,7 +561,7 @@ class AssignmentController {
             setFlashMessage('error', $e->getMessage());
         }
         
-        redirect('/tutoring/views/admin/assignments/index.php');
+        redirect('/tutoring/views/admin/assignments.php');
     }
     
     /**
@@ -497,7 +577,7 @@ class AssignmentController {
         $assignments = $this->assignmentModel->search($term, $status);
         
         // Afficher la vue
-        include ROOT_PATH . '/views/admin/assignments/index.php';
+        include ROOT_PATH . '/views/admin/assignments.php';
     }
     
     /**
@@ -644,7 +724,7 @@ class AssignmentController {
         
         if (!$assignment) {
             setFlashMessage('error', 'Affectation non trouvée');
-            redirect(hasRole(['admin', 'coordinator']) ? '/tutoring/admin/assignments/index.php' : '/tutoring/dashboard.php');
+            redirect(hasRole(['admin', 'coordinator']) ? '/tutoring/views/admin/assignments.php' : '/tutoring/dashboard.php');
             return;
         }
         
@@ -691,7 +771,7 @@ class AssignmentController {
         
         // Rediriger selon le rôle
         if (hasRole(['admin', 'coordinator'])) {
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
         } else {
             redirect('/tutoring/tutor/assignments/show.php?id=' . $id);
         }
@@ -986,10 +1066,20 @@ class AssignmentController {
             'is_default' => isset($_POST['set_as_default']) ? 1 : 0
         ];
         
-        // Commencer une transaction
-        $this->db->beginTransaction();
-        
         try {
+            // Vérifier s'il y a déjà une transaction active et l'annuler si nécessaire
+            try {
+                if ($this->db->inTransaction()) {
+                    $this->db->rollBack();
+                    error_log("Une transaction non terminée a été annulée avant de générer les affectations");
+                }
+            } catch (PDOException $e) {
+                error_log("Erreur lors de la vérification de transaction: " . $e->getMessage());
+            }
+            
+            // Commencer une nouvelle transaction
+            $this->db->beginTransaction();
+            
             // Sauvegarder les paramètres
             $parametersModel = new AlgorithmParameters($this->db);
             $parametersId = $parametersModel->create($algorithmParams);
@@ -1039,6 +1129,9 @@ class AssignmentController {
                 
                 $assignmentsCount++;
                 $totalSatisfaction += $assignment['compatibility_score'];
+                
+                // Stocker l'ID pour les notifications
+                $assignment['id'] = $assignmentId;
             }
             
             // Calculer la moyenne de satisfaction
@@ -1069,15 +1162,23 @@ class AssignmentController {
             
             // Envoyer des notifications pour chaque affectation
             foreach ($assignments as $assignment) {
-                $this->sendAssignmentNotifications($assignment['id']);
+                if (isset($assignment['id'])) {
+                    $this->sendAssignmentNotifications($assignment['id']);
+                }
             }
             
             setFlashMessage('success', "Génération d'affectations réussie : $assignmentsCount affectations créées sur " . count($unassignedStudents) . " étudiants");
-            redirect('/tutoring/views/admin/assignments/index.php');
+            redirect('/tutoring/views/admin/assignments.php');
             
         } catch (Exception $e) {
             // Annuler la transaction en cas d'erreur
-            $this->db->rollBack();
+            try {
+                if ($this->db->inTransaction()) {
+                    $this->db->rollBack();
+                }
+            } catch (PDOException $e2) {
+                error_log("Erreur lors de l'annulation de la transaction: " . $e2->getMessage());
+            }
             
             setFlashMessage('error', $e->getMessage());
             redirect('/tutoring/views/admin/assignments/generate.php');
@@ -1220,12 +1321,13 @@ class AssignmentController {
                         $workloadScore = 10 * (1 - ($teacherAssignments[$teacher['id']] / $teacher['remaining_capacity']));
                     }
                     
-                    // Calculer le score total
+                    // Calculer le score total (sur une échelle de 0-10)
+                    // Les poids department_weight, preference_weight et capacity_weight sont des pourcentages (somme = 100%)
                     $totalScore = (
-                        ($params['department_weight'] * $teacherPrefScore) +
-                        ($params['preference_weight'] * $studentPrefScore) +
-                        ($params['capacity_weight'] * $workloadScore)
-                    ) / 100;
+                        ($params['department_weight'] / 100 * $teacherPrefScore) +
+                        ($params['preference_weight'] / 100 * $studentPrefScore) +
+                        ($params['capacity_weight'] / 100 * $workloadScore)
+                    );
                     
                     // Mettre à jour le meilleur score
                     if ($totalScore > $bestScore) {
@@ -1242,7 +1344,7 @@ class AssignmentController {
                     'student_id' => $student['id'],
                     'teacher_id' => $bestTeacher['id'],
                     'internship_id' => $bestInternship['id'],
-                    'compatibility_score' => $bestScore * 10 // Score sur 10
+                    'compatibility_score' => min(10, max(0, $bestScore)) // Score sur 0-10, garantir qu'il est bien dans cette plage
                 ];
                 
                 // Mettre à jour les compteurs

@@ -204,7 +204,53 @@ class StudentController {
     }
     
     /**
-     * Affiche les détails d'un étudiant
+     * Récupère les détails d'un étudiant
+     * @param int $id ID de l'étudiant
+     * @return array|bool Détails de l'étudiant ou false si non trouvé
+     */
+    public function getStudentDetails($id) {
+        return $this->studentModel->getById($id);
+    }
+    
+    /**
+     * Récupère les préférences d'un étudiant
+     * @param int $id ID de l'étudiant
+     * @return array Préférences de l'étudiant
+     */
+    public function getStudentPreferences($id) {
+        return $this->studentModel->getPreferences($id);
+    }
+    
+    /**
+     * Récupère l'affectation d'un étudiant
+     * @param int $id ID de l'étudiant
+     * @return array|bool Affectation de l'étudiant ou false si aucune
+     */
+    public function getStudentAssignment($id) {
+        return $this->studentModel->getAssignment($id);
+    }
+    
+    /**
+     * Récupère les documents d'un étudiant
+     * @param int $id ID de l'étudiant
+     * @return array Documents de l'étudiant
+     */
+    public function getStudentDocuments($id) {
+        return $this->studentModel->getDocuments($id);
+    }
+    
+    /**
+     * Récupère les réunions d'un étudiant
+     * @param int $id ID de l'étudiant
+     * @return array Réunions de l'étudiant
+     */
+    public function getStudentMeetings($id) {
+        return $this->studentModel->getMeetings($id);
+    }
+    
+    /**
+     * [DEPRECATED] Affiche les détails d'un étudiant
+     * Cette méthode est conservée pour compatibilité mais ne devrait plus être utilisée directement.
      * @param int $id ID de l'étudiant
      */
     public function show($id) {

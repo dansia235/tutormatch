@@ -4,11 +4,31 @@ import { Controller } from '@hotwired/stimulus';
  * Filter controller for handling filter forms
  */
 export default class extends Controller {
-  static targets = ['container', 'toggleIcon'];
+  static targets = ['container', 'toggleIcon', 'content', 'collapseIcon'];
 
   connect() {
     // Initialize any filter-specific behavior
     this.setupResponsiveHandling();
+    
+    // Check URL parameters to automatically expand filters if any are set
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterParams = ['domain', 'location', 'work_mode', 'start_date_from', 'start_date_to', 'skills'];
+    
+    // Check if any filter is applied
+    const hasFilters = filterParams.some(param => 
+      urlParams.has(param) && urlParams.get(param) !== ''
+    );
+    
+    // Expand filters if any are applied
+    if (hasFilters) {
+      if (this.hasContentTarget) {
+        this.contentTarget.classList.remove('hidden');
+        this.updateCollapseIcon(true);
+      }
+      if (this.hasContainerTarget) {
+        this.containerTarget.classList.remove('hidden');
+      }
+    }
   }
 
   /**
@@ -35,6 +55,27 @@ export default class extends Controller {
     
     // Start observing
     this.resizeObserver.observe(document.body);
+  }
+  
+  /**
+   * Update collapse icon based on visibility state
+   */
+  updateCollapseIcon(isVisible) {
+    if (this.hasCollapseIconTarget) {
+      if (isVisible) {
+        this.collapseIconTarget.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+          </svg>
+        `;
+      } else {
+        this.collapseIconTarget.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        `;
+      }
+    }
   }
 
   /**

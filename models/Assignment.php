@@ -77,9 +77,21 @@ class Assignment {
      * @return int|false ID de l'affectation créée, sinon false
      */
     public function create($data) {
-        $this->db->beginTransaction();
+        // S'assurer qu'il n'y a pas de transaction déjà active
+        $transactionStartedHere = false;
         
         try {
+            // Vérifier si une transaction est déjà active
+            if (!$this->db->inTransaction()) {
+                $this->db->beginTransaction();
+                $transactionStartedHere = true;
+            }
+            
+            // Préparer les valeurs par défaut pour les champs optionnels
+            $satisfactionScore = isset($data['satisfaction_score']) ? $data['satisfaction_score'] : 0;
+            $compatibilityScore = isset($data['compatibility_score']) ? $data['compatibility_score'] : 0;
+            $notes = isset($data['notes']) ? $data['notes'] : null;
+            
             $query = "INSERT INTO assignments (student_id, teacher_id, internship_id, status, satisfaction_score, compatibility_score, notes) 
                       VALUES (:student_id, :teacher_id, :internship_id, :status, :satisfaction_score, :compatibility_score, :notes)";
                       
@@ -90,9 +102,9 @@ class Assignment {
             $stmt->bindParam(':teacher_id', $data['teacher_id']);
             $stmt->bindParam(':internship_id', $data['internship_id']);
             $stmt->bindParam(':status', $data['status']);
-            $stmt->bindParam(':satisfaction_score', $data['satisfaction_score']);
-            $stmt->bindParam(':compatibility_score', $data['compatibility_score']);
-            $stmt->bindParam(':notes', $data['notes']);
+            $stmt->bindParam(':satisfaction_score', $satisfactionScore);
+            $stmt->bindParam(':compatibility_score', $compatibilityScore);
+            $stmt->bindParam(':notes', $notes);
             
             $stmt->execute();
             $assignmentId = $this->db->lastInsertId();
@@ -105,13 +117,21 @@ class Assignment {
                 $stmt->execute();
             }
             
-            $this->db->commit();
+            // Committer uniquement si nous avons démarré la transaction
+            if ($transactionStartedHere) {
+                $this->db->commit();
+            }
+            
             return $assignmentId;
             
         } catch (Exception $e) {
-            $this->db->rollBack();
+            // Rollback uniquement si nous avons démarré la transaction
+            if ($transactionStartedHere && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            
             // En production, loggez l'erreur au lieu de l'afficher
-            error_log($e->getMessage());
+            error_log("Erreur lors de la création d'une affectation: " . $e->getMessage());
             return false;
         }
     }
@@ -123,9 +143,16 @@ class Assignment {
      * @return bool Succès de l'opération
      */
     public function update($id, $data) {
-        $this->db->beginTransaction();
+        // S'assurer qu'il n'y a pas de transaction déjà active
+        $transactionStartedHere = false;
         
         try {
+            // Vérifier si une transaction est déjà active
+            if (!$this->db->inTransaction()) {
+                $this->db->beginTransaction();
+                $transactionStartedHere = true;
+            }
+            
             // Récupérer l'affectation actuelle
             $query = "SELECT * FROM assignments WHERE id = :id";
             $stmt = $this->db->prepare($query);
@@ -149,6 +176,10 @@ class Assignment {
             }
             
             if (empty($fields)) {
+                // Committer uniquement si nous avons démarré la transaction
+                if ($transactionStartedHere) {
+                    $this->db->commit();
+                }
                 return false; // Rien à mettre à jour
             }
             
@@ -181,13 +212,20 @@ class Assignment {
                 $stmt->execute();
             }
             
-            $this->db->commit();
+            // Committer uniquement si nous avons démarré la transaction
+            if ($transactionStartedHere) {
+                $this->db->commit();
+            }
             return true;
             
         } catch (Exception $e) {
-            $this->db->rollBack();
+            // Rollback uniquement si nous avons démarré la transaction
+            if ($transactionStartedHere && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            
             // En production, loggez l'erreur au lieu de l'afficher
-            error_log($e->getMessage());
+            error_log("Erreur lors de la mise à jour d'une affectation: " . $e->getMessage());
             return false;
         }
     }
@@ -270,14 +308,20 @@ class Assignment {
         
         // Si un terme de recherche est fourni
         if (!empty($term)) {
-            $conditions[] = "(u_s.first_name LIKE :term 
-                           OR u_s.last_name LIKE :term 
-                           OR s.student_number LIKE :term
-                           OR u_t.first_name LIKE :term 
-                           OR u_t.last_name LIKE :term
-                           OR i.title LIKE :term
-                           OR c.name LIKE :term)";
-            $params[':term'] = $term;
+            $conditions[] = "(u_s.first_name LIKE :term1 
+                           OR u_s.last_name LIKE :term2 
+                           OR s.student_number LIKE :term3
+                           OR u_t.first_name LIKE :term4 
+                           OR u_t.last_name LIKE :term5
+                           OR i.title LIKE :term6
+                           OR c.name LIKE :term7)";
+            $params[':term1'] = $term;
+            $params[':term2'] = $term;
+            $params[':term3'] = $term;
+            $params[':term4'] = $term;
+            $params[':term5'] = $term;
+            $params[':term6'] = $term;
+            $params[':term7'] = $term;
         } else {
             // Si aucun terme, ajouter une condition toujours vraie
             $conditions[] = "1=1";

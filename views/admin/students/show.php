@@ -22,11 +22,53 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 // Instancier le contrôleur
 $studentController = new StudentController($db);
 
-// Afficher les détails de l'étudiant
-$studentController->show($_GET['id']);
+// Récupérer les données de l'étudiant
+$student = $studentController->getStudentDetails($_GET['id']);
+
+if (!$student) {
+    setFlashMessage('error', 'Étudiant non trouvé');
+    redirect('/tutoring/views/admin/students.php');
+    exit;
+}
+
+// Récupérer les données associées
+$preferences = $studentController->getStudentPreferences($_GET['id']);
+$assignment = $studentController->getStudentAssignment($_GET['id']);
+$documents = $studentController->getStudentDocuments($_GET['id']);
+$meetings = $studentController->getStudentMeetings($_GET['id']);
+
+// Inclure l'en-tête
+require_once __DIR__ . '/../../common/header.php';
 ?>
 
-<?php require_once __DIR__ . '/../../common/header.php'; ?>
+<style>
+    /* Styles pour les avatars */
+    .avatar-xl {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        background-color: #4e73df;
+        color: white;
+    }
+    
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        background-color: #4e73df;
+        color: white;
+    }
+</style>
 
 <div class="container-fluid">
     <!-- En-tête de page avec actions -->

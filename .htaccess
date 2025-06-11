@@ -10,11 +10,12 @@
     Deny from all
 </FilesMatch>
 
-# Protection des répertoires sensibles
-<DirectoryMatch "^/\.git/">
-    Order allow,deny
-    Deny from all
-</DirectoryMatch>
+# Protection des répertoires sensibles via RewriteRule
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^\.git/ - [F,L]
+    RewriteRule ^database/backups/ - [F,L]
+</IfModule>
 
 # Amélioration de la sécurité
 <IfModule mod_headers.c>
@@ -34,9 +35,8 @@ ErrorDocument 403 /tutoring/access-denied.php
 
 # Configuration PHP
 <IfModule mod_php.c>
-    php_flag display_errors Off
+    php_flag display_errors On
     php_flag log_errors On
-    php_value error_log logs/php_errors.log
     
     php_value upload_max_filesize 10M
     php_value post_max_size 10M

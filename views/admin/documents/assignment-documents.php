@@ -16,7 +16,7 @@ requireRole(['admin', 'coordinator']);
 // Vérifier l'ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     setFlashMessage('error', 'ID d\'affectation invalide');
-    redirect('/tutoring/views/admin/assignments/index.php');
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
 // Instancier le contrôleur
@@ -38,7 +38,7 @@ $documentController->assignmentDocuments($_GET['id']);
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/index.php">Affectations</a></li>
+                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments.php">Affectations</a></li>
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/show.php?id=<?php echo $assignment['id']; ?>">Affectation #<?php echo $assignment['id']; ?></a></li>
                     <li class="breadcrumb-item active" aria-current="page">Documents</li>
                 </ol>

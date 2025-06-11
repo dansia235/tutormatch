@@ -301,7 +301,7 @@ if (!defined('BASE_PATH')) {
                                 </div>
                             </td>
                             <td><?php echo h($teacher['department']); ?></td>
-                            <td><?php echo h($teacher['specialty']); ?></td>
+                            <td><?php echo h(cleanSpecialty($teacher['specialty'])); ?></td>
                             <td>
                                 <?php if ($teacher['available']): ?>
                                 <span class="badge bg-success">Disponible</span>

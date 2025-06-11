@@ -313,14 +313,22 @@ class Student {
         $query = "SELECT s.*, u.username, u.email, u.first_name, u.last_name, u.department, u.profile_image 
                   FROM students s
                   JOIN users u ON s.user_id = u.id
-                  WHERE (u.username LIKE :term 
-                  OR u.email LIKE :term 
-                  OR u.first_name LIKE :term 
-                  OR u.last_name LIKE :term
-                  OR s.student_number LIKE :term
-                  OR s.program LIKE :term)";
+                  WHERE (u.username LIKE :term1 
+                  OR u.email LIKE :term2 
+                  OR u.first_name LIKE :term3 
+                  OR u.last_name LIKE :term4
+                  OR s.student_number LIKE :term5
+                  OR s.program LIKE :term6)";
                   
-        $params = [':term' => "%$term%"];
+        $termValue = "%$term%";
+        $params = [
+            ':term1' => $termValue,
+            ':term2' => $termValue,
+            ':term3' => $termValue,
+            ':term4' => $termValue,
+            ':term5' => $termValue,
+            ':term6' => $termValue
+        ];
         
         // Ajouter la clause de statut si nécessaire
         if ($status) {

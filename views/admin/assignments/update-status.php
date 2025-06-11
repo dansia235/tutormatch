@@ -12,7 +12,7 @@ requireRole(['admin', 'coordinator']);
 // Vérifier les données POST
 if (!isset($_POST['id']) || !is_numeric($_POST['id']) || !isset($_POST['status'])) {
     setFlashMessage('error', 'Données invalides pour le changement de statut');
-    redirect('/tutoring/views/admin/assignments/index.php');
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
 // Vérifier le jeton CSRF
@@ -20,6 +20,11 @@ if (!verifyCsrfToken($_POST['csrf_token'])) {
     setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
     redirect('/tutoring/views/admin/assignments/show.php?id=' . $_POST['id']);
     exit;
+}
+
+// S'assurer que la connexion à la base de données est disponible
+if (!isset($db) || $db === null) {
+    $db = getDBConnection();
 }
 
 // Instancier le contrôleur
@@ -31,7 +36,7 @@ $currentAssignment = $assignment->getById($_POST['id']);
 
 if (!$currentAssignment) {
     setFlashMessage('error', 'Affectation non trouvée');
-    redirect('/tutoring/views/admin/assignments/index.php');
+    redirect('/tutoring/views/admin/assignments.php');
     exit;
 }
 

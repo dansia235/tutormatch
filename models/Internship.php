@@ -175,9 +175,16 @@ class Internship {
      * @return bool Succès de l'opération
      */
     public function update($id, $data) {
-        $this->db->beginTransaction();
+        // S'assurer qu'il n'y a pas de transaction déjà active
+        $transactionStartedHere = false;
         
         try {
+            // Vérifier si une transaction est déjà active
+            if (!$this->db->inTransaction()) {
+                $this->db->beginTransaction();
+                $transactionStartedHere = true;
+            }
+            
             $fields = [];
             $values = [':id' => $id];
             
@@ -203,13 +210,21 @@ class Internship {
                 }
             }
             
-            $this->db->commit();
+            // Committer uniquement si nous avons démarré la transaction
+            if ($transactionStartedHere) {
+                $this->db->commit();
+            }
+            
             return true;
             
         } catch (Exception $e) {
-            $this->db->rollBack();
+            // Rollback uniquement si nous avons démarré la transaction
+            if ($transactionStartedHere && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            
             // En production, loggez l'erreur au lieu de l'afficher
-            error_log($e->getMessage());
+            error_log("Erreur lors de la mise à jour d'un stage: " . $e->getMessage());
             return false;
         }
     }
@@ -253,87 +268,148 @@ class Internship {
      * Recherche des stages
      * @param string $term Terme de recherche
      * @param string $status Statut pour filtrer (optionnel)
+     * @param array $filters Filtres additionnels (optionnel)
+     * @param int $limit Nombre de résultats à retourner (optionnel, défaut 20)
+     * @param int $offset Décalage pour la pagination (optionnel, défaut 0)
      * @return array Liste des stages correspondants
      */
-    public function search($term, $status = null) {
+    public function search($term, $status = null, $filters = [], $limit = 20, $offset = 0) {
         // Log pour le débogage
         error_log("Internship model search called with term: '$term', status: '$status'");
         
         try {
-            // Si le terme est vide, retourner un tableau vide ou limiter à quelques résultats
-            if (empty(trim($term))) {
-                // Requête pour terme vide
-                $query = "SELECT i.*, c.name as company_name, c.logo_path as company_logo 
+            // Initialisation des conditions et paramètres
+            $conditions = [];
+            $params = [];
+            $joinSkills = false;
+            
+            // Base de la requête
+            $baseQuery = "SELECT DISTINCT i.*, c.name as company_name, c.logo_path as company_logo 
                           FROM internships i
                           JOIN companies c ON i.company_id = c.id";
-                
-                if ($status) {
-                    $query .= " WHERE i.status = :status";
-                }
-                
-                $query .= " LIMIT 10";
-                
-                $stmt = $this->db->prepare($query);
-                
-                if ($status) {
-                    $stmt->bindValue(':status', $status);
-                }
-            } else {
-                // Recherche avec terme non vide
+            
+            // Ajouter la condition de statut si fournie
+            if ($status) {
+                $conditions[] = "i.status = :status";
+                $params[':status'] = $status;
+            }
+            
+            // Ajouter la recherche par terme si fourni
+            if (!empty(trim($term))) {
                 $searchTerm = "%" . trim($term) . "%";
-                
-                // Requête simplifiée sans la jointure problématique
-                $query = "SELECT i.*, c.name as company_name, c.logo_path as company_logo 
-                          FROM internships i
-                          JOIN companies c ON i.company_id = c.id
-                          WHERE (i.title LIKE :term 
-                          OR i.description LIKE :term 
-                          OR i.domain LIKE :term
-                          OR c.name LIKE :term)";
-                
-                if ($status) {
-                    $query .= " AND i.status = :status";
+                $conditions[] = "(i.title LIKE :term1 
+                               OR i.description LIKE :term2 
+                               OR i.requirements LIKE :term3
+                               OR i.domain LIKE :term4
+                               OR i.location LIKE :term5
+                               OR c.name LIKE :term6
+                               OR EXISTS (SELECT 1 FROM internship_skills is2 WHERE is2.internship_id = i.id AND is2.skill_name LIKE :term7))";
+                $params[':term1'] = $searchTerm;
+                $params[':term2'] = $searchTerm;
+                $params[':term3'] = $searchTerm;
+                $params[':term4'] = $searchTerm;
+                $params[':term5'] = $searchTerm;
+                $params[':term6'] = $searchTerm;
+                $params[':term7'] = $searchTerm;
+            }
+            
+            // Traiter les filtres additionnels
+            if (!empty($filters)) {
+                // Filtrer par domaine
+                if (isset($filters['domain']) && !empty($filters['domain'])) {
+                    if (is_array($filters['domain'])) {
+                        $domainPlaceholders = [];
+                        foreach ($filters['domain'] as $index => $domain) {
+                            $placeholder = ":domain{$index}";
+                            $domainPlaceholders[] = $placeholder;
+                            $params[$placeholder] = $domain;
+                        }
+                        $conditions[] = "i.domain IN (" . implode(", ", $domainPlaceholders) . ")";
+                    } else {
+                        $conditions[] = "i.domain = :domain";
+                        $params[':domain'] = $filters['domain'];
+                    }
                 }
                 
-                $stmt = $this->db->prepare($query);
-                $stmt->bindValue(':term', $searchTerm);
+                // Filtrer par localisation
+                if (isset($filters['location']) && !empty($filters['location'])) {
+                    $conditions[] = "i.location LIKE :location";
+                    $params[':location'] = "%" . $filters['location'] . "%";
+                }
                 
-                if ($status) {
-                    $stmt->bindValue(':status', $status);
+                // Filtrer par mode de travail
+                if (isset($filters['work_mode']) && !empty($filters['work_mode'])) {
+                    $conditions[] = "i.work_mode = :work_mode";
+                    $params[':work_mode'] = $filters['work_mode'];
+                }
+                
+                // Filtrer par compétences
+                if (isset($filters['skills']) && !empty($filters['skills']) && is_array($filters['skills'])) {
+                    $joinSkills = true;
+                    $skillCount = count($filters['skills']);
+                    
+                    // Pour chaque compétence, ajouter une condition
+                    for ($i = 0; $i < $skillCount; $i++) {
+                        $skillParam = ":skill{$i}";
+                        $params[$skillParam] = $filters['skills'][$i];
+                        
+                        // Utiliser EXISTS pour chaque compétence
+                        $conditions[] = "EXISTS (SELECT 1 FROM internship_skills is{$i} 
+                                     WHERE is{$i}.internship_id = i.id AND is{$i}.skill_name = {$skillParam})";
+                    }
+                }
+                
+                // Filtrer par date de début
+                if (isset($filters['start_date']) && !empty($filters['start_date'])) {
+                    if (isset($filters['start_date']['from']) && !empty($filters['start_date']['from'])) {
+                        $conditions[] = "i.start_date >= :start_date_from";
+                        $params[':start_date_from'] = $filters['start_date']['from'];
+                    }
+                    if (isset($filters['start_date']['to']) && !empty($filters['start_date']['to'])) {
+                        $conditions[] = "i.start_date <= :start_date_to";
+                        $params[':start_date_to'] = $filters['start_date']['to'];
+                    }
+                }
+                
+                // Filtrer par entreprise
+                if (isset($filters['company_id']) && !empty($filters['company_id'])) {
+                    $conditions[] = "i.company_id = :company_id";
+                    $params[':company_id'] = $filters['company_id'];
                 }
             }
             
-            // Exécuter la requête
+            // Construire la requête complète
+            $query = $baseQuery;
+            
+            // Ajouter les conditions s'il y en a
+            if (!empty($conditions)) {
+                $query .= " WHERE " . implode(" AND ", $conditions);
+            }
+            
+            // Tri par date de début
+            $query .= " ORDER BY i.start_date DESC";
+            
+            // Ajouter la limitation pour la pagination
+            $query .= " LIMIT :limit OFFSET :offset";
+            $params[':limit'] = $limit;
+            $params[':offset'] = $offset;
+            
+            // Préparer et exécuter la requête
+            $stmt = $this->db->prepare($query);
+            
+            // Lier les paramètres avec leurs types appropriés
+            foreach ($params as $key => $value) {
+                if ($key === ':limit' || $key === ':offset') {
+                    $stmt->bindValue($key, $value, PDO::PARAM_INT);
+                } else {
+                    $stmt->bindValue($key, $value);
+                }
+            }
+            
             $stmt->execute();
             $internships = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             error_log("Search found " . count($internships) . " internships");
-            
-            // Si aucun résultat et le terme n'est pas vide, essayer une recherche plus large
-            if (count($internships) === 0 && !empty(trim($term))) {
-                error_log("No results found with specific search, trying broader search");
-                $searchTerm = "%" . trim($term) . "%";
-                
-                $query = "SELECT i.*, c.name as company_name, c.logo_path as company_logo 
-                          FROM internships i
-                          JOIN companies c ON i.company_id = c.id
-                          WHERE i.title LIKE :term";
-                
-                if ($status) {
-                    $query .= " AND i.status = :status";
-                }
-                
-                $stmt = $this->db->prepare($query);
-                $stmt->bindValue(':term', $searchTerm);
-                
-                if ($status) {
-                    $stmt->bindValue(':status', $status);
-                }
-                
-                $stmt->execute();
-                $internships = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                error_log("Broader search found " . count($internships) . " internships");
-            }
             
             // Récupérer les compétences pour chaque stage
             foreach ($internships as &$internship) {
@@ -433,6 +509,142 @@ class Internship {
         }
         
         return $result;
+    }
+    
+    /**
+     * Compte le nombre total de stages correspondant à une recherche
+     * @param string $term Terme de recherche
+     * @param string $status Statut pour filtrer (optionnel)
+     * @param array $filters Filtres additionnels (optionnel)
+     * @return int Nombre total de stages
+     */
+    public function countSearch($term, $status = null, $filters = []) {
+        try {
+            // Initialisation des conditions et paramètres
+            $conditions = [];
+            $params = [];
+            
+            // Base de la requête
+            $baseQuery = "SELECT COUNT(DISTINCT i.id) as total 
+                          FROM internships i
+                          JOIN companies c ON i.company_id = c.id";
+            
+            // Ajouter la condition de statut si fournie
+            if ($status) {
+                $conditions[] = "i.status = :status";
+                $params[':status'] = $status;
+            }
+            
+            // Ajouter la recherche par terme si fourni
+            if (!empty(trim($term))) {
+                $searchTerm = "%" . trim($term) . "%";
+                $conditions[] = "(i.title LIKE :term1 
+                               OR i.description LIKE :term2 
+                               OR i.requirements LIKE :term3
+                               OR i.domain LIKE :term4
+                               OR i.location LIKE :term5
+                               OR c.name LIKE :term6
+                               OR EXISTS (SELECT 1 FROM internship_skills is2 WHERE is2.internship_id = i.id AND is2.skill_name LIKE :term7))";
+                $params[':term1'] = $searchTerm;
+                $params[':term2'] = $searchTerm;
+                $params[':term3'] = $searchTerm;
+                $params[':term4'] = $searchTerm;
+                $params[':term5'] = $searchTerm;
+                $params[':term6'] = $searchTerm;
+                $params[':term7'] = $searchTerm;
+            }
+            
+            // Traiter les filtres additionnels
+            if (!empty($filters)) {
+                // Filtrer par domaine
+                if (isset($filters['domain']) && !empty($filters['domain'])) {
+                    if (is_array($filters['domain'])) {
+                        $domainPlaceholders = [];
+                        foreach ($filters['domain'] as $index => $domain) {
+                            $placeholder = ":domain{$index}";
+                            $domainPlaceholders[] = $placeholder;
+                            $params[$placeholder] = $domain;
+                        }
+                        $conditions[] = "i.domain IN (" . implode(", ", $domainPlaceholders) . ")";
+                    } else {
+                        $conditions[] = "i.domain = :domain";
+                        $params[':domain'] = $filters['domain'];
+                    }
+                }
+                
+                // Filtrer par localisation
+                if (isset($filters['location']) && !empty($filters['location'])) {
+                    $conditions[] = "i.location LIKE :location";
+                    $params[':location'] = "%" . $filters['location'] . "%";
+                }
+                
+                // Filtrer par mode de travail
+                if (isset($filters['work_mode']) && !empty($filters['work_mode'])) {
+                    $conditions[] = "i.work_mode = :work_mode";
+                    $params[':work_mode'] = $filters['work_mode'];
+                }
+                
+                // Filtrer par compétences
+                if (isset($filters['skills']) && !empty($filters['skills']) && is_array($filters['skills'])) {
+                    $skillCount = count($filters['skills']);
+                    
+                    // Pour chaque compétence, ajouter une condition
+                    for ($i = 0; $i < $skillCount; $i++) {
+                        $skillParam = ":skill{$i}";
+                        $params[$skillParam] = $filters['skills'][$i];
+                        
+                        // Utiliser EXISTS pour chaque compétence
+                        $conditions[] = "EXISTS (SELECT 1 FROM internship_skills is{$i} 
+                                     WHERE is{$i}.internship_id = i.id AND is{$i}.skill_name = {$skillParam})";
+                    }
+                }
+                
+                // Filtrer par date de début
+                if (isset($filters['start_date']) && !empty($filters['start_date'])) {
+                    if (isset($filters['start_date']['from']) && !empty($filters['start_date']['from'])) {
+                        $conditions[] = "i.start_date >= :start_date_from";
+                        $params[':start_date_from'] = $filters['start_date']['from'];
+                    }
+                    if (isset($filters['start_date']['to']) && !empty($filters['start_date']['to'])) {
+                        $conditions[] = "i.start_date <= :start_date_to";
+                        $params[':start_date_to'] = $filters['start_date']['to'];
+                    }
+                }
+                
+                // Filtrer par entreprise
+                if (isset($filters['company_id']) && !empty($filters['company_id'])) {
+                    $conditions[] = "i.company_id = :company_id";
+                    $params[':company_id'] = $filters['company_id'];
+                }
+            }
+            
+            // Construire la requête complète
+            $query = $baseQuery;
+            
+            // Ajouter les conditions s'il y en a
+            if (!empty($conditions)) {
+                $query .= " WHERE " . implode(" AND ", $conditions);
+            }
+            
+            // Préparer et exécuter la requête
+            $stmt = $this->db->prepare($query);
+            
+            // Lier les paramètres
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $result['total'] ?? 0;
+            
+        } catch (Exception $e) {
+            // Logguer l'erreur pour le débogage
+            error_log("Erreur dans le comptage des stages: " . $e->getMessage());
+            // Retourner zéro en cas d'erreur
+            return 0;
+        }
     }
 
     /**

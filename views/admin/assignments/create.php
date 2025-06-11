@@ -28,6 +28,14 @@ $students = $studentModel->getAll('active');
 $teacherModel = new Teacher($db);
 $teachers = $teacherModel->getAll(true);
 
+// Calculer la capacité restante pour chaque tuteur
+$assignmentModel = new Assignment($db);
+foreach ($teachers as &$teacher) {
+    $currentAssignments = $assignmentModel->countByTeacherId($teacher['id']);
+    $teacher['remaining_capacity'] = $teacher['max_students'] - $currentAssignments;
+}
+unset($teacher); // Important pour éviter des problèmes avec la référence
+
 $internshipModel = new Internship($db);
 $internships = $internshipModel->getAll('available');
 
@@ -117,7 +125,7 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
                                 <?php echo ($selectedTeacherId == $teacher['id']) ? 'selected' : ''; ?>
                                 data-department="<?php echo h($teacher['department']); ?>"
                                 data-remaining="<?php echo h($teacher['remaining_capacity']); ?>"
-                                data-specialty="<?php echo h($teacher['specialty']); ?>">
+                                data-specialty="<?php echo h(cleanSpecialty($teacher['specialty'])); ?>">
                                 <?php echo h($teacher['first_name'] . ' ' . $teacher['last_name']); ?> 
                                 (<?php echo h($teacher['department']); ?>, <?php echo h($teacher['remaining_capacity']); ?> places)
                             </option>

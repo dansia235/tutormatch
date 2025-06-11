@@ -173,9 +173,11 @@ vendor/bin/phpunit tests/Algorithm/
 - Internationalisation (support multilingue)
 - Intégration avec des systèmes de gestion académique externes
 
-## 👥 Contribution
+## 👥 Statut du projet
 
-Les contributions sont les bienvenues ! Veuillez consulter [CONTRIBUTING.md](CONTRIBUTING.md) pour les directives de contribution et [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) pour notre code de conduite.
+Ce système a été développé dans le cadre d'un projet académique. Il s'agit d'un environnement d'apprentissage et de démonstration conçu pour illustrer les principes de développement d'applications web et d'algorithmes d'affectation.
+
+**Note importante** : Ce projet n'est pas destiné à recevoir des contributions externes. Les fichiers [CONTRIBUTING.md](CONTRIBUTING.md) et [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) sont inclus à titre éducatif pour démontrer les bonnes pratiques de gestion de projet.
 
 ## 📜 Licence
 

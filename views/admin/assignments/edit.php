@@ -43,6 +43,14 @@ $students = $studentModel->getAll('active');
 $teacherModel = new Teacher($db);
 $teachers = $teacherModel->getAll(true);
 
+// Calculer la capacité restante pour chaque tuteur
+$assignmentModel = new Assignment($db);
+foreach ($teachers as &$teacher) {
+    $currentAssignments = $assignmentModel->countByTeacherId($teacher['id']);
+    $teacher['remaining_capacity'] = $teacher['max_students'] - $currentAssignments;
+}
+unset($teacher); // Important pour éviter des problèmes avec la référence
+
 $internshipModel = new Internship($db);
 $internships = $internshipModel->getAll();
 
@@ -154,7 +162,7 @@ if (empty($formData)) {
                                 <?php echo ($formData['teacher_id'] == $teacher['id']) ? 'selected' : ''; ?>
                                 data-department="<?php echo h($teacher['department']); ?>"
                                 data-remaining="<?php echo h($teacher['remaining_capacity']); ?>"
-                                data-specialty="<?php echo h($teacher['specialty']); ?>">
+                                data-specialty="<?php echo h(cleanSpecialty($teacher['specialty'])); ?>">
                                 <?php echo h($teacher['first_name'] . ' ' . $teacher['last_name']); ?> 
                                 (<?php echo h($teacher['department']); ?>, <?php echo h($teacher['remaining_capacity']); ?> places)
                             </option>
@@ -192,14 +200,14 @@ if (empty($formData)) {
                     </div>
                     
                     <div class="col-md-4 mb-3">
-                        <label for="compatibility_score" class="form-label">Score de compatibilité</label>
+                        <label for="compatibility_score" class="form-label">Score de compatibilité (0-10)</label>
                         <div class="input-group">
                             <input type="number" class="form-control" id="compatibility_score" name="compatibility_score" 
-                                value="<?php echo h($assignment['compatibility_score'] ?? 0); ?>" 
+                                value="<?php echo h(min(10, $assignment['compatibility_score'] ?? 0)); ?>" 
                                 min="0" max="10" step="0.1">
                             <span class="input-group-text">/10</span>
                         </div>
-                        <div class="form-text">Ce score est normalement calculé automatiquement, mais peut être ajusté manuellement.</div>
+                        <div class="form-text">Ce score est normalement calculé automatiquement, mais peut être ajusté manuellement. Le score maximum est 10.</div>
                     </div>
                 </div>
                 

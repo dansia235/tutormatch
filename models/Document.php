@@ -241,9 +241,9 @@ class Document {
         $query = "SELECT d.*, u.first_name, u.last_name, u.role
                   FROM documents d
                   JOIN users u ON d.user_id = u.id
-                  WHERE (d.title LIKE :term 
-                  OR u.first_name LIKE :term 
-                  OR u.last_name LIKE :term)";
+                  WHERE (d.title LIKE :term1 
+                  OR u.first_name LIKE :term2 
+                  OR u.last_name LIKE :term3)";
         
         if ($type) {
             $query .= " AND d.type = :type";
@@ -252,13 +252,17 @@ class Document {
         $query .= " ORDER BY d.upload_date DESC";
         
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':term', $term);
+        $params = [
+            ':term1' => $term,
+            ':term2' => $term,
+            ':term3' => $term
+        ];
         
         if ($type) {
-            $stmt->bindParam(':type', $type);
+            $params[':type'] = $type;
         }
         
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     

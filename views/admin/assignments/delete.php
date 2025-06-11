@@ -12,7 +12,12 @@ requireRole(['admin', 'coordinator']);
 // Vérifier l'ID
 if (!isset($_POST['id']) || !is_numeric($_POST['id'])) {
     setFlashMessage('error', 'ID d\'affectation invalide');
-    redirect('/tutoring/views/admin/assignments/index.php');
+    redirect('/tutoring/views/admin/assignments.php');
+}
+
+// S'assurer que la connexion à la base de données est disponible
+if (!isset($db) || $db === null) {
+    $db = getDBConnection();
 }
 
 // Instancier le contrôleur

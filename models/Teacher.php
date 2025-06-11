@@ -315,21 +315,32 @@ class Teacher {
         $query = "SELECT t.*, u.username, u.email, u.first_name, u.last_name, u.department, u.profile_image 
                   FROM teachers t
                   JOIN users u ON t.user_id = u.id
-                  WHERE (u.username LIKE :term 
-                  OR u.email LIKE :term 
-                  OR u.first_name LIKE :term 
-                  OR u.last_name LIKE :term
-                  OR t.title LIKE :term
-                  OR t.specialty LIKE :term
-                  OR t.expertise LIKE :term)";
+                  WHERE (u.username LIKE :term1 
+                  OR u.email LIKE :term2 
+                  OR u.first_name LIKE :term3 
+                  OR u.last_name LIKE :term4
+                  OR t.title LIKE :term5
+                  OR t.specialty LIKE :term6
+                  OR t.expertise LIKE :term7)";
         
         if ($availableOnly) {
             $query .= " AND t.available = 1";
         }
         
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':term', $term);
-        $stmt->execute();
+        
+        // Utilisez un tableau de paramètres pour une liaison plus concise
+        $params = [
+            ':term1' => $term,
+            ':term2' => $term,
+            ':term3' => $term,
+            ':term4' => $term,
+            ':term5' => $term,
+            ':term6' => $term,
+            ':term7' => $term
+        ];
+        
+        $stmt->execute($params);
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -357,6 +368,30 @@ class Teacher {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Récupère les étudiants assignés à un enseignant
+     * @param int $teacherId ID de l'enseignant
+     * @return array Liste des étudiants
+     */
+    public function getStudents($teacherId) {
+        $query = "SELECT s.*, u.username, u.email, u.first_name, u.last_name, u.department, u.profile_image,
+                  a.status as assignment_status, a.id as assignment_id, a.compatibility_score,
+                  i.title as internship_title, i.company_id, c.name as company_name
+                  FROM students s
+                  JOIN users u ON s.user_id = u.id
+                  JOIN assignments a ON s.id = a.student_id
+                  JOIN internships i ON a.internship_id = i.id
+                  JOIN companies c ON i.company_id = c.id
+                  WHERE a.teacher_id = :teacher_id
+                  ORDER BY u.last_name, u.first_name";
+                  
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':teacher_id', $teacherId);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
     /**
      * Récupère les statistiques de charge de travail des tuteurs
      * @return array Statistiques

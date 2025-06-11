@@ -107,7 +107,7 @@ if (file_exists(__DIR__ . '/../../../templates/layouts/admin.php')) {
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/index.php">Affectations</a></li>
+                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments.php">Affectations</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Matrice d'affectations</li>
                 </ol>
             </nav>
@@ -117,7 +117,7 @@ if (file_exists(__DIR__ . '/../../../templates/layouts/admin.php')) {
             <a href="/tutoring/views/admin/assignments/generate.php" class="btn btn-outline-primary me-2">
                 <i class="bi bi-magic me-2"></i>Génération automatique
             </a>
-            <a href="/tutoring/views/admin/assignments/index.php" class="btn btn-outline-secondary">
+            <a href="/tutoring/views/admin/assignments.php" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-2"></i>Retour
             </a>
         </div>

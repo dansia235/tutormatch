@@ -354,3 +354,32 @@ function deleteFile($filePath) {
 function formatMoney($amount) {
     return number_format($amount, 2, ',', ' ') . ' €';
 }
+
+/**
+ * Nettoie une valeur de spécialité (supprime les chemins de fichier)
+ * @param string|null $specialty Valeur de spécialité à nettoyer
+ * @return string Valeur nettoyée
+ */
+function cleanSpecialty($specialty) {
+    if (empty($specialty)) {
+        return '';
+    }
+    
+    // Si la spécialité ressemble à un chemin de fichier, extraire juste le nom de base
+    if (strpos($specialty, '/') !== false || strpos($specialty, '\\') !== false) {
+        return basename($specialty);
+    }
+    
+    // Si la spécialité ressemble à une URL, extraire le domaine ou le chemin
+    if (filter_var($specialty, FILTER_VALIDATE_URL)) {
+        $parts = parse_url($specialty);
+        if (isset($parts['path']) && !empty($parts['path'])) {
+            return basename($parts['path']);
+        } elseif (isset($parts['host'])) {
+            return $parts['host'];
+        }
+    }
+    
+    // Sinon, renvoyer la valeur d'origine
+    return $specialty;
+}

@@ -15,13 +15,13 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/index.php">Affectations</a></li>
+                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments.php">Affectations</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Génération automatique</li>
                 </ol>
             </nav>
         </div>
         
-        <a href="/tutoring/views/admin/assignments/index.php" class="btn btn-outline-secondary">
+        <a href="/tutoring/views/admin/assignments.php" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Retour
         </a>
     </div>
@@ -325,7 +325,7 @@
                 </div>
                 
                 <div class="d-flex justify-content-end mt-4">
-                    <button type="button" class="btn btn-secondary me-2" onclick="window.location.href='/tutoring/views/admin/assignments/index.php'">
+                    <button type="button" class="btn btn-secondary me-2" onclick="window.location.href='/tutoring/views/admin/assignments.php'">
                         Annuler
                     </button>
                     <button type="submit" class="btn btn-primary">

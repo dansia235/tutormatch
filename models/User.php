@@ -228,11 +228,11 @@ class User {
             $term = "%$term%";
             
             $query = "SELECT * FROM users 
-                      WHERE (username LIKE :term 
-                      OR email LIKE :term 
-                      OR first_name LIKE :term 
-                      OR last_name LIKE :term
-                      OR CONCAT(first_name, ' ', last_name) LIKE :term)";
+                      WHERE (username LIKE :term1 
+                      OR email LIKE :term2 
+                      OR first_name LIKE :term3 
+                      OR last_name LIKE :term4
+                      OR CONCAT(first_name, ' ', last_name) LIKE :term5)";
             
             if ($role) {
                 if (is_array($role)) {
@@ -246,7 +246,11 @@ class User {
             $query .= " ORDER BY last_name, first_name";
             
             $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':term', $term);
+            $stmt->bindParam(':term1', $term);
+            $stmt->bindParam(':term2', $term);
+            $stmt->bindParam(':term3', $term);
+            $stmt->bindParam(':term4', $term);
+            $stmt->bindParam(':term5', $term);
             
             if ($role) {
                 if (is_array($role)) {

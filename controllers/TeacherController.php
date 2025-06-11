@@ -231,7 +231,44 @@ class TeacherController {
     }
     
     /**
-     * Affiche les détails d'un enseignant
+     * Récupère les détails d'un enseignant
+     * @param int $id ID de l'enseignant
+     * @return array|bool Détails de l'enseignant ou false si non trouvé
+     */
+    public function getTeacherDetails($id) {
+        return $this->teacherModel->getById($id);
+    }
+    
+    /**
+     * Récupère les préférences d'un enseignant
+     * @param int $id ID de l'enseignant
+     * @return array Préférences de l'enseignant
+     */
+    public function getTeacherPreferences($id) {
+        return $this->teacherModel->getPreferences($id);
+    }
+    
+    /**
+     * Récupère les affectations d'un enseignant
+     * @param int $id ID de l'enseignant
+     * @return array Affectations de l'enseignant
+     */
+    public function getTeacherAssignments($id) {
+        return $this->teacherModel->getAssignments($id);
+    }
+    
+    /**
+     * Récupère les étudiants d'un enseignant
+     * @param int $id ID de l'enseignant
+     * @return array Étudiants de l'enseignant
+     */
+    public function getTeacherStudents($id) {
+        return $this->teacherModel->getStudents($id);
+    }
+    
+    /**
+     * [DEPRECATED] Affiche les détails d'un enseignant
+     * Cette méthode est conservée pour compatibilité mais ne devrait plus être utilisée directement.
      * @param int $id ID de l'enseignant
      */
     public function show($id) {

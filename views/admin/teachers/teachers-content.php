@@ -185,7 +185,7 @@
                                  '<div class="text-sm text-gray-500">' . h($teacher['email']) . '</div>' .
                                  '</div></div>',
                     'department' => h($teacher['department']),
-                    'specialty' => h($teacher['specialty']),
+                    'specialty' => h(cleanSpecialty($teacher['specialty'])),
                     'availability' => $teacher['available'] ? 
                                       '<span class="px-2 py-1 text-xs font-medium rounded-full bg-success-100 text-success-800">Disponible</span>' :
                                       '<span class="px-2 py-1 text-xs font-medium rounded-full bg-warning-100 text-warning-800">Indisponible</span>',

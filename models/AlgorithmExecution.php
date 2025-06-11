@@ -19,7 +19,16 @@ class AlgorithmExecution {
      * @return int|false ID de l'exécution créée, sinon false
      */
     public function create($data) {
+        // S'assurer qu'il n'y a pas de transaction déjà active dans cette méthode
+        $transactionStartedHere = false;
+        
         try {
+            // Vérifier si une transaction est déjà active
+            if (!$this->db->inTransaction()) {
+                $this->db->beginTransaction();
+                $transactionStartedHere = true;
+            }
+            
             $query = "INSERT INTO algorithm_executions (
                 parameters_id, 
                 executed_by, 
@@ -58,8 +67,20 @@ class AlgorithmExecution {
             $stmt->bindParam(':notes', $data['notes']);
             
             $stmt->execute();
-            return $this->db->lastInsertId();
+            $lastId = $this->db->lastInsertId();
+            
+            // Si nous avons démarré la transaction ici, nous la commitons ici
+            if ($transactionStartedHere) {
+                $this->db->commit();
+            }
+            
+            return $lastId;
         } catch (PDOException $e) {
+            // Si nous avons démarré la transaction ici, nous l'annulons ici
+            if ($transactionStartedHere && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            
             error_log("Erreur lors de la création de l'exécution: " . $e->getMessage());
             return false;
         }

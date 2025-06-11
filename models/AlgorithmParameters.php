@@ -19,7 +19,16 @@ class AlgorithmParameters {
      * @return int|false ID du paramètre créé, sinon false
      */
     public function create($data) {
+        // S'assurer qu'il n'y a pas de transaction déjà active dans cette méthode
+        $transactionStartedHere = false;
+        
         try {
+            // Vérifier si une transaction est déjà active
+            if (!$this->db->inTransaction()) {
+                $this->db->beginTransaction();
+                $transactionStartedHere = true;
+            }
+            
             // Simplifier la requête pour éviter les problèmes de colonnes
             $query = "INSERT INTO algorithm_parameters SET 
                 name = :name, 
@@ -75,8 +84,20 @@ class AlgorithmParameters {
             ], true));
             
             $stmt->execute();
-            return $this->db->lastInsertId();
+            $lastId = $this->db->lastInsertId();
+            
+            // Si nous avons démarré la transaction ici, nous la commitons ici
+            if ($transactionStartedHere) {
+                $this->db->commit();
+            }
+            
+            return $lastId;
         } catch (PDOException $e) {
+            // Si nous avons démarré la transaction ici, nous l'annulons ici
+            if ($transactionStartedHere && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            
             error_log("Erreur lors de la création des paramètres: " . $e->getMessage());
             return false;
         }
@@ -88,12 +109,33 @@ class AlgorithmParameters {
      * @return bool Succès de l'opération
      */
     public function resetDefaultFlag($exceptId) {
+        // S'assurer qu'il n'y a pas de transaction déjà active dans cette méthode
+        $transactionStartedHere = false;
+        
         try {
+            // Vérifier si une transaction est déjà active
+            if (!$this->db->inTransaction()) {
+                $this->db->beginTransaction();
+                $transactionStartedHere = true;
+            }
+            
             $query = "UPDATE algorithm_parameters SET is_default = 0 WHERE id != :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $exceptId);
-            return $stmt->execute();
+            $result = $stmt->execute();
+            
+            // Si nous avons démarré la transaction ici, nous la commitons ici
+            if ($transactionStartedHere) {
+                $this->db->commit();
+            }
+            
+            return $result;
         } catch (PDOException $e) {
+            // Si nous avons démarré la transaction ici, nous l'annulons ici
+            if ($transactionStartedHere && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            
             error_log("Erreur lors de la réinitialisation des flags par défaut: " . $e->getMessage());
             return false;
         }
