@@ -1,64 +1,64 @@
 <?php
-/**
- * Script pour vérifier la structure des tables d'algorithmes d'affectation
- */
+// Include database configuration
+require_once 'config/database.php';
 
-// Inclure le fichier d'initialisation
-require_once __DIR__ . '/includes/init.php';
+// Connect to database
+$pdo = getDBConnection();
 
-// Vérifier que l'utilisateur est connecté et admin
-requireRole('admin');
+// Tables to check
+$tables = [
+    'algorithm_parameters',
+    'algorithm_executions'
+];
 
-// Vérifier si la table algorithm_parameters existe
-try {
-    $query = "SHOW TABLES LIKE 'algorithm_parameters'";
-    $stmt = $db->prepare($query);
-    $stmt->execute();
-    $tableExists = $stmt->rowCount() > 0;
-    
-    echo "<h2>Vérification de la table algorithm_parameters</h2>";
-    if ($tableExists) {
-        echo "La table algorithm_parameters existe.<br>";
+// Check each table
+echo "Checking database tables...\n";
+foreach ($tables as $table) {
+    try {
+        $stmt = $pdo->query("SHOW TABLES LIKE '$table'");
+        $exists = $stmt->rowCount() > 0;
         
-        // Vérifier la structure de la table
-        $query = "DESCRIBE algorithm_parameters";
-        $stmt = $db->prepare($query);
-        $stmt->execute();
-        $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo "$table: " . ($exists ? "EXISTS" : "DOES NOT EXIST") . "\n";
         
-        echo "<h3>Structure actuelle de la table:</h3>";
-        echo "<pre>";
-        print_r($columns);
-        echo "</pre>";
-    } else {
-        echo "La table algorithm_parameters n'existe pas.<br>";
+        if ($exists) {
+            // Check row count
+            $count = $pdo->query("SELECT COUNT(*) FROM $table")->fetchColumn();
+            echo "  - Row count: $count\n";
+            
+            // Show table structure
+            echo "  - Table structure:\n";
+            $columns = $pdo->query("DESCRIBE $table")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($columns as $column) {
+                echo "      {$column['Field']} ({$column['Type']})\n";
+            }
+        }
+    } catch (PDOException $e) {
+        echo "$table: ERROR checking table - " . $e->getMessage() . "\n";
     }
-    
-    // Vérifier si la table algorithm_executions existe
-    $query = "SHOW TABLES LIKE 'algorithm_executions'";
-    $stmt = $db->prepare($query);
-    $stmt->execute();
-    $tableExists = $stmt->rowCount() > 0;
-    
-    echo "<h2>Vérification de la table algorithm_executions</h2>";
-    if ($tableExists) {
-        echo "La table algorithm_executions existe.<br>";
-        
-        // Vérifier la structure de la table
-        $query = "DESCRIBE algorithm_executions";
-        $stmt = $db->prepare($query);
-        $stmt->execute();
-        $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        echo "<h3>Structure actuelle de la table:</h3>";
-        echo "<pre>";
-        print_r($columns);
-        echo "</pre>";
-    } else {
-        echo "La table algorithm_executions n'existe pas.<br>";
-    }
-    
-} catch (PDOException $e) {
-    die("Erreur lors de la vérification des tables: " . $e->getMessage());
 }
-?>
+
+// Check for associated model files
+echo "\nChecking model files...\n";
+$modelFiles = [
+    '/mnt/c/xampp/htdocs/tutoring/models/AlgorithmParameters.php',
+    '/mnt/c/xampp/htdocs/tutoring/models/AlgorithmExecution.php'
+];
+
+foreach ($modelFiles as $file) {
+    echo basename($file) . ": " . (file_exists($file) ? "EXISTS" : "DOES NOT EXIST") . "\n";
+    if (file_exists($file)) {
+        echo "  - File size: " . filesize($file) . " bytes\n";
+    }
+}
+
+// Check assignment generation files
+echo "\nChecking assignment algorithm files...\n";
+$algoFiles = [
+    '/mnt/c/xampp/htdocs/tutoring/src/Algorithm/AssignmentAlgorithmInterface.php',
+    '/mnt/c/xampp/htdocs/tutoring/src/Algorithm/GreedyAlgorithm.php',
+    '/mnt/c/xampp/htdocs/tutoring/src/Service/AssignmentService.php'
+];
+
+foreach ($algoFiles as $file) {
+    echo basename($file) . ": " . (file_exists($file) ? "EXISTS" : "DOES NOT EXIST") . "\n";
+}
