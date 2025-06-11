@@ -406,8 +406,8 @@ include_once __DIR__ . '/../common/header.php';
                                 <?php if (!empty($company['logo_path'])): ?>
                                 <img src="<?php echo h($company['logo_path']); ?>" alt="<?php echo h($company['name']); ?>" class="company-logo me-3">
                                 <?php else: ?>
-                                <div class="company-logo-placeholder me-3">
-                                    <i class="bi bi-building"></i>
+                                <div class="company-logo-placeholder me-3" style="background-color: <?php echo generateAvatarColor($company['name']); ?>; color: white;">
+                                    <?php echo getInitials($company['name']); ?>
                                 </div>
                                 <?php endif; ?>
                                 
@@ -467,7 +467,7 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         
                         <div class="card-footer bg-transparent">
-                            <a href="#" class="btn btn-sm btn-outline-primary w-100" onclick="alert('Fonctionnalité à implémenter: Voir les stages de cette entreprise');">
+                            <a href="/tutoring/views/admin/companies/company_internships.php?id=<?php echo $company['id']; ?>" class="btn btn-sm btn-outline-primary w-100">
                                 <i class="bi bi-briefcase me-1"></i> Voir les stages
                             </a>
                         </div>
@@ -511,6 +511,31 @@ include_once __DIR__ . '/../common/header.php';
 </script>
 
 <?php
+// Fonction pour générer une couleur d'avatar à partir du nom
+function generateAvatarColor($name) {
+    $hash = md5($name);
+    $h = hexdec(substr($hash, 0, 2)) % 360;
+    $s = 75; // Saturation à 75%
+    $l = 45; // Luminosité à 45%
+    
+    return "hsl($h, $s%, $l%)";
+}
+
+// Fonction pour obtenir les initiales
+function getInitials($name) {
+    $words = preg_split('/\s+/', $name);
+    $initials = '';
+    
+    foreach ($words as $word) {
+        if (!empty($word)) {
+            $initials .= mb_substr($word, 0, 1, 'UTF-8');
+            if (strlen($initials) >= 2) break;
+        }
+    }
+    
+    return strtoupper($initials);
+}
+
 // Inclure le pied de page
 include_once __DIR__ . '/../common/footer.php';
 ?>
