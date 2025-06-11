@@ -13,11 +13,23 @@ require_once __DIR__ . '/../../../includes/init.php';
 // Vérifier les permissions
 requireRole(['admin', 'coordinator']);
 
-// Instancier le contrôleur
+// S'assurer que la connexion à la base de données est disponible
+if (!isset($db) || $db === null) {
+    $db = getDBConnection();
+}
+
+// Instancier le contrôleur (pour référence future)
 $assignmentController = new AssignmentController($db);
 
-// Afficher le formulaire de création
-$assignmentController->create();
+// Récupérer les données pour le formulaire directement
+$studentModel = new Student($db);
+$students = $studentModel->getAll('active');
+
+$teacherModel = new Teacher($db);
+$teachers = $teacherModel->getAll(true);
+
+$internshipModel = new Internship($db);
+$internships = $internshipModel->getAll('available');
 
 // Récupérer les anciennes données du formulaire en cas d'erreur
 $formData = $_SESSION['form_data'] ?? [];
@@ -45,13 +57,13 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/index.php">Affectations</a></li>
+                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments.php">Affectations</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Créer</li>
                 </ol>
             </nav>
         </div>
         
-        <a href="/tutoring/views/admin/assignments/index.php" class="btn btn-outline-secondary">
+        <a href="/tutoring/views/admin/assignments.php" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Retour
         </a>
     </div>

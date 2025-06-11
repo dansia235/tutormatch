@@ -36,8 +36,28 @@ spl_autoload_register(function ($class_name) {
     }
 });
 
-// Connexion à la base de données
-$db = getDBConnection();
+// Connexion à la base de données avec gestion des erreurs de connexion
+try {
+    $db = getDBConnection();
+    
+    // Fermeture automatique de la connexion à la fin du script
+    register_shutdown_function(function() {
+        global $db;
+        if ($db) {
+            $db = null; // Libérer la connexion
+        }
+    });
+    
+} catch (Exception $e) {
+    error_log("Erreur lors de la connexion à la base de données: " . $e->getMessage());
+    
+    // En mode production, afficher un message plus convivial
+    if (strpos($e->getMessage(), 'Too many connections') !== false) {
+        die('Le système est actuellement surchargé. Veuillez réessayer dans quelques instants.');
+    }
+    
+    // En mode développement, l'erreur complète sera affichée par getDBConnection()
+}
 
 // Fonctions utilitaires
 

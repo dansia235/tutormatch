@@ -16,14 +16,40 @@ requireRole(['admin', 'coordinator']);
 // Vérifier l'ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     setFlashMessage('error', 'ID d\'affectation invalide');
-    redirect('/tutoring/views/admin/assignments/index.php');
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
-// Instancier le contrôleur
+// S'assurer que la connexion à la base de données est disponible
+if (!isset($db) || $db === null) {
+    $db = getDBConnection();
+}
+
+// Instancier le contrôleur (pour référence future)
 $assignmentController = new AssignmentController($db);
 
-// Afficher les détails de l'affectation
-$assignmentController->show($_GET['id']);
+// Récupérer l'affectation et les données associées directement
+$assignmentModel = new Assignment($db);
+$assignment = $assignmentModel->getById($_GET['id']);
+
+if (!$assignment) {
+    setFlashMessage('error', 'Affectation non trouvée');
+    redirect('/tutoring/views/admin/assignments.php');
+}
+
+// Récupérer les informations complémentaires
+$studentModel = new Student($db);
+$student = $studentModel->getById($assignment['student_id']);
+
+$teacherModel = new Teacher($db);
+$teacher = $teacherModel->getById($assignment['teacher_id']);
+$teacherAssignmentCount = $assignmentModel->countByTeacherId($assignment['teacher_id']);
+
+$internshipModel = new Internship($db);
+$internship = $internshipModel->getById($assignment['internship_id']);
+
+// Récupérer les évaluations si nécessaire
+$evaluationModel = new Evaluation($db);
+$evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
 ?>
 
 <?php require_once __DIR__ . '/../../common/header.php'; ?>
@@ -38,7 +64,7 @@ $assignmentController->show($_GET['id']);
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/index.php">Affectations</a></li>
+                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments.php">Affectations</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Affectation #<?php echo h($assignment['id']); ?></li>
                 </ol>
             </nav>
@@ -48,7 +74,7 @@ $assignmentController->show($_GET['id']);
             <a href="/tutoring/views/admin/assignments/edit.php?id=<?php echo $assignment['id']; ?>" class="btn btn-outline-primary">
                 <i class="bi bi-pencil me-2"></i>Modifier
             </a>
-            <a href="/tutoring/views/admin/assignments/index.php" class="btn btn-outline-secondary">
+            <a href="/tutoring/views/admin/assignments.php" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-2"></i>Retour
             </a>
         </div>

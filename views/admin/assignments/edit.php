@@ -16,14 +16,35 @@ requireRole(['admin', 'coordinator']);
 // Vérifier l'ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     setFlashMessage('error', 'ID d\'affectation invalide');
-    redirect('/tutoring/views/admin/assignments/index.php');
+    redirect('/tutoring/views/admin/assignments.php');
+}
+
+// S'assurer que la connexion à la base de données est disponible
+if (!isset($db) || $db === null) {
+    $db = getDBConnection();
 }
 
 // Instancier le contrôleur
 $assignmentController = new AssignmentController($db);
 
-// Afficher le formulaire de modification
-$assignmentController->edit($_GET['id']);
+// Récupérer l'affectation directement sans utiliser la méthode edit() qui inclut ce même fichier
+$assignmentModel = new Assignment($db);
+$assignment = $assignmentModel->getById($_GET['id']);
+
+if (!$assignment) {
+    setFlashMessage('error', 'Affectation non trouvée');
+    redirect('/tutoring/views/admin/assignments.php');
+}
+
+// Récupérer les données pour le formulaire
+$studentModel = new Student($db);
+$students = $studentModel->getAll('active');
+
+$teacherModel = new Teacher($db);
+$teachers = $teacherModel->getAll(true);
+
+$internshipModel = new Internship($db);
+$internships = $internshipModel->getAll();
 
 // Récupérer les anciennes données du formulaire en cas d'erreur
 $formData = $_SESSION['form_data'] ?? [];
@@ -57,7 +78,7 @@ if (empty($formData)) {
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/index.php">Affectations</a></li>
+                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments.php">Affectations</a></li>
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/assignments/show.php?id=<?php echo $assignment['id']; ?>">Affectation #<?php echo $assignment['id']; ?></a></li>
                     <li class="breadcrumb-item active" aria-current="page">Modifier</li>
                 </ol>
@@ -68,7 +89,7 @@ if (empty($formData)) {
             <a href="/tutoring/views/admin/assignments/show.php?id=<?php echo $assignment['id']; ?>" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left me-2"></i>Retour aux détails
             </a>
-            <a href="/tutoring/views/admin/assignments/index.php" class="btn btn-outline-secondary">
+            <a href="/tutoring/views/admin/assignments.php" class="btn btn-outline-secondary">
                 <i class="bi bi-list me-2"></i>Liste des affectations
             </a>
         </div>
@@ -210,7 +231,7 @@ if (empty($formData)) {
                                     <?php endif; ?>
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
                                         <span>Dernière modification:</span>
-                                        <span class="badge bg-info"><?php echo formatDate($assignment['updated_at']); ?></span>
+                                        <span class="badge bg-info"><?php echo formatDate($assignment['updated_at'] ?? $assignment['created_at'] ?? date('Y-m-d H:i:s')); ?></span>
                                     </li>
                                 </ul>
                             </div>
