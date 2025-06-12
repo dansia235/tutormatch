@@ -1,20 +1,24 @@
 <?php
 /**
  * Marquer une notification comme lue
- * PUT /api/notifications/{id}/mark-read
+ * POST /api/notifications/mark-read.php
  */
 
+// Inclure les fichiers requis
+require_once __DIR__ . '/../../includes/init.php';
+require_once __DIR__ . '/../utils.php';
+
 // Vérifier la méthode HTTP
-if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendError('Méthode non autorisée', 405);
 }
 
-// Vérifier que l'ID est présent
-if (!isset($urlParts[2]) || !is_numeric($urlParts[2])) {
+// Vérifier que l'ID est présent dans les données POST
+if (!isset($_POST['id']) || !is_numeric($_POST['id'])) {
     sendError('ID de notification invalide', 400);
 }
 
-$notificationId = (int)$urlParts[2];
+$notificationId = (int)$_POST['id'];
 
 // Initialiser le modèle de notifications
 $notificationModel = new Notification($db);

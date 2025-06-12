@@ -73,11 +73,12 @@ export default class extends Controller {
   createNotificationElement() {
     const element = document.createElement('div');
     element.className = 'notification transform transition-all duration-300 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden';
+    element.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
     element.innerHTML = `
       <div class="p-4">
         <div class="flex items-start">
           <div class="flex-shrink-0 notification-icon"></div>
-          <div class="ml-3 w-0 flex-1 pt-0.5 notification-content"></div>
+          <div class="ml-3 w-0 flex-1 pt-0.5 notification-content font-medium"></div>
           <div class="ml-4 flex-shrink-0 flex">
             <button type="button" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-action="notification#close">
               <span class="sr-only">Close</span>
@@ -145,6 +146,23 @@ export default class extends Controller {
     
     // Add type class to notification
     element.setAttribute('data-type', type);
+    
+    // Add style based on type
+    switch (type) {
+      case 'success':
+        element.style.borderLeft = '4px solid #10b981';
+        break;
+      case 'error':
+        element.style.borderLeft = '4px solid #ef4444';
+        break;
+      case 'warning':
+        element.style.borderLeft = '4px solid #f59e0b';
+        break;
+      case 'info':
+      default:
+        element.style.borderLeft = '4px solid #3b82f6';
+        break;
+    }
   }
 
   /**
@@ -170,10 +188,45 @@ export default class extends Controller {
     element.style.transform = 'translateX(25px)';
     this.containerTarget.appendChild(element);
     
+    // Add progress bar
+    const progressBar = document.createElement('div');
+    progressBar.className = 'notification-progress';
+    progressBar.style.height = '3px';
+    progressBar.style.width = '100%';
+    progressBar.style.position = 'absolute';
+    progressBar.style.bottom = '0';
+    progressBar.style.left = '0';
+    progressBar.style.transition = `width ${duration}ms linear`;
+    
+    // Set color based on notification type
+    const type = element.getAttribute('data-type') || 'info';
+    switch (type) {
+      case 'success':
+        progressBar.style.backgroundColor = '#10b981';
+        break;
+      case 'error':
+        progressBar.style.backgroundColor = '#ef4444';
+        break;
+      case 'warning':
+        progressBar.style.backgroundColor = '#f59e0b';
+        break;
+      case 'info':
+      default:
+        progressBar.style.backgroundColor = '#3b82f6';
+        break;
+    }
+    
+    element.style.position = 'relative';
+    element.appendChild(progressBar);
+    
     // Trigger animation
     setTimeout(() => {
       element.style.opacity = '1';
       element.style.transform = 'translateX(0)';
+      // Start progress bar animation
+      setTimeout(() => {
+        progressBar.style.width = '0';
+      }, 10);
     }, 10);
     
     // Set up auto-removal

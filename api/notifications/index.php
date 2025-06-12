@@ -57,22 +57,31 @@ foreach ($notifications as $notification) {
         $url = null;
         switch ($relatedType) {
             case 'assignment':
-                $url = "/api/assignments/$relatedId";
+                $url = "/tutoring/views/admin/assignments/show.php?id=$relatedId";
                 break;
             case 'internship':
-                $url = "/api/internships/$relatedId";
+                $url = "/tutoring/views/admin/internships/show.php?id=$relatedId";
                 break;
             case 'document':
-                $url = "/api/documents/$relatedId";
+                $url = "/tutoring/views/admin/documents/show.php?id=$relatedId";
                 break;
             case 'meeting':
-                $url = "/api/meetings/$relatedId";
+                $url = "/tutoring/views/admin/meetings/show.php?id=$relatedId";
                 break;
             case 'message':
-                $url = "/api/messages/$relatedId";
+                $url = "/tutoring/views/admin/messages.php?conversation=$relatedId";
                 break;
             case 'evaluation':
-                $url = "/api/evaluations/$relatedId";
+                $url = "/tutoring/views/admin/evaluations/show.php?id=$relatedId";
+                break;
+            case 'company':
+                $url = "/tutoring/views/admin/companies/show.php?id=$relatedId";
+                break;
+            case 'student':
+                $url = "/tutoring/views/admin/students/show.php?id=$relatedId";
+                break;
+            case 'teacher':
+                $url = "/tutoring/views/admin/teachers/show.php?id=$relatedId";
                 break;
         }
         

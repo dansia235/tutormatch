@@ -33,11 +33,11 @@ foreach ($attributes as $attr => $val) {
 >
     <!-- Notification template -->
     <template data-notification-target="template">
-        <div class="notification transform transition-all duration-300 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden">
+        <div class="notification transform transition-all duration-300 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden" style="box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
             <div class="p-4">
                 <div class="flex items-start">
                     <div class="flex-shrink-0 notification-icon"></div>
-                    <div class="ml-3 w-0 flex-1 pt-0.5 notification-content"></div>
+                    <div class="ml-3 w-0 flex-1 pt-0.5 notification-content font-medium"></div>
                     <div class="ml-4 flex-shrink-0 flex">
                         <button type="button" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-action="notification#close">
                             <span class="sr-only">Fermer</span>

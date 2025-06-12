@@ -141,7 +141,7 @@ class Document {
             // Vérifier les champs requis
             $requiredFields = ['title', 'file_path', 'file_type', 'file_size', 'user_id'];
             foreach ($requiredFields as $field) {
-                if (!isset($data[$field]) || empty($data[$field])) {
+                if (!isset($data[$field]) || (is_string($data[$field]) && empty(trim($data[$field])))) {
                     error_log("Erreur dans Document::create: Champ requis manquant: $field");
                     return false;
                 }
@@ -151,7 +151,29 @@ class Document {
             $description = isset($data['description']) ? $data['description'] : null;
             $type = isset($data['type']) ? $data['type'] : (isset($data['category']) ? $data['category'] : 'other');
             $assignmentId = isset($data['assignment_id']) ? $data['assignment_id'] : null;
-            $status = isset($data['status']) ? $data['status'] : 'active';
+            
+            // Vérifier si le type est valide
+            $validTypes = ['contract', 'report', 'evaluation', 'certificate', 'other'];
+            if (!in_array($type, $validTypes)) {
+                error_log("Erreur dans Document::create: Type invalide: $type");
+                $type = 'other'; // Fallback to 'other' if not valid
+            }
+            
+            // Normaliser le statut
+            $validStatus = ['draft', 'submitted', 'approved', 'rejected'];
+            $status = isset($data['status']) ? $data['status'] : 'draft';
+            if (!in_array($status, $validStatus)) {
+                error_log("Erreur dans Document::create: Statut invalide: $status");
+                $status = 'draft'; // Fallback to 'draft' if not valid
+            }
+            
+            error_log("Document::create - Données d'insertion: " . json_encode([
+                'title' => $data['title'],
+                'type' => $type,
+                'status' => $status,
+                'user_id' => $data['user_id'],
+                'assignment_id' => $assignmentId
+            ]));
             
             $query = "INSERT INTO documents (
                         title, description, file_path, file_type, file_size, 
@@ -175,15 +197,22 @@ class Document {
             $stmt->bindParam(':status', $status);
             
             if ($stmt->execute()) {
-                return $this->db->lastInsertId();
+                $id = $this->db->lastInsertId();
+                error_log("Document créé avec succès, ID: $id");
+                return $id;
             }
             
+            error_log("Erreur lors de l'exécution de la requête dans Document::create: " . json_encode($stmt->errorInfo()));
             return false;
         } catch (PDOException $e) {
             error_log("Erreur PDO dans Document::create: " . $e->getMessage());
+            // Afficher plus de détails sur l'erreur
+            error_log("Code d'erreur PDO: " . $e->getCode());
+            error_log("Trace PDO: " . $e->getTraceAsString());
             return false;
         } catch (Exception $e) {
             error_log("Erreur dans Document::create: " . $e->getMessage());
+            error_log("Trace: " . $e->getTraceAsString());
             return false;
         }
     }

@@ -173,73 +173,230 @@ $avatarBg = $_SESSION['user_role'] === 'admin' ? 'bg-primary-600' : 'bg-accent-6
                 <!-- Right navigation -->
                 <div class="flex items-center space-x-4">
                     <!-- Notifications dropdown -->
-                    <div class="relative" data-controller="dropdown">
+                    <div class="relative" data-controller="dropdown" id="notification-dropdown">
                         <button type="button" class="relative p-1 text-gray-400 rounded-full hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-action="dropdown#toggle" data-dropdown-target="button" aria-expanded="false">
                             <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                             </svg>
-                            <span class="notification-badge absolute -top-1 -right-1 bg-accent-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">3</span>
+                            <span id="notification-badge" class="notification-badge absolute -top-1 -right-1 bg-accent-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">0</span>
                         </button>
                         
                         <!-- Dropdown menu -->
                         <div class="hidden origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 opacity-0 translate-y-2 transition-all duration-300" data-dropdown-target="menu">
                             <div class="py-1" role="menu" aria-orientation="vertical">
-                                <div class="px-4 py-2 border-b border-gray-100">
+                                <div class="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                                     <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
+                                    <button id="mark-all-read" class="text-xs text-primary-600 hover:text-primary-500">Tout marquer comme lu</button>
                                 </div>
                                 
-                                <a href="#" class="flex px-4 py-3 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100">
-                                    <div class="flex-shrink-0">
-                                        <div class="flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600">
-                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                            </svg>
-                                        </div>
+                                <div id="notification-list" class="max-h-72 overflow-y-auto">
+                                    <!-- Les notifications seront chargées ici dynamiquement -->
+                                    <div class="py-8 text-center text-gray-500 text-sm">
+                                        <p>Chargement des notifications...</p>
                                     </div>
-                                    <div class="ml-3 w-0 flex-1">
-                                        <p class="text-sm font-medium text-gray-900">Nouvelle réunion planifiée</p>
-                                        <p class="text-sm text-gray-500">Réunion avec Jean Dupont le 15 juin à 14h</p>
-                                        <p class="mt-1 text-xs text-gray-400">Il y a 5 minutes</p>
-                                    </div>
-                                </a>
-                                
-                                <a href="#" class="flex px-4 py-3 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100">
-                                    <div class="flex-shrink-0">
-                                        <div class="flex items-center justify-center h-10 w-10 rounded-md bg-warning-100 text-warning-600">
-                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div class="ml-3 w-0 flex-1">
-                                        <p class="text-sm font-medium text-gray-900">Document à valider</p>
-                                        <p class="text-sm text-gray-500">Rapport de stage de Marie Martin en attente de validation</p>
-                                        <p class="mt-1 text-xs text-gray-400">Il y a 2 heures</p>
-                                    </div>
-                                </a>
-                                
-                                <a href="#" class="flex px-4 py-3 hover:bg-gray-50 transition-colors duration-200">
-                                    <div class="flex-shrink-0">
-                                        <div class="flex items-center justify-center h-10 w-10 rounded-md bg-success-100 text-success-600">
-                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div class="ml-3 w-0 flex-1">
-                                        <p class="text-sm font-medium text-gray-900">Nouveau message</p>
-                                        <p class="text-sm text-gray-500">Vous avez reçu un message de Paul Petit</p>
-                                        <p class="mt-1 text-xs text-gray-400">Hier</p>
-                                    </div>
-                                </a>
+                                </div>
                                 
                                 <div class="px-4 py-2 border-t border-gray-100">
-                                    <a href="#" class="text-sm font-medium text-primary-600 hover:text-primary-500">Voir toutes les notifications</a>
+                                    <a href="/tutoring/views/admin/notifications.php" class="text-sm font-medium text-primary-600 hover:text-primary-500">Voir toutes les notifications</a>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <script>
+                    // Fonction pour charger les notifications non lues
+                    function loadUnreadNotifications() {
+                        fetch('/tutoring/api/notifications/unread.php')
+                            .then(response => response.json())
+                            .then(data => {
+                                // Mettre à jour le badge
+                                const badge = document.getElementById('notification-badge');
+                                const count = data.meta.total_unread;
+                                badge.textContent = count;
+                                
+                                // Afficher ou masquer le badge en fonction du nombre de notifications
+                                if (count > 0) {
+                                    badge.style.display = 'flex';
+                                } else {
+                                    badge.style.display = 'none';
+                                }
+                                
+                                // Mettre à jour la liste des notifications
+                                const notificationList = document.getElementById('notification-list');
+                                
+                                if (data.data.length === 0) {
+                                    notificationList.innerHTML = `
+                                        <div class="py-8 text-center text-gray-500 text-sm">
+                                            <p>Aucune notification non lue</p>
+                                        </div>
+                                    `;
+                                    return;
+                                }
+                                
+                                let html = '';
+                                
+                                data.data.forEach(notification => {
+                                    // Déterminer l'icône et la couleur en fonction du type
+                                    let iconHtml, bgColor, textColor;
+                                    
+                                    switch (notification.type) {
+                                        case 'success':
+                                            iconHtml = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>`;
+                                            bgColor = 'bg-success-100';
+                                            textColor = 'text-success-600';
+                                            break;
+                                        case 'error':
+                                            iconHtml = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>`;
+                                            bgColor = 'bg-danger-100';
+                                            textColor = 'text-danger-600';
+                                            break;
+                                        case 'warning':
+                                            iconHtml = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>`;
+                                            bgColor = 'bg-warning-100';
+                                            textColor = 'text-warning-600';
+                                            break;
+                                        case 'info':
+                                        default:
+                                            iconHtml = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd" />
+                                            </svg>`;
+                                            bgColor = 'bg-info-100';
+                                            textColor = 'text-info-600';
+                                            break;
+                                    }
+                                    
+                                    // Formater la date
+                                    const date = new Date(notification.created_at);
+                                    const now = new Date();
+                                    const diff = now - date;
+                                    
+                                    let formattedDate;
+                                    if (diff < 60000) { // moins d'une minute
+                                        formattedDate = 'À l\'instant';
+                                    } else if (diff < 3600000) { // moins d'une heure
+                                        const minutes = Math.floor(diff / 60000);
+                                        formattedDate = `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
+                                    } else if (diff < 86400000) { // moins d'un jour
+                                        const hours = Math.floor(diff / 3600000);
+                                        formattedDate = `Il y a ${hours} heure${hours > 1 ? 's' : ''}`;
+                                    } else if (diff < 604800000) { // moins d'une semaine
+                                        const days = Math.floor(diff / 86400000);
+                                        formattedDate = `Il y a ${days} jour${days > 1 ? 's' : ''}`;
+                                    } else {
+                                        formattedDate = date.toLocaleDateString('fr-FR');
+                                    }
+                                    
+                                    // Créer l'élément HTML
+                                    html += `
+                                        <div class="flex px-4 py-3 hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 notification-item">
+                                            <div class="flex-shrink-0">
+                                                <div class="flex items-center justify-center h-10 w-10 rounded-md ${bgColor} ${textColor}">
+                                                    ${iconHtml}
+                                                </div>
+                                            </div>
+                                            <div class="ml-3 w-0 flex-1">
+                                                <p class="text-sm font-medium text-gray-900">${notification.title}</p>
+                                                <p class="text-sm text-gray-500">${notification.message}</p>
+                                                <p class="mt-1 text-xs text-gray-400">${formattedDate}</p>
+                                                <div class="mt-2">
+                                                    <a href="${notification.action_url || '#'}" class="text-xs text-primary-600 hover:text-primary-500 mr-3">
+                                                        <i class="bi bi-eye-fill mr-1"></i> Voir détails
+                                                    </a>
+                                                    <button class="text-xs text-success-600 hover:text-success-500 mark-read-btn" onclick="markAsRead(${notification.id}); event.preventDefault(); event.stopPropagation();">
+                                                        <i class="bi bi-check-circle-fill mr-1"></i> Marquer comme lu
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                notificationList.innerHTML = html;
+                            })
+                            .catch(error => {
+                                console.error('Erreur lors du chargement des notifications:', error);
+                            });
+                    }
+                    
+                    // Fonction pour marquer une notification comme lue
+                    function markAsRead(id) {
+                        console.log("Exécution de markAsRead avec ID:", id);
+                        // Utiliser la version directe qui ne vérifie pas la méthode HTTP
+                        fetch(`/tutoring/api/notifications/direct-mark-read.php?id=${id}`, {
+                            method: 'GET'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log("Réponse de l'API:", data);
+                            if (data.success === false) {
+                                console.error("Erreur:", data.message, data.debug);
+                            } else {
+                                // Recharger les notifications
+                                loadUnreadNotifications();
+                                
+                                // Afficher une notification de confirmation
+                                const event = new CustomEvent('notification', {
+                                    detail: {
+                                        message: 'Notification marquée comme lue',
+                                        type: 'success',
+                                        duration: 3000
+                                    }
+                                });
+                                document.dispatchEvent(event);
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Erreur lors de la requête:", error);
+                        });
+                    }
+                    
+                    // Fonction pour marquer toutes les notifications comme lues
+                    function markAllAsRead() {
+                        // Utiliser la version directe qui ne vérifie pas la méthode HTTP
+                        fetch('/tutoring/api/notifications/direct-mark-all-read.php', {
+                            method: 'GET'
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                // Recharger les notifications
+                                loadUnreadNotifications();
+                                
+                                // Afficher une notification de confirmation
+                                const event = new CustomEvent('notification', {
+                                    detail: {
+                                        message: 'Toutes les notifications ont été marquées comme lues',
+                                        type: 'success',
+                                        duration: 3000
+                                    }
+                                });
+                                document.dispatchEvent(event);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors du marquage de toutes les notifications:', error);
+                        });
+                    }
+                    
+                    // Ajouter le gestionnaire d'événements pour le bouton "Tout marquer comme lu"
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('mark-all-read').addEventListener('click', function(e) {
+                            e.preventDefault();
+                            markAllAsRead();
+                        });
+                        
+                        // Charger les notifications non lues au chargement de la page
+                        loadUnreadNotifications();
+                        
+                        // Actualiser les notifications toutes les 60 secondes
+                        setInterval(loadUnreadNotifications, 60000);
+                    });
+                    </script>
                     
                     <!-- Profile dropdown -->
                     <div class="relative" data-controller="dropdown">

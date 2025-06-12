@@ -197,7 +197,7 @@ $avatarBg = 'bg-warning-600';
                                 </a>
                                 
                                 <div class="px-4 py-2 border-t border-gray-100">
-                                    <a href="#" class="text-sm font-medium text-primary-600 hover:text-primary-500">Voir toutes les notifications</a>
+                                    <a href="/tutoring/views/student/notifications.php" class="text-sm font-medium text-primary-600 hover:text-primary-500">Voir toutes les notifications</a>
                                 </div>
                             </div>
                         </div>

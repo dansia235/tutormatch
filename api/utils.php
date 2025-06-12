@@ -84,13 +84,14 @@ function getAuthorizationHeader() {
 }
 
 /**
- * Vérifie si l'utilisateur a un rôle autorisé
+ * Vérifie si l'utilisateur a un rôle autorisé - version API
+ * Cette fonction est spécifique à l'API et n'interfère pas avec la fonction hasRole() dans init.php
  * 
  * @param array $user Données utilisateur
  * @param array $allowedRoles Rôles autorisés
  * @return boolean Vrai si l'utilisateur a un rôle autorisé
  */
-function hasRole($user, $allowedRoles) {
+function apiHasRole($user, $allowedRoles) {
     if (!$user || !isset($user['role'])) {
         return false;
     }
@@ -107,7 +108,7 @@ function hasRole($user, $allowedRoles) {
 function requireApiRole($db, $allowedRoles) {
     $user = authenticateRequest($db);
     
-    if (!$user || !hasRole($user, $allowedRoles)) {
+    if (!$user || !apiHasRole($user, $allowedRoles)) {
         sendError('Accès non autorisé', 403);
     }
     

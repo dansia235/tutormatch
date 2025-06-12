@@ -74,19 +74,75 @@ foreach ($allDocuments as $doc) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
     // Vérifier si un fichier a été envoyé
     if (isset($_FILES['document_file']) && $_FILES['document_file']['error'] === UPLOAD_ERR_OK) {
+        // Définir les messages d'erreur pour les codes d'erreur d'upload
+        $errorMessages = [
+            UPLOAD_ERR_INI_SIZE => 'Le fichier dépasse la taille maximale définie dans php.ini',
+            UPLOAD_ERR_FORM_SIZE => 'Le fichier dépasse la taille maximale définie dans le formulaire',
+            UPLOAD_ERR_PARTIAL => 'Le fichier n\'a été que partiellement téléchargé',
+            UPLOAD_ERR_NO_FILE => 'Aucun fichier n\'a été téléchargé',
+            UPLOAD_ERR_NO_TMP_DIR => 'Dossier temporaire manquant',
+            UPLOAD_ERR_CANT_WRITE => 'Échec de l\'écriture du fichier sur le disque',
+            UPLOAD_ERR_EXTENSION => 'Une extension PHP a arrêté le téléchargement du fichier'
+        ];
+        
+        // Vérifier si le fichier a été correctement téléchargé
+        if ($_FILES['document_file']['error'] !== UPLOAD_ERR_OK) {
+            $errorMessage = $errorMessages[$_FILES['document_file']['error']] ?? 'Erreur inconnue lors du téléchargement';
+            setFlashMessage('error', $errorMessage);
+            redirect('/tutoring/views/student/documents.php');
+            exit;
+        }
+        
         $uploadDir = __DIR__ . '/../../uploads/documents/';
         
-        // Créer le répertoire s'il n'existe pas
+        // Debug - Afficher des informations sur le dossier de destination
+        error_log("Tentative de création du dossier : " . $uploadDir);
+        error_log("Le dossier existe : " . (is_dir($uploadDir) ? 'Oui' : 'Non'));
+        error_log("Permissions du dossier parent : " . substr(sprintf('%o', fileperms(dirname($uploadDir))), -4));
+        
+        // Créer le répertoire s'il n'existe pas - avec permissions plus permissives
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            $mkdirResult = mkdir($uploadDir, 0777, true);
+            error_log("Résultat de mkdir : " . ($mkdirResult ? 'Succès' : 'Échec'));
+            if (!$mkdirResult) {
+                error_log("Erreur lors de la création du dossier : " . $uploadDir);
+                error_log("Message d'erreur : " . error_get_last()['message']);
+                setFlashMessage('error', 'Erreur lors de la création du dossier de destination');
+                redirect('/tutoring/views/student/documents.php');
+                exit;
+            }
+            
+            // Vérifier si le dossier a été créé
+            if (!is_dir($uploadDir)) {
+                error_log("Le dossier n'a pas été créé malgré le succès de mkdir");
+                setFlashMessage('error', 'Le dossier de destination n\'a pas pu être créé');
+                redirect('/tutoring/views/student/documents.php');
+                exit;
+            }
+            
+            // Essayer de changer les permissions explicitement
+            chmod($uploadDir, 0777);
         }
         
         // Générer un nom de fichier unique
         $fileName = time() . '_' . basename($_FILES['document_file']['name']);
         $filePath = $uploadDir . $fileName;
         
+        error_log("Tentative de déplacement du fichier vers : " . $filePath);
+        error_log("Fichier temporaire existe : " . (file_exists($_FILES['document_file']['tmp_name']) ? 'Oui' : 'Non'));
+        
         // Déplacer le fichier téléchargé
         if (move_uploaded_file($_FILES['document_file']['tmp_name'], $filePath)) {
+            error_log("Fichier déplacé avec succès");
+            
+            // Vérifier que le fichier a bien été déplacé
+            if (!file_exists($filePath)) {
+                error_log("Le fichier n'existe pas après déplacement : " . $filePath);
+                setFlashMessage('error', 'Le fichier a été déplacé mais n\'est pas accessible');
+                redirect('/tutoring/views/student/documents.php');
+                exit;
+            }
+            
             // Préparer les données pour l'enregistrement en BDD
             $documentData = [
                 'title' => $_POST['document_title'],
@@ -97,27 +153,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
                 'type' => $_POST['document_type'],
                 'user_id' => $_SESSION['user_id'],
                 'assignment_id' => $activeAssignment ? $activeAssignment['id'] : null,
-                'status' => 'pending'
+                'status' => 'submitted' // Utiliser un statut valide selon l'enum dans la BDD
             ];
             
+            error_log("Tentative d'enregistrement en BDD : " . json_encode($documentData));
+            
             // Créer le document dans la base de données
-            if ($documentModel->create($documentData)) {
+            $documentId = $documentModel->create($documentData);
+            if ($documentId) {
+                error_log("Document créé avec succès, ID : " . $documentId);
+                
                 // Notifier le tuteur si demandé
                 if (isset($_POST['notify_tutor']) && $activeAssignment) {
-                    // Code pour envoyer une notification au tuteur
-                    // À implémenter selon le système de notification existant
+                    try {
+                        // Récupérer les informations du tuteur
+                        $teacherId = $activeAssignment['teacher_id'];
+                        $teacherModel = new Teacher($db);
+                        $teacher = $teacherModel->getById($teacherId);
+                        
+                        if ($teacher && isset($teacher['user_id'])) {
+                            $tutorUserId = $teacher['user_id'];
+                            
+                            // Créer une notification pour le tuteur
+                            $notificationModel = new Notification($db);
+                            $notificationData = [
+                                'user_id' => $tutorUserId,
+                                'title' => 'Nouveau document',
+                                'message' => 'L\'étudiant ' . $_SESSION['user_name'] . ' a téléversé un nouveau document: ' . $_POST['document_title'],
+                                'type' => 'info',
+                                'related_type' => 'document',
+                                'related_id' => $documentId,
+                                'link' => '/tutoring/views/tutor/documents.php'
+                            ];
+                            
+                            $notificationId = $notificationModel->create($notificationData);
+                            error_log("Notification envoyée au tuteur, ID : " . $notificationId);
+                        }
+                    } catch (Exception $e) {
+                        error_log("Erreur lors de l'envoi de la notification : " . $e->getMessage());
+                        // Ne pas bloquer le processus si la notification échoue
+                    }
                 }
                 
                 setFlashMessage('success', 'Document téléversé avec succès');
                 redirect('/tutoring/views/student/documents.php');
             } else {
-                setFlashMessage('error', 'Erreur lors de l\'enregistrement du document');
+                error_log("Échec de la création du document en BDD");
+                setFlashMessage('error', 'Erreur lors de l\'enregistrement du document dans la base de données');
+                
+                // Supprimer le fichier si l'enregistrement en BDD a échoué
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                    error_log("Fichier supprimé après échec BDD : " . $filePath);
+                }
             }
         } else {
-            setFlashMessage('error', 'Erreur lors du téléversement du fichier');
+            error_log("Échec du déplacement du fichier");
+            error_log("Message d'erreur : " . error_get_last()['message']);
+            setFlashMessage('error', 'Erreur lors du déplacement du fichier téléchargé');
         }
     } else {
-        setFlashMessage('error', 'Veuillez sélectionner un fichier valide');
+        // Détail de l'erreur d'upload
+        $errorCode = isset($_FILES['document_file']) ? $_FILES['document_file']['error'] : 'No file';
+        error_log("Erreur d'upload de fichier, code : " . $errorCode);
+        
+        $errorMessages = [
+            UPLOAD_ERR_INI_SIZE => 'Le fichier dépasse la taille maximale définie dans php.ini',
+            UPLOAD_ERR_FORM_SIZE => 'Le fichier dépasse la taille maximale définie dans le formulaire',
+            UPLOAD_ERR_PARTIAL => 'Le fichier n\'a été que partiellement téléchargé',
+            UPLOAD_ERR_NO_FILE => 'Aucun fichier n\'a été téléchargé',
+            UPLOAD_ERR_NO_TMP_DIR => 'Dossier temporaire manquant',
+            UPLOAD_ERR_CANT_WRITE => 'Échec de l\'écriture du fichier sur le disque',
+            UPLOAD_ERR_EXTENSION => 'Une extension PHP a arrêté le téléchargement du fichier'
+        ];
+        
+        $errorMessage = isset($_FILES['document_file']) ? 
+            ($errorMessages[$_FILES['document_file']['error']] ?? 'Erreur inconnue lors du téléchargement') : 
+            'Aucun fichier n\'a été envoyé';
+            
+        setFlashMessage('error', $errorMessage);
     }
 }
 
@@ -481,7 +595,8 @@ include_once __DIR__ . '/../common/header.php';
                         <select class="form-select" id="document_type" name="document_type" required>
                             <option value="report">Rapport</option>
                             <option value="contract">Contrat</option>
-                            <option value="administrative">Document administratif</option>
+                            <option value="evaluation">Évaluation</option>
+                            <option value="certificate">Certificat</option>
                             <option value="other">Autre</option>
                         </select>
                     </div>

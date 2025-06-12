@@ -51,6 +51,47 @@ try {
         // Récupérer le message envoyé
         $message = $messageModel->getById($messageId);
         
+        // Créer une notification pour le destinataire
+        try {
+            $notificationModel = new Notification($db);
+            
+            // Récupérer les informations de l'expéditeur pour le message de notification
+            $userModel = new User($db);
+            $sender = $userModel->getById($_SESSION['user_id']);
+            $senderName = $sender ? $sender['first_name'] . ' ' . $sender['last_name'] : 'Un utilisateur';
+            
+            // Déterminer le lien approprié selon le rôle du destinataire
+            $recipientLink = '/tutoring/views/student/messages.php';
+            $recipient = $userModel->getById($requestData['recipient_id']);
+            
+            if ($recipient) {
+                if ($recipient['role'] === 'admin' || $recipient['role'] === 'coordinator') {
+                    $recipientLink = '/tutoring/views/admin/messages.php';
+                } elseif ($recipient['role'] === 'teacher') {
+                    $recipientLink = '/tutoring/views/tutor/messages.php';
+                }
+            }
+            
+            // Créer la notification
+            $notificationData = [
+                'user_id' => $requestData['recipient_id'],
+                'title' => 'Nouveau message',
+                'message' => "Vous avez reçu un nouveau message de $senderName",
+                'type' => 'info',
+                'related_type' => 'message',
+                'related_id' => $messageId,
+                'link' => $recipientLink
+            ];
+            
+            $notificationId = $notificationModel->create($notificationData);
+            
+            // Log de débogage
+            error_log("Notification créée pour le message $messageId: notification ID $notificationId");
+        } catch (Exception $e) {
+            // Log l'erreur mais ne pas arrêter le flux
+            error_log("Erreur lors de la création de la notification: " . $e->getMessage());
+        }
+        
         if ($message) {
             // Formater le message pour l'affichage
             $message['is_outgoing'] = true;

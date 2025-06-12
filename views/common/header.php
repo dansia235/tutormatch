@@ -333,10 +333,17 @@ if ($userTheme === 'dark') {
                             <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell fs-5 position-relative">
                                     <?php
-                                    // TODO: Récupérer le nombre de notifications
-                                    $notificationCount = 0;
-                                    if ($notificationCount > 0) {
-                                        echo '<span class="notification-badge">' . $notificationCount . '</span>';
+                                    // Récupérer le nombre de notifications non lues
+                                    try {
+                                        if (isset($db) && isLoggedIn()) {
+                                            $notificationModel = new Notification($db);
+                                            $notificationCount = $notificationModel->countUnread($_SESSION['user_id']);
+                                            if ($notificationCount > 0) {
+                                                echo '<span class="notification-badge">' . $notificationCount . '</span>';
+                                            }
+                                        }
+                                    } catch (Exception $e) {
+                                        // En cas d'erreur, ne pas afficher de badge
                                     }
                                     ?>
                                 </i>
@@ -344,13 +351,96 @@ if ($userTheme === 'dark') {
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown">
                                 <li><h6 class="dropdown-header">Notifications</h6></li>
                                 <?php
-                                // TODO: Récupérer les notifications
+                                // Récupérer les 3 dernières notifications
+                                try {
+                                    if (isset($db) && isLoggedIn()) {
+                                        $notificationModel = new Notification($db);
+                                        $recentNotifications = $notificationModel->getAll([
+                                            'user_id' => $_SESSION['user_id'],
+                                            'page' => 1,
+                                            'limit' => 3
+                                        ]);
+                                        
+                                        if (!empty($recentNotifications)) {
+                                            foreach ($recentNotifications as $notification) {
+                                                // Déterminer l'icône en fonction du type
+                                                $icon = 'bi-info-circle';
+                                                $colorClass = 'text-info';
+                                                
+                                                switch ($notification['type']) {
+                                                    case 'success':
+                                                        $icon = 'bi-check-circle';
+                                                        $colorClass = 'text-success';
+                                                        break;
+                                                    case 'error':
+                                                        $icon = 'bi-exclamation-circle';
+                                                        $colorClass = 'text-danger';
+                                                        break;
+                                                    case 'warning':
+                                                        $icon = 'bi-exclamation-triangle';
+                                                        $colorClass = 'text-warning';
+                                                        break;
+                                                }
+                                                
+                                                // Déterminer l'URL en fonction du rôle et du type d'élément
+                                                $url = '#';
+                                                if ($notification['related_type'] && $notification['related_id']) {
+                                                    $relatedType = $notification['related_type'];
+                                                    $relatedId = $notification['related_id'];
+                                                    $userRole = $_SESSION['user_role'];
+                                                    
+                                                    $rolePrefix = 'admin';
+                                                    if ($userRole === 'teacher') {
+                                                        $rolePrefix = 'tutor';
+                                                    } elseif ($userRole === 'student') {
+                                                        $rolePrefix = 'student';
+                                                    }
+                                                    
+                                                    switch ($relatedType) {
+                                                        case 'assignment':
+                                                            $url = "/tutoring/views/{$rolePrefix}/assignments.php?id=$relatedId";
+                                                            break;
+                                                        case 'internship':
+                                                            $url = "/tutoring/views/{$rolePrefix}/internships.php?id=$relatedId";
+                                                            break;
+                                                        case 'document':
+                                                            $url = "/tutoring/views/{$rolePrefix}/documents.php?id=$relatedId";
+                                                            break;
+                                                        case 'meeting':
+                                                            $url = "/tutoring/views/{$rolePrefix}/meetings.php?id=$relatedId";
+                                                            break;
+                                                        case 'message':
+                                                            $url = "/tutoring/views/{$rolePrefix}/messages.php?conversation=$relatedId";
+                                                            break;
+                                                        case 'evaluation':
+                                                            $url = "/tutoring/views/{$rolePrefix}/evaluations.php?id=$relatedId";
+                                                            break;
+                                                        case 'company':
+                                                            $url = "/tutoring/views/{$rolePrefix}/companies.php?id=$relatedId";
+                                                            break;
+                                                    }
+                                                }
+                                                
+                                                echo '<li><a class="dropdown-item" href="' . $url . '"><i class="bi ' . $icon . ' ' . $colorClass . ' me-2"></i>' . h($notification['title']) . '</a></li>';
+                                            }
+                                        } else {
+                                            echo '<li><span class="dropdown-item-text">Aucune notification récente</span></li>';
+                                        }
+                                    } else {
+                                        echo '<li><span class="dropdown-item-text">Aucune notification</span></li>';
+                                    }
+                                } catch (Exception $e) {
+                                    echo '<li><span class="dropdown-item-text">Erreur lors du chargement des notifications</span></li>';
+                                }
                                 ?>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-calendar-check text-primary me-2"></i>Nouvelle réunion planifiée</a></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-text text-info me-2"></i>Document à signer</a></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-chat-square-text text-success me-2"></i>Nouveau message</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-bell-fill me-2"></i>Voir toutes les notifications</a></li>
+                                <?php if (hasRole(['admin', 'coordinator'])): ?>
+                                <li><a class="dropdown-item" href="/tutoring/views/admin/notifications.php"><i class="bi bi-bell-fill me-2"></i>Voir toutes les notifications</a></li>
+                                <?php elseif (hasRole('teacher')): ?>
+                                <li><a class="dropdown-item" href="/tutoring/views/tutor/notifications.php"><i class="bi bi-bell-fill me-2"></i>Voir toutes les notifications</a></li>
+                                <?php elseif (hasRole('student')): ?>
+                                <li><a class="dropdown-item" href="/tutoring/views/student/notifications.php"><i class="bi bi-bell-fill me-2"></i>Voir toutes les notifications</a></li>
+                                <?php endif; ?>
                             </ul>
                         </div>
                         <div class="dropdown">
