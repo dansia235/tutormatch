@@ -203,8 +203,8 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 ## 📬 Contact
 
 Pour toute question ou suggestion, veuillez contacter l'équipe de développement via :
-- Email : contact@tutormatch.example.com
-- Issues GitHub : [Créer une issue](https://github.com/votre-utilisateur/tutormatch/issues)
+- Email : 	toussaint.dansia@etud.u-picardie.fr & isaac.belle.belle@etud.u-picardie.fr
+- Issues GitHub : [Créer une issue](https://github.com/dansia235/tutormatch/issues)
 
 ---
 
