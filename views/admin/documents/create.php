@@ -51,14 +51,12 @@ if ($relatedId && $relatedType) {
     }
 }
 
-// Définir les catégories disponibles
+// Définir les catégories disponibles selon la structure de la base de données
 $categories = [
-    'cv' => 'CV / Curriculum Vitae',
+    'contract' => 'Contrat / Convention de stage',
     'report' => 'Rapport de stage',
-    'agreement' => 'Convention de stage',
     'evaluation' => 'Évaluation',
-    'image' => 'Image',
-    'presentation' => 'Présentation',
+    'certificate' => 'Certificat / Attestation',
     'other' => 'Autre document'
 ];
 
@@ -220,19 +218,17 @@ if ($relatedInfo) {
         const allowedFormats = document.getElementById('allowedFormats');
         
         switch (category) {
-            case 'cv':
+            case 'contract':
             case 'report':
-            case 'agreement':
-            case 'evaluation':
                 allowedFormats.textContent = 'PDF, DOC, DOCX';
                 break;
                 
-            case 'image':
-                allowedFormats.textContent = 'JPG, PNG, GIF';
+            case 'evaluation':
+                allowedFormats.textContent = 'PDF, DOC, DOCX, XLS, XLSX';
                 break;
                 
-            case 'presentation':
-                allowedFormats.textContent = 'PDF, PPT, PPTX';
+            case 'certificate':
+                allowedFormats.textContent = 'PDF, JPG, PNG';
                 break;
                 
             case 'other':

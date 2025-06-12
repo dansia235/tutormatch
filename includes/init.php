@@ -315,7 +315,14 @@ function uploadFile($file, $destination = '', $allowedTypes = [], $maxSize = 524
     // Créer le dossier de destination s'il n'existe pas
     $uploadDir = ROOT_PATH . '/uploads/' . $destination;
     if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+        $result = mkdir($uploadDir, 0777, true);
+        if (!$result) {
+            error_log("Erreur lors de la création du dossier: " . $uploadDir);
+            error_log("Message d'erreur: " . error_get_last()['message']);
+            return false;
+        }
+        // Forcer les permissions
+        chmod($uploadDir, 0777);
     }
     
     // Générer un nom de fichier unique
@@ -323,9 +330,18 @@ function uploadFile($file, $destination = '', $allowedTypes = [], $maxSize = 524
     $newFilename = generateSlug($fileInfo['filename']) . '-' . uniqid() . '.' . $fileInfo['extension'];
     $targetPath = $uploadDir . '/' . $newFilename;
     
+    // Ajouter des logs pour le débogage
+    error_log("Tentative de déplacement du fichier: " . $file['tmp_name'] . " vers " . $targetPath);
+    error_log("Le fichier temporaire existe: " . (file_exists($file['tmp_name']) ? 'Oui' : 'Non'));
+    error_log("Le dossier de destination existe: " . (is_dir($uploadDir) ? 'Oui' : 'Non'));
+    error_log("Permissions du dossier de destination: " . substr(sprintf('%o', fileperms($uploadDir)), -4));
+    
     // Déplacer le fichier
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+        error_log("Fichier déplacé avec succès vers: " . $targetPath);
         return '/uploads/' . ($destination ? $destination . '/' : '') . $newFilename;
+    } else {
+        error_log("Échec du déplacement du fichier. Message d'erreur: " . error_get_last()['message']);
     }
     
     return false;

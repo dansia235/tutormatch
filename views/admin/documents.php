@@ -61,10 +61,10 @@ include_once __DIR__ . '/../common/header.php';
                     <div class="d-flex justify-content-md-end">
                         <div class="btn-group" role="group">
                             <a href="?category=" class="btn btn-outline-secondary <?php echo !isset($_GET['category']) ? 'active' : ''; ?>">Tous</a>
-                            <a href="?category=cv" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'cv' ? 'active' : ''; ?>">CV</a>
+                            <a href="?category=contract" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'contract' ? 'active' : ''; ?>">Contrats</a>
                             <a href="?category=report" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'report' ? 'active' : ''; ?>">Rapports</a>
-                            <a href="?category=agreement" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'agreement' ? 'active' : ''; ?>">Conventions</a>
                             <a href="?category=evaluation" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'evaluation' ? 'active' : ''; ?>">Évaluations</a>
+                            <a href="?category=certificate" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'certificate' ? 'active' : ''; ?>">Certificats</a>
                             <a href="?category=other" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'other' ? 'active' : ''; ?>">Autres</a>
                         </div>
                     </div>
@@ -77,12 +77,10 @@ include_once __DIR__ . '/../common/header.php';
     <div class="row mb-4">
         <?php 
         $categories = [
-            'cv' => ['name' => 'CV', 'icon' => 'bi-file-person', 'color' => 'primary'],
+            'contract' => ['name' => 'Contrats', 'icon' => 'bi-file-earmark-text', 'color' => 'primary'],
             'report' => ['name' => 'Rapports', 'icon' => 'bi-file-text', 'color' => 'success'],
-            'agreement' => ['name' => 'Conventions', 'icon' => 'bi-file-earmark-text', 'color' => 'info'],
             'evaluation' => ['name' => 'Évaluations', 'icon' => 'bi-file-check', 'color' => 'warning'],
-            'image' => ['name' => 'Images', 'icon' => 'bi-file-image', 'color' => 'danger'],
-            'presentation' => ['name' => 'Présentations', 'icon' => 'bi-file-slides', 'color' => 'secondary'],
+            'certificate' => ['name' => 'Certificats', 'icon' => 'bi-file-earmark-check', 'color' => 'info'],
             'other' => ['name' => 'Autres', 'icon' => 'bi-file', 'color' => 'dark']
         ];
         
@@ -174,12 +172,10 @@ include_once __DIR__ . '/../common/header.php';
                             <td>
                                 <?php 
                                 $categoryLabels = [
-                                    'cv' => '<span class="badge bg-primary">CV</span>',
+                                    'contract' => '<span class="badge bg-primary">Contrat</span>',
                                     'report' => '<span class="badge bg-success">Rapport</span>',
-                                    'agreement' => '<span class="badge bg-info">Convention</span>',
                                     'evaluation' => '<span class="badge bg-warning">Évaluation</span>',
-                                    'image' => '<span class="badge bg-danger">Image</span>',
-                                    'presentation' => '<span class="badge bg-secondary">Présentation</span>',
+                                    'certificate' => '<span class="badge bg-info">Certificat</span>',
                                     'other' => '<span class="badge bg-dark">Autre</span>'
                                 ];
                                 $docCategory = $document['category'] ?? '';

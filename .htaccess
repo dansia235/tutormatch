@@ -38,10 +38,17 @@ ErrorDocument 403 /tutoring/access-denied.php
     php_flag display_errors On
     php_flag log_errors On
     
-    php_value upload_max_filesize 10M
-    php_value post_max_size 10M
+    # Augmenter les limites pour l'upload de fichiers
+    php_value upload_max_filesize 20M
+    php_value post_max_size 20M
     php_value max_execution_time 300
     php_value max_input_time 300
+    
+    # Ajouter le chemin d'upload personnalisé
+    php_value upload_tmp_dir /tmp
+    
+    # Afficher tous les types d'erreurs pour faciliter le débogage
+    php_value error_reporting E_ALL
 </IfModule>
 
 # Compression GZIP

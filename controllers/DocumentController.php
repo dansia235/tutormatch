@@ -133,10 +133,7 @@ class DocumentController {
         $allowedTypes = [];
         
         switch ($_POST['category']) {
-            case 'cv':
-            case 'report':
-            case 'agreement':
-            case 'evaluation':
+            case 'contract':
                 $allowedTypes = [
                     'application/pdf', 
                     'application/msword', 
@@ -144,19 +141,29 @@ class DocumentController {
                 ];
                 break;
                 
-            case 'image':
+            case 'report':
                 $allowedTypes = [
-                    'image/jpeg', 
-                    'image/png', 
-                    'image/gif'
+                    'application/pdf', 
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 ];
                 break;
                 
-            case 'presentation':
+            case 'evaluation':
                 $allowedTypes = [
                     'application/pdf',
-                    'application/vnd.ms-powerpoint',
-                    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                ];
+                break;
+                
+            case 'certificate':
+                $allowedTypes = [
+                    'application/pdf',
+                    'image/jpeg', 
+                    'image/png'
                 ];
                 break;
                 
@@ -171,7 +178,10 @@ class DocumentController {
                     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                     'text/plain',
                     'application/zip',
-                    'application/x-rar-compressed'
+                    'application/x-rar-compressed',
+                    'image/jpeg', 
+                    'image/png', 
+                    'image/gif'
                 ];
                 break;
         }
@@ -203,12 +213,12 @@ class DocumentController {
             'file_path' => $filePath,
             'file_type' => $_FILES['document']['type'],
             'file_size' => $_FILES['document']['size'],
-            'category' => $_POST['category'],
+            'type' => $_POST['category'], // Convertir 'category' en 'type' pour correspondre à la structure de la BDD
             'user_id' => $_SESSION['user_id'],
             'related_id' => $_POST['related_id'] ?? null,
             'related_type' => $_POST['related_type'] ?? null,
             'visibility' => $_POST['visibility'] ?? 'private',
-            'status' => 'active'
+            'status' => 'submitted' // Utiliser un statut valide selon l'enum: 'draft','submitted','approved','rejected'
         ];
         
         // Créer le document
@@ -397,9 +407,9 @@ class DocumentController {
         $documentData = [
             'title' => $_POST['title'],
             'description' => $_POST['description'] ?? null,
-            'category' => $_POST['category'],
+            'type' => $_POST['category'], // Convertir 'category' en 'type' pour correspondre à la structure de la BDD
             'visibility' => $_POST['visibility'] ?? 'private',
-            'status' => $_POST['status'] ?? 'active'
+            'status' => $_POST['status'] ?? 'submitted' // Utiliser un statut valide: 'draft','submitted','approved','rejected'
         ];
         
         // Traiter le nouveau fichier si fourni
@@ -408,10 +418,7 @@ class DocumentController {
             $allowedTypes = [];
             
             switch ($_POST['category']) {
-                case 'cv':
-                case 'report':
-                case 'agreement':
-                case 'evaluation':
+                case 'contract':
                     $allowedTypes = [
                         'application/pdf', 
                         'application/msword', 
@@ -419,19 +426,29 @@ class DocumentController {
                     ];
                     break;
                     
-                case 'image':
+                case 'report':
                     $allowedTypes = [
-                        'image/jpeg', 
-                        'image/png', 
-                        'image/gif'
+                        'application/pdf', 
+                        'application/msword', 
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                     ];
                     break;
                     
-                case 'presentation':
+                case 'evaluation':
                     $allowedTypes = [
                         'application/pdf',
-                        'application/vnd.ms-powerpoint',
-                        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                        'application/msword', 
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    ];
+                    break;
+                    
+                case 'certificate':
+                    $allowedTypes = [
+                        'application/pdf',
+                        'image/jpeg', 
+                        'image/png'
                     ];
                     break;
                     
@@ -446,7 +463,10 @@ class DocumentController {
                         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                         'text/plain',
                         'application/zip',
-                        'application/x-rar-compressed'
+                        'application/x-rar-compressed',
+                        'image/jpeg', 
+                        'image/png', 
+                        'image/gif'
                     ];
                     break;
             }

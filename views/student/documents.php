@@ -34,7 +34,8 @@ $allDocuments = $documentModel->getByUserId($_SESSION['user_id']);
 $documents = [
     'report' => [],
     'contract' => [],
-    'administrative' => [],
+    'evaluation' => [],
+    'certificate' => [],
     'other' => []
 ];
 
@@ -61,8 +62,11 @@ foreach ($allDocuments as $doc) {
         case 'contract':
             $documents['contract'][] = $doc;
             break;
-        case 'administrative':
-            $documents['administrative'][] = $doc;
+        case 'evaluation':
+            $documents['evaluation'][] = $doc;
+            break;
+        case 'certificate':
+            $documents['certificate'][] = $doc;
             break;
         default:
             $documents['other'][] = $doc;
@@ -93,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
             exit;
         }
         
-        $uploadDir = __DIR__ . '/../../uploads/documents/';
+        // Utiliser le chemin absolu pour le dossier d'upload
+        $uploadDir = ROOT_PATH . '/uploads/documents/';
         
         // Debug - Afficher des informations sur le dossier de destination
         error_log("Tentative de création du dossier : " . $uploadDir);
@@ -153,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
                 'type' => $_POST['document_type'],
                 'user_id' => $_SESSION['user_id'],
                 'assignment_id' => $activeAssignment ? $activeAssignment['id'] : null,
-                'status' => 'submitted' // Utiliser un statut valide selon l'enum dans la BDD
+                'status' => 'submitted' // 'submitted' est un statut valide dans l'enum: 'draft','submitted','approved','rejected'
             ];
             
             error_log("Tentative d'enregistrement en BDD : " . json_encode($documentData));
@@ -507,7 +512,7 @@ include_once __DIR__ . '/../common/header.php';
                                     <p class="mb-0 small text-muted">
                                         <?php
                                         $evalFound = false;
-                                        foreach ($documents['administrative'] as $doc) {
+                                        foreach ($documents['evaluation'] as $doc) {
                                             if (stripos($doc['title'], 'évaluation') !== false || stripos($doc['title'], 'evaluation') !== false) {
                                                 echo 'Téléversé le ' . date('d/m/Y', strtotime($doc['upload_date']));
                                                 $evalFound = true;
