@@ -32,7 +32,8 @@
       "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -l \"/tutoring/views/admin/assignments/index.php\" --type php /mnt/c/xampp/htdocs/tutoring)",
       "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg \"CREATE TABLE.*evaluations\" --type sql /mnt/c/xampp/htdocs/tutoring/database)",
       "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 20 \"CREATE TABLE \\`evaluations\\`\" --type sql /mnt/c/xampp/htdocs/tutoring/database)",
-      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 20 \"CREATE TABLE .evaluations.\" --type sql /mnt/c/xampp/htdocs/tutoring/database)"
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 20 \"CREATE TABLE .evaluations.\" --type sql /mnt/c/xampp/htdocs/tutoring/database)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

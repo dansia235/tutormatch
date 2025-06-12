@@ -175,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
     // Récupérer les données du formulaire
     $assignmentId = $_POST['assignment_id'] ?? null;
     $type = $_POST['evaluation_type'] ?? 'mid_term';
-    $comments = $_POST['comments'] ?? '';
+    $feedback = $_POST['comments'] ?? ''; // Renommé pour correspondre à la colonne 'feedback'
     $criteria = $_POST['criteria'] ?? [];
     $areasForImprovement = array_filter($_POST['areas_for_improvement'] ?? []);
     $recommendations = array_filter($_POST['recommendations'] ?? []);
@@ -233,18 +233,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
     
     $averageScore = $criteriaCount > 0 ? round(($totalScore / $criteriaCount) * 4) : 0; // Convertir de 5 à 20
     
+    // Récupérer l'étudiant associé à l'affectation
+    $assignment = null;
+    $evaluateeId = null;
+    foreach ($assignments as $a) {
+        if ($a['id'] == $assignmentId) {
+            $assignment = $a;
+            $evaluateeId = $a['student_id'];
+            break;
+        }
+    }
+    
+    if (!$evaluateeId) {
+        setFlashMessage('error', 'Étudiant non trouvé pour cette affectation');
+        redirect('/tutoring/views/tutor/evaluations.php');
+        exit;
+    }
+    
     // Préparer les données d'évaluation
     $evaluationData = [
         'assignment_id' => $assignmentId,
-        'evaluator_type' => 'teacher',
         'evaluator_id' => $teacher['id'],
+        'evaluatee_id' => $evaluateeId,
         'type' => $type,
         'score' => $averageScore,
-        'criteria_scores' => json_encode($criteriaScores),
-        'comments' => $comments,
-        'improvements' => implode("\n", $areasForImprovement),
-        'recommendations' => implode("\n", $recommendations),
-        'strengths' => '' // À ajouter si nécessaire
+        'feedback' => $feedback,
+        'strengths' => '', // À ajouter si nécessaire
+        'areas_to_improve' => implode("\n", $areasForImprovement)
+        // Note: recommendations n'est pas une colonne dans la table evaluations
     ];
     
     // Enregistrer l'évaluation
@@ -662,16 +678,9 @@ include_once __DIR__ . '/../common/header.php';
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Vue d'ensemble des évaluations</span>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-download"></i> Exporter
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                            <li><a class="dropdown-item" href="#" onclick="exportData('csv')">CSV</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="exportData('pdf')">PDF</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="exportData('excel')">Excel</a></li>
-                        </ul>
-                    </div>
+                    <a href="/tutoring/views/tutor/export_evaluations.php" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download"></i> Exporter
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -823,7 +832,7 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         
                         <h6>Commentaires</h6>
-                        <p><?php echo nl2br(h($evaluation['comments'])); ?></p>
+                        <p><?php echo nl2br(h($evaluation['feedback'] ?? '')); ?></p>
                     </div>
                     
                     <div class="row mb-4">
@@ -845,12 +854,21 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         
                         <div class="col-md-6">
-                            <?php if (!empty($evaluation['areas_for_improvement'])): ?>
+                            <?php if (!empty($evaluation['areas_to_improve'])): ?>
                             <h6>Points à améliorer</h6>
                             <ul class="list-group list-group-flush mb-3">
-                                <?php foreach ($evaluation['areas_for_improvement'] as $area): ?>
+                                <?php 
+                                $areasArray = is_array($evaluation['areas_to_improve']) 
+                                    ? $evaluation['areas_to_improve'] 
+                                    : explode("\n", $evaluation['areas_to_improve']);
+                                foreach ($areasArray as $area): 
+                                    if (trim($area)):
+                                ?>
                                 <li class="list-group-item px-0"><?php echo h($area); ?></li>
-                                <?php endforeach; ?>
+                                <?php 
+                                    endif;
+                                endforeach; 
+                                ?>
                             </ul>
                             <?php endif; ?>
                             
@@ -872,9 +890,9 @@ include_once __DIR__ . '/../common/header.php';
                         <button class="btn btn-outline-primary" onclick="printEvaluation(<?php echo h($index); ?>)">
                             <i class="bi bi-printer me-1"></i>Imprimer
                         </button>
-                        <button class="btn btn-outline-secondary" onclick="exportPDF(<?php echo h($index); ?>)">
-                            <i class="bi bi-file-earmark-pdf me-1"></i>Exporter PDF
-                        </button>
+                        <a href="/tutoring/views/tutor/export_evaluation.php?id=<?php echo h($evaluation['id']); ?>" class="btn btn-outline-secondary">
+                            <i class="bi bi-download me-1"></i>Exporter
+                        </a>
                         <button class="btn btn-outline-info" onclick="shareEvaluation(<?php echo h($index); ?>)">
                             <i class="bi bi-share me-1"></i>Partager
                         </button>
@@ -1142,8 +1160,18 @@ include_once __DIR__ . '/../common/header.php';
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" name="submit_evaluation" class="btn btn-primary">Enregistrer l'évaluation</button>
+                    <div class="d-flex justify-content-between w-100">
+                        <div>
+                            <span class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Le document exporté peut être imprimé en PDF depuis votre navigateur
+                            </span>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" name="submit_evaluation" class="btn btn-primary">Enregistrer l'évaluation</button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1286,20 +1314,74 @@ include_once __DIR__ . '/../common/header.php';
         window.print();
     }
     
-    function exportPDF(index) {
-        // Rediriger vers un script PHP qui génère le PDF
+    function exportEvaluationInline(index) {
+        // Exporter en utilisant la technique du formulaire POST pour éviter les problèmes de cache
         const evaluations = <?php echo json_encode($studentEvaluations); ?>;
         const evaluation = evaluations[index];
+        
         if (evaluation && evaluation.id) {
-            window.location.href = `/tutoring/views/tutor/export_evaluation.php?id=${evaluation.id}&format=pdf`;
+            // Créer un formulaire temporaire
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/tutoring/views/tutor/export_evaluation.php`;
+            form.target = '_blank'; // Ouvrir dans un nouvel onglet
+            
+            // Ajouter les champs cachés
+            const idField = document.createElement('input');
+            idField.type = 'hidden';
+            idField.name = 'id';
+            idField.value = evaluation.id;
+            
+            const formatField = document.createElement('input');
+            formatField.type = 'hidden';
+            formatField.name = 'format';
+            formatField.value = 'html';
+            
+            const cacheBusterField = document.createElement('input');
+            cacheBusterField.type = 'hidden';
+            cacheBusterField.name = 'nocache';
+            cacheBusterField.value = new Date().getTime();
+            
+            // Ajouter les champs au formulaire
+            form.appendChild(idField);
+            form.appendChild(formatField);
+            form.appendChild(cacheBusterField);
+            
+            // Ajouter le formulaire au document, le soumettre, puis le retirer
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
         } else {
-            alert('Fonctionnalité d\'export PDF à implémenter');
+            alert('Impossible d\'exporter cette évaluation');
         }
     }
     
-    function exportData(format) {
-        // Rediriger vers un script PHP qui génère l'export
-        window.location.href = `/tutoring/views/tutor/export_evaluations.php?format=${format}`;
+    function exportAllEvaluationsInline() {
+        // Créer un formulaire temporaire
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/tutoring/views/tutor/export_evaluations.php`;
+        form.target = '_blank'; // Ouvrir dans un nouvel onglet
+        
+        // Ajouter les champs cachés
+        const formatField = document.createElement('input');
+        formatField.type = 'hidden';
+        formatField.name = 'format';
+        formatField.value = 'html';
+        
+        const cacheBusterField = document.createElement('input');
+        cacheBusterField.type = 'hidden';
+        cacheBusterField.name = 'nocache';
+        cacheBusterField.value = new Date().getTime();
+        
+        // Ajouter les champs au formulaire
+        form.appendChild(formatField);
+        form.appendChild(cacheBusterField);
+        
+        // Ajouter le formulaire au document, le soumettre, puis le retirer
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     }
     
     function shareEvaluation(index) {

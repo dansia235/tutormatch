@@ -74,6 +74,46 @@ foreach ($allDocuments as $doc) {
     }
 }
 
+// Traitement de la suppression de document
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_document']) && isset($_POST['document_id'])) {
+    $documentId = (int)$_POST['document_id'];
+    
+    // Vérifier que le document existe et appartient à l'utilisateur
+    $document = $documentModel->getById($documentId);
+    
+    if (!$document) {
+        setFlashMessage('error', 'Document non trouvé');
+        redirect('/tutoring/views/student/documents.php');
+        exit;
+    }
+    
+    // Vérifier que l'utilisateur est bien le propriétaire du document
+    if ($document['user_id'] != $_SESSION['user_id']) {
+        setFlashMessage('error', 'Vous n\'êtes pas autorisé à supprimer ce document');
+        redirect('/tutoring/views/student/documents.php');
+        exit;
+    }
+    
+    // Supprimer le fichier physique
+    $filePath = ROOT_PATH . '/' . $document['file_path'];
+    if (file_exists($filePath)) {
+        unlink($filePath);
+        error_log("Fichier supprimé: " . $filePath);
+    } else {
+        error_log("Fichier introuvable: " . $filePath);
+    }
+    
+    // Supprimer l'enregistrement dans la base de données
+    if ($documentModel->delete($documentId)) {
+        setFlashMessage('success', 'Document supprimé avec succès');
+    } else {
+        setFlashMessage('error', 'Erreur lors de la suppression du document');
+    }
+    
+    redirect('/tutoring/views/student/documents.php');
+    exit;
+}
+
 // Traitement de l'upload de document si formulaire soumis
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
     // Vérifier si un fichier a été envoyé
@@ -158,8 +198,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
                 'type' => $_POST['document_type'],
                 'user_id' => $_SESSION['user_id'],
                 'assignment_id' => $activeAssignment ? $activeAssignment['id'] : null,
-                'status' => 'submitted' // 'submitted' est un statut valide dans l'enum: 'draft','submitted','approved','rejected'
+                'status' => 'submitted', // 'submitted' est un statut valide dans l'enum: 'draft','submitted','approved','rejected'
+                'version' => '1.0' // Ajouter la version par défaut
             ];
+            
+            // Ajouter un log détaillé pour le débogage
+            error_log("Document::upload - Données complètes: " . json_encode($documentData));
             
             error_log("Tentative d'enregistrement en BDD : " . json_encode($documentData));
             

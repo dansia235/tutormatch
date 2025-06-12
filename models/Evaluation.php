@@ -212,4 +212,23 @@ class Evaluation {
         
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+    
+    /**
+     * Vérifie si une évaluation existe déjà pour une affectation et un type donnés
+     * 
+     * @param int $assignmentId ID de l'affectation
+     * @param string $type Type d'évaluation
+     * @return bool True si l'évaluation existe, false sinon
+     */
+    public function exists($assignmentId, $type) {
+        $query = "SELECT COUNT(*) as count FROM evaluations 
+                  WHERE assignment_id = :assignment_id AND type = :type";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':assignment_id', $assignmentId, PDO::PARAM_INT);
+        $stmt->bindParam(':type', $type, PDO::PARAM_STR);
+        $stmt->execute();
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] > 0;
+    }
 }

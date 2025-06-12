@@ -151,6 +151,7 @@ class Document {
             $description = isset($data['description']) ? $data['description'] : null;
             $type = isset($data['type']) ? $data['type'] : (isset($data['category']) ? $data['category'] : 'other');
             $assignmentId = isset($data['assignment_id']) ? $data['assignment_id'] : null;
+            $version = isset($data['version']) ? $data['version'] : null;
             
             // Vérifier si le type est valide
             $validTypes = ['contract', 'report', 'evaluation', 'certificate', 'other'];
@@ -172,37 +173,137 @@ class Document {
                 'type' => $type,
                 'status' => $status,
                 'user_id' => $data['user_id'],
-                'assignment_id' => $assignmentId
+                'assignment_id' => $assignmentId,
+                'version' => $version
             ]));
             
-            $query = "INSERT INTO documents (
-                        title, description, file_path, file_type, file_size, 
-                        type, user_id, upload_date, assignment_id, status
-                      ) VALUES (
-                        :title, :description, :file_path, :file_type, :file_size,
-                        :type, :user_id, NOW(), :assignment_id, :status
-                      )";
-                      
-            $stmt = $this->db->prepare($query);
-            
-            // Liaison des paramètres
-            $stmt->bindParam(':title', $data['title']);
-            $stmt->bindParam(':description', $description);
-            $stmt->bindParam(':file_path', $data['file_path']);
-            $stmt->bindParam(':file_type', $data['file_type']);
-            $stmt->bindParam(':file_size', $data['file_size']);
-            $stmt->bindParam(':type', $type);
-            $stmt->bindParam(':user_id', $data['user_id']);
-            $stmt->bindParam(':assignment_id', $assignmentId);
-            $stmt->bindParam(':status', $status);
-            
-            if ($stmt->execute()) {
-                $id = $this->db->lastInsertId();
-                error_log("Document créé avec succès, ID: $id");
-                return $id;
+            // Essayer une insertion très simplifiée avec les champs minimaux requis
+            try {
+                // Activer le mode exception pour PDO
+                $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                
+                // Déterminer les colonnes disponibles pour éviter les erreurs "column not found"
+                $query = "SHOW COLUMNS FROM documents";
+                $columnsStmt = $this->db->prepare($query);
+                $columnsStmt->execute();
+                $availableColumns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+                
+                error_log("Colonnes disponibles dans la table documents: " . implode(", ", $availableColumns));
+                
+                // Construire dynamiquement la requête en fonction des colonnes disponibles
+                $columns = [];
+                $placeholders = [];
+                $params = [];
+                
+                // Ajouter les champs obligatoires
+                $columns[] = 'title';
+                $placeholders[] = ':title';
+                $params[':title'] = $data['title'];
+                
+                $columns[] = 'file_path';
+                $placeholders[] = ':file_path';
+                $params[':file_path'] = $data['file_path'];
+                
+                $columns[] = 'type';
+                $placeholders[] = ':type';
+                $params[':type'] = $type;
+                
+                $columns[] = 'user_id';
+                $placeholders[] = ':user_id';
+                $params[':user_id'] = $data['user_id'];
+                
+                $columns[] = 'status';
+                $placeholders[] = ':status';
+                $params[':status'] = $status;
+                
+                // Ajouter les champs optionnels s'ils existent dans la table
+                if (in_array('description', $availableColumns) && $description !== null) {
+                    $columns[] = 'description';
+                    $placeholders[] = ':description';
+                    $params[':description'] = $description;
+                }
+                
+                if (in_array('file_type', $availableColumns) && isset($data['file_type'])) {
+                    $columns[] = 'file_type';
+                    $placeholders[] = ':file_type';
+                    $params[':file_type'] = $data['file_type'];
+                }
+                
+                if (in_array('file_size', $availableColumns) && isset($data['file_size'])) {
+                    $columns[] = 'file_size';
+                    $placeholders[] = ':file_size';
+                    $params[':file_size'] = $data['file_size'];
+                }
+                
+                if (in_array('assignment_id', $availableColumns) && $assignmentId !== null) {
+                    $columns[] = 'assignment_id';
+                    $placeholders[] = ':assignment_id';
+                    $params[':assignment_id'] = $assignmentId;
+                }
+                
+                if (in_array('version', $availableColumns) && $version !== null) {
+                    $columns[] = 'version';
+                    $placeholders[] = ':version';
+                    $params[':version'] = $version;
+                }
+                
+                // Ajouter le champ upload_date si nécessaire
+                if (in_array('upload_date', $availableColumns)) {
+                    $columns[] = 'upload_date';
+                    $placeholders[] = 'NOW()';
+                }
+                
+                // Construire la requête SQL
+                $query = "INSERT INTO documents (" . implode(", ", $columns) . ") 
+                          VALUES (" . implode(", ", $placeholders) . ")";
+                
+                error_log("Requête SQL générée: " . $query);
+                error_log("Paramètres: " . json_encode($params));
+                
+                $stmt = $this->db->prepare($query);
+                
+                // Exécuter la requête avec les paramètres
+                if ($stmt->execute($params)) {
+                    $id = $this->db->lastInsertId();
+                    error_log("Document créé avec succès, ID: $id");
+                    return $id;
+                }
+                
+                error_log("Erreur lors de l'exécution de la requête: " . json_encode($stmt->errorInfo()));
+                return false;
+                
+            } catch (PDOException $e) {
+                error_log("Erreur PDO lors de l'exécution de la requête dynamique: " . $e->getMessage());
+                
+                // Tenter une insertion sans aucun champ optionnel
+                try {
+                    $query = "INSERT INTO documents (title, file_path, type, user_id, status, upload_date) 
+                              VALUES (:title, :file_path, :type, :user_id, :status, NOW())";
+                    
+                    error_log("Tentative avec requête minimale: " . $query);
+                    
+                    $stmt = $this->db->prepare($query);
+                    $stmt->bindParam(':title', $data['title']);
+                    $stmt->bindParam(':file_path', $data['file_path']);
+                    $stmt->bindParam(':type', $type);
+                    $stmt->bindParam(':user_id', $data['user_id']);
+                    $stmt->bindParam(':status', $status);
+                    
+                    if ($stmt->execute()) {
+                        $id = $this->db->lastInsertId();
+                        error_log("Document créé avec succès (requête minimale), ID: $id");
+                        return $id;
+                    }
+                    
+                    error_log("Échec de la requête minimale: " . json_encode($stmt->errorInfo()));
+                    return false;
+                    
+                } catch (PDOException $e2) {
+                    error_log("Erreur PDO avec la requête minimale: " . $e2->getMessage());
+                    return false;
+                }
             }
             
-            error_log("Erreur lors de l'exécution de la requête dans Document::create: " . json_encode($stmt->errorInfo()));
             return false;
         } catch (PDOException $e) {
             error_log("Erreur PDO dans Document::create: " . $e->getMessage());

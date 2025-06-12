@@ -11,7 +11,7 @@ $currentPage = 'notifications';
 require_once __DIR__ . '/../../includes/init.php';
 
 // Vérifier les permissions
-requireRole(['tutor']);
+requireRole(['teacher']);
 
 // Initialiser le modèle de notifications
 $notificationModel = new Notification($db);

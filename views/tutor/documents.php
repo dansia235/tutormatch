@@ -472,15 +472,17 @@ include_once __DIR__ . '/../common/header.php';
                                             <?php
                                             // Déterminer l'icône en fonction du type de fichier
                                             $iconClass = 'bi-file-earmark text-secondary';
-                                            if (strpos($doc['file_type'], 'pdf') !== false) {
+                                            $fileType = isset($doc['file_type']) ? (string)$doc['file_type'] : '';
+                                            
+                                            if ($fileType && strpos($fileType, 'pdf') !== false) {
                                                 $iconClass = 'bi-file-earmark-pdf text-danger';
-                                            } elseif (strpos($doc['file_type'], 'word') !== false || strpos($doc['file_type'], 'document') !== false) {
+                                            } elseif ($fileType && (strpos($fileType, 'word') !== false || strpos($fileType, 'document') !== false)) {
                                                 $iconClass = 'bi-file-earmark-word text-primary';
-                                            } elseif (strpos($doc['file_type'], 'excel') !== false || strpos($doc['file_type'], 'sheet') !== false) {
+                                            } elseif ($fileType && (strpos($fileType, 'excel') !== false || strpos($fileType, 'sheet') !== false)) {
                                                 $iconClass = 'bi-file-earmark-excel text-success';
-                                            } elseif (strpos($doc['file_type'], 'image') !== false) {
+                                            } elseif ($fileType && strpos($fileType, 'image') !== false) {
                                                 $iconClass = 'bi-file-earmark-image text-info';
-                                            } elseif (strpos($doc['file_type'], 'presentation') !== false || strpos($doc['file_type'], 'powerpoint') !== false) {
+                                            } elseif ($fileType && (strpos($fileType, 'presentation') !== false || strpos($fileType, 'powerpoint') !== false)) {
                                                 $iconClass = 'bi-file-earmark-slides text-warning';
                                             }
                                             ?>
@@ -530,7 +532,7 @@ include_once __DIR__ . '/../common/header.php';
                                         ?>
                                         <span class="badge <?php echo $statusClass; ?>"><?php echo $statusLabel; ?></span>
                                     </td>
-                                    <td><?php echo formatFileSize($doc['file_size']); ?></td>
+                                    <td><?php echo formatFileSize($doc['file_size'] ?? null); ?></td>
                                     <td>
                                         <div class="btn-group">
                                             <a href="/tutoring/<?php echo h($doc['file_path']); ?>" class="btn btn-sm btn-outline-primary" target="_blank" title="Visualiser">
@@ -1001,15 +1003,27 @@ include_once __DIR__ . '/../common/header.php';
 <?php
 /**
  * Fonction pour formater la taille des fichiers
- * @param int $bytes Taille en octets
+ * @param int|null $bytes Taille en octets
  * @return string Taille formatée
  */
 function formatFileSize($bytes) {
-    if ($bytes === 0) return '0 Bytes';
+    // Gérer les cas où $bytes est null ou 0
+    if ($bytes === null || $bytes === 0 || empty($bytes)) {
+        return '0 Bytes';
+    }
+    
+    // S'assurer que $bytes est un nombre positif
+    $bytes = max(0, (float)$bytes);
+    if ($bytes === 0) {
+        return '0 Bytes';
+    }
     
     $k = 1024;
     $sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     $i = floor(log($bytes) / log($k));
+    
+    // S'assurer que l'index est dans les limites du tableau
+    $i = min(count($sizes) - 1, max(0, $i));
     
     return round($bytes / pow($k, $i), 2) . ' ' . $sizes[$i];
 }
