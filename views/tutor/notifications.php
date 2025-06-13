@@ -48,17 +48,17 @@ $total = $notificationModel->countAll($options);
 // Calculer la pagination
 $totalPages = ceil($total / $limit);
 
-// Définir le contenu de la page
-ob_start();
+// Inclure l'en-tête
+include_once __DIR__ . '/../common/header.php';
 ?>
 
-<div class="container-fluid">
+<div class="container-fluid mt-4">
     <!-- Titre de la page -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1"><i class="bi bi-bell me-2"></i>Mes notifications</h2>
+            <h2><i class="bi bi-bell me-2"></i>Mes notifications</h2>
             <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
+                <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/tutor/dashboard.php">Tableau de bord</a></li>
                     <li class="breadcrumb-item active">Notifications</li>
                 </ol>
@@ -277,10 +277,6 @@ ob_start();
 <script>
 // Fonction pour marquer une notification comme lue
 function markNotificationAsRead(id) {
-    // Créer un formulaire pour envoyer la requête
-    const form = new FormData();
-    form.append('id', id);
-    
     // Envoyer la requête
     fetch('/tutoring/api/notifications/direct-mark-read.php?id=' + id, {
         method: 'GET'
@@ -345,8 +341,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <?php
-$content = ob_get_clean();
-
-// Inclure le template
-include __DIR__ . '/../../templates/layouts/tutor.php';
+// Inclure le pied de page
+include_once __DIR__ . '/../common/footer.php';
 ?>

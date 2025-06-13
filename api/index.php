@@ -132,6 +132,18 @@ $resourceMap = [
         'index' => __DIR__ . '/notifications/index.php',
         'unread' => __DIR__ . '/notifications/unread.php',
         'mark-read' => __DIR__ . '/notifications/mark-read.php'
+    ],
+    'dashboard' => [
+        'stats' => __DIR__ . '/dashboard/stats.php',
+        'activity' => __DIR__ . '/dashboard/activity.php',
+        'charts' => __DIR__ . '/dashboard/charts.php',
+        'assignment-status' => __DIR__ . '/dashboard/assignment-status.php',
+        'internship-status' => __DIR__ . '/dashboard/internship-status.php',
+        'assignments-by-department' => __DIR__ . '/dashboard/assignments-by-department.php',
+        'tutor-workload' => __DIR__ . '/dashboard/tutor-workload.php',
+        'system-status' => __DIR__ . '/dashboard/system-status.php',
+        'system-metrics' => __DIR__ . '/dashboard/system-metrics.php',
+        'tutor-dashboard' => __DIR__ . '/dashboard/tutor-dashboard.php'
     ]
 ];
 
@@ -226,31 +238,36 @@ $publicRoutes = [
 $currentRoute = $resource . '/' . $action;
 if (!in_array($currentRoute, $publicRoutes)) {
     // Vérifier si le token JWT est présent et valide
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $authHeader = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : 
+                (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) ? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] : '');
+                
     if (!$authHeader) {
-        sendError('Non autorisé - Token manquant', 401);
+        // En mode développement, accepter l'authentification par session
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_role'])) {
+            sendError('Non autorisé - Token manquant', 401);
+        }
+    } else {
+        // Extraire le token Bearer
+        $token = JwtUtils::extractBearerToken($authHeader);
+        if (!$token) {
+            sendError('Non autorisé - Format de token invalide', 401);
+        }
+        
+        // Valider le token
+        $tokenData = JwtUtils::validateToken($token);
+        if (!$tokenData) {
+            sendError('Non autorisé - Token invalide ou expiré', 401);
+        }
+        
+        // Vérifier que c'est un token d'accès
+        if (isset($tokenData['type']) && $tokenData['type'] !== 'access') {
+            sendError('Non autorisé - Type de token invalide', 401);
+        }
+        
+        // Mettre les données utilisateur dans la requête pour un accès facile
+        $_SESSION['user_id'] = $tokenData['sub'];
+        $_SESSION['user_role'] = $tokenData['role'];
     }
-    
-    // Extraire le token Bearer
-    $token = JwtUtils::extractBearerToken($authHeader);
-    if (!$token) {
-        sendError('Non autorisé - Format de token invalide', 401);
-    }
-    
-    // Valider le token
-    $tokenData = JwtUtils::validateToken($token);
-    if (!$tokenData) {
-        sendError('Non autorisé - Token invalide ou expiré', 401);
-    }
-    
-    // Vérifier que c'est un token d'accès
-    if (isset($tokenData['type']) && $tokenData['type'] !== 'access') {
-        sendError('Non autorisé - Type de token invalide', 401);
-    }
-    
-    // Mettre les données utilisateur dans la requête pour un accès facile
-    $_SESSION['user_id'] = $tokenData['sub'];
-    $_SESSION['user_role'] = $tokenData['role'];
 }
 
 // Inclure le fichier du contrôleur et exécuter l'action

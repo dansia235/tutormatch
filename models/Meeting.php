@@ -213,31 +213,80 @@ class Meeting {
      * Crée une nouvelle réunion
      * @param array $data Données de la réunion
      * @return int|false ID de la réunion créée, sinon false
+     * @throws Exception Si des données requises sont manquantes ou invalides
      */
     public function create($data) {
-        $query = "INSERT INTO meetings (title, description, date, start_time, end_time, location, type, status, meeting_url, assignment_id, created_by, created_at) 
-                  VALUES (:title, :description, :date, :start_time, :end_time, :location, :type, :status, :meeting_url, :assignment_id, :created_by, :created_at)";
-                  
-        $stmt = $this->db->prepare($query);
-        
-        $stmt->bindParam(':title', $data['title']);
-        $stmt->bindParam(':description', $data['description']);
-        $stmt->bindParam(':date', $data['date']);
-        $stmt->bindParam(':start_time', $data['start_time']);
-        $stmt->bindParam(':end_time', $data['end_time']);
-        $stmt->bindParam(':location', $data['location']);
-        $stmt->bindParam(':type', $data['type']);
-        $stmt->bindParam(':status', $data['status']);
-        $stmt->bindParam(':meeting_url', $data['meeting_url']);
-        $stmt->bindParam(':assignment_id', $data['assignment_id']);
-        $stmt->bindParam(':created_by', $data['created_by']);
-        $stmt->bindParam(':created_at', $data['created_at']);
-        
-        if ($stmt->execute()) {
-            return $this->db->lastInsertId();
+        try {
+            // Vérifier les champs obligatoires
+            if (empty($data['title'])) {
+                throw new Exception("Le titre de la réunion est requis");
+            }
+            
+            // Gérer la date et l'heure
+            if (isset($data['meeting_date']) && !isset($data['date_time'])) {
+                // Convert meeting_date and meeting_time to date_time
+                if (isset($data['meeting_time'])) {
+                    $data['date_time'] = $data['meeting_date'] . ' ' . $data['meeting_time'];
+                } else {
+                    $data['date_time'] = $data['meeting_date'];
+                }
+            }
+            
+            // Vérifier que date_time est défini
+            if (empty($data['date_time'])) {
+                throw new Exception("La date et l'heure de la réunion sont requises");
+            }
+            
+            // Map meeting_type to a field in description if needed
+            $description = $data['description'] ?? '';
+            if (isset($data['meeting_type']) && !empty($data['meeting_type'])) {
+                $description = 'Type: ' . $data['meeting_type'] . "\n\n" . $description;
+            }
+            
+            // Map meeting_url or meeting_link
+            $meetingLink = $data['meeting_link'] ?? $data['meeting_url'] ?? null;
+            
+            // Déterminer l'ID de l'organisateur
+            $organizerId = null;
+            if (isset($data['organizer_id']) && !empty($data['organizer_id'])) {
+                $organizerId = $data['organizer_id'];
+            } elseif (isset($data['created_by']) && !empty($data['created_by'])) {
+                $organizerId = $data['created_by'];
+            } else {
+                throw new Exception("L'ID de l'organisateur est requis");
+            }
+            
+            // Autres variables
+            $assignmentId = $data['assignment_id'] ?? null;
+            $createdAt = $data['created_at'] ?? date('Y-m-d H:i:s');
+            $duration = $data['duration'] ?? 60; // Default to 60 minutes if not specified
+            $location = $data['location'] ?? 'Non spécifié';
+            $status = $data['status'] ?? 'scheduled';
+            
+            $query = "INSERT INTO meetings (title, description, date_time, duration, location, meeting_link, organizer_id, status, assignment_id, created_at) 
+                      VALUES (:title, :description, :date_time, :duration, :location, :meeting_link, :organizer_id, :status, :assignment_id, :created_at)";
+                      
+            $stmt = $this->db->prepare($query);
+            
+            $stmt->bindParam(':title', $data['title']);
+            $stmt->bindParam(':description', $description);
+            $stmt->bindParam(':date_time', $data['date_time']);
+            $stmt->bindParam(':duration', $duration);
+            $stmt->bindParam(':location', $location);
+            $stmt->bindParam(':meeting_link', $meetingLink);
+            $stmt->bindParam(':organizer_id', $organizerId);
+            $stmt->bindParam(':status', $status);
+            $stmt->bindParam(':assignment_id', $assignmentId);
+            $stmt->bindParam(':created_at', $createdAt);
+            
+            if ($stmt->execute()) {
+                return $this->db->lastInsertId();
+            }
+            
+            return false;
+        } catch (PDOException $e) {
+            throw new Exception("Erreur lors de la création de la réunion: " . $e->getMessage());
         }
-        
-        return false;
     }
 
     /**

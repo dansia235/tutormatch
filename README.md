@@ -166,6 +166,7 @@ php test_companies.php
 
 ## 📚 Documentation
 
+- [Documentation complète du projet](PROJECT_DOCUMENTATION.md)
 - [Architecture détaillée](architecture_documentation.md)
 - [Guide d'installation](docs/README_INSTALLATION.md)
 - [Documentation de l'API](docs/API.md)

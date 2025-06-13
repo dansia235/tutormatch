@@ -84,13 +84,45 @@ $dateRangeFilter = $_GET['date_range'] ?? 'all';
 // Filtrer les réunions selon les critères
 $filteredMeetings = [];
 foreach ($allMeetings as $meeting) {
-    $matchesStudent = $studentFilter === 'all' || $meeting['student_id'] == $studentFilter;
+    // Déterminer l'ID de l'étudiant pour le filtrage
+    $meetingStudentId = null;
+    if (isset($meeting['student_id'])) {
+        $meetingStudentId = $meeting['student_id'];
+    } elseif (isset($meeting['assignment_id'])) {
+        // Rechercher l'étudiant par l'ID d'affectation
+        foreach ($assignments as $a) {
+            if (isset($a['id']) && $a['id'] == $meeting['assignment_id']) {
+                $meetingStudentId = $a['student_id'];
+                break;
+            }
+        }
+    }
+    
+    $matchesStudent = $studentFilter === 'all' || ($meetingStudentId && $meetingStudentId == $studentFilter);
     $matchesStatus = $statusFilter === 'all' || $meeting['status'] === $statusFilter;
+    
+    // Déterminer la date de la réunion pour le filtrage
+    $meetingDate = null;
+    try {
+        if (isset($meeting['meeting_date'])) {
+            $meetingDate = new DateTime($meeting['meeting_date']);
+        } elseif (isset($meeting['date_time'])) {
+            $meetingDate = new DateTime($meeting['date_time']);
+        } elseif (isset($meeting['date'])) {
+            if (isset($meeting['start_time'])) {
+                $meetingDate = new DateTime($meeting['date'] . ' ' . $meeting['start_time']);
+            } else {
+                $meetingDate = new DateTime($meeting['date']);
+            }
+        }
+    } catch (Exception $e) {
+        // Si on ne peut pas créer la date, on considère que ça ne matche pas
+        $meetingDate = null;
+    }
     
     // Logique de filtrage par date
     $matchesDateRange = true;
-    if ($dateRangeFilter !== 'all') {
-        $meetingDate = new DateTime($meeting['meeting_date']);
+    if ($dateRangeFilter !== 'all' && $meetingDate) {
         $today = new DateTime();
         
         switch ($dateRangeFilter) {
@@ -138,7 +170,29 @@ $currentDate = new DateTime();
 
 // Organiser les réunions par catégorie
 foreach ($allMeetings as $meeting) {
-    $meetingDate = new DateTime($meeting['meeting_date']);
+    // Déterminer la date de la réunion
+    $meetingDate = null;
+    try {
+        if (isset($meeting['meeting_date'])) {
+            $meetingDate = new DateTime($meeting['meeting_date']);
+        } elseif (isset($meeting['date_time'])) {
+            $meetingDate = new DateTime($meeting['date_time']);
+        } elseif (isset($meeting['date'])) {
+            if (isset($meeting['start_time'])) {
+                $meetingDate = new DateTime($meeting['date'] . ' ' . $meeting['start_time']);
+            } else {
+                $meetingDate = new DateTime($meeting['date']);
+            }
+        }
+    } catch (Exception $e) {
+        // Si on ne peut pas créer la date, on utilise la date actuelle
+        $meetingDate = clone $currentDate;
+    }
+    
+    // Si pas de date, utiliser la date actuelle
+    if (!$meetingDate) {
+        $meetingDate = clone $currentDate;
+    }
     
     // Vérifier si la réunion est passée ou à venir
     if ($meeting['status'] === 'cancelled') {
@@ -177,29 +231,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_meeting'])) {
     if (!$isAssigned) {
         setFlashMessage('error', 'Cet étudiant n\'est pas assigné à votre tutorat');
     } else {
-        // Récupérer l'internship_id pour cet étudiant
-        $internshipId = null;
-        foreach ($assignments as $assignment) {
-            if ($assignment['student_id'] == $studentId) {
-                $internshipId = $assignment['internship_id'] ?? null;
+        // Récupérer l'assignment pour cet étudiant
+        $assignment = null;
+        foreach ($assignments as $a) {
+            if ($a['student_id'] == $studentId) {
+                $assignment = $a;
                 break;
             }
         }
         
         // Préparer les données de la réunion
         $meetingData = [
-            'student_id' => $studentId,
-            'tutor_id' => $teacher['id'],
-            'internship_id' => $internshipId,
             'title' => $_POST['meeting_title'],
             'description' => $_POST['meeting_description'] ?? null,
-            'meeting_date' => $_POST['meeting_date'] . ' ' . $_POST['meeting_time'] . ':00',
+            'date_time' => $_POST['meeting_date'] . ' ' . $_POST['meeting_time'] . ':00',
             'duration' => $_POST['meeting_duration'],
             'location' => $_POST['meeting_location'],
             'meeting_type' => $_POST['meeting_type'],
-            'mode' => $_POST['meeting_mode'],
-            'status' => 'confirmed', // Le tuteur confirme automatiquement
-            'created_by' => $_SESSION['user_id'],
+            'meeting_link' => $_POST['meeting_mode'] === 'En ligne' ? $_POST['meeting_location'] : null,
+            'assignment_id' => isset($assignment['id']) ? $assignment['id'] : null,
+            'status' => 'scheduled', // Statut par défaut
+            'organizer_id' => $_SESSION['user_id'],
             'created_at' => date('Y-m-d H:i:s')
         ];
         
@@ -449,20 +501,81 @@ include_once __DIR__ . '/../common/header.php';
                                 <?php 
                                 // Trier les réunions par date (les plus récentes d'abord)
                                 usort($filteredMeetings, function($a, $b) {
-                                    return strtotime($b['meeting_date']) - strtotime($a['meeting_date']);
+                                    // Déterminer la date de chaque réunion en fonction des clés disponibles
+                                    $dateA = null;
+                                    if (isset($a['meeting_date'])) {
+                                        $dateA = $a['meeting_date'];
+                                    } elseif (isset($a['date_time'])) {
+                                        $dateA = $a['date_time'];
+                                    } elseif (isset($a['date'])) {
+                                        $dateA = $a['date'] . (isset($a['start_time']) ? ' ' . $a['start_time'] : '');
+                                    } else {
+                                        return 0; // Si pas de date, considérer égal
+                                    }
+                                    
+                                    $dateB = null;
+                                    if (isset($b['meeting_date'])) {
+                                        $dateB = $b['meeting_date'];
+                                    } elseif (isset($b['date_time'])) {
+                                        $dateB = $b['date_time'];
+                                    } elseif (isset($b['date'])) {
+                                        $dateB = $b['date'] . (isset($b['start_time']) ? ' ' . $b['start_time'] : '');
+                                    } else {
+                                        return 0; // Si pas de date, considérer égal
+                                    }
+                                    
+                                    return strtotime($dateB) - strtotime($dateA);
                                 });
                                 
                                 foreach ($filteredMeetings as $meeting): 
-                                    $meetingDate = new DateTime($meeting['meeting_date']);
+                                    // Déterminer la date de la réunion
+                                    if (isset($meeting['meeting_date'])) {
+                                        $meetingDate = new DateTime($meeting['meeting_date']);
+                                    } elseif (isset($meeting['date_time'])) {
+                                        $meetingDate = new DateTime($meeting['date_time']);
+                                    } elseif (isset($meeting['date'])) {
+                                        // Si on a date et start_time séparés
+                                        if (isset($meeting['start_time'])) {
+                                            $meetingDate = new DateTime($meeting['date'] . ' ' . $meeting['start_time']);
+                                        } else {
+                                            $meetingDate = new DateTime($meeting['date']);
+                                        }
+                                    } else {
+                                        // Fallback à la date actuelle si aucune date n'est disponible
+                                        $meetingDate = new DateTime();
+                                    }
+                                    
+                                    // Déterminer la durée et calculer l'heure de fin
+                                    $duration = $meeting['duration'] ?? 60; // 60 minutes par défaut
                                     $endDate = clone $meetingDate;
-                                    $endDate->modify('+' . $meeting['duration'] . ' minutes');
+                                    $endDate->modify("+{$duration} minutes");
                                     
                                     // Récupérer les informations de l'étudiant
                                     $studentName = 'Étudiant inconnu';
-                                    foreach ($assignments as $assignment) {
-                                        if ($assignment['student_id'] == $meeting['student_id']) {
-                                            $studentName = $assignment['student_first_name'] . ' ' . $assignment['student_last_name'];
-                                            break;
+                                    
+                                    // Déterminer l'ID de l'étudiant à partir des données disponibles
+                                    $meetingStudentId = null;
+                                    
+                                    // Essayer différentes sources pour trouver l'ID de l'étudiant
+                                    if (isset($meeting['student_id'])) {
+                                        $meetingStudentId = $meeting['student_id'];
+                                    } elseif (isset($meeting['assignment_id'])) {
+                                        // Rechercher l'étudiant par l'ID d'affectation
+                                        foreach ($assignments as $a) {
+                                            if (isset($a['id']) && $a['id'] == $meeting['assignment_id']) {
+                                                $meetingStudentId = $a['student_id'];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Si on a trouvé un ID d'étudiant, rechercher son nom
+                                    if ($meetingStudentId) {
+                                        foreach ($assignments as $assignment) {
+                                            if ($assignment['student_id'] == $meetingStudentId) {
+                                                $studentName = $assignment['student_first_name'] . ' ' . $assignment['student_last_name'];
+                                                break;
+                                            }
                                         }
                                     }
                                     
