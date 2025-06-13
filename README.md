@@ -195,9 +195,11 @@ php test_companies.php
 
 ## 👥 Statut du projet
 
-Ce système a été développé dans le cadre d'un projet académique. Il s'agit d'un environnement d'apprentissage et de démonstration conçu pour illustrer les principes de développement d'applications web et d'algorithmes d'affectation.
+Ce système a été développé dans le cadre d'un projet académique universitaire. Il s'agit d'un environnement d'apprentissage et de démonstration conçu pour illustrer les principes de développement d'applications web et d'algorithmes d'affectation.
 
-**Note importante** : Ce projet n'est pas destiné à recevoir des contributions externes. Les fichiers [CONTRIBUTING.md](CONTRIBUTING.md) et [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) sont inclus à titre éducatif pour démontrer les bonnes pratiques de gestion de projet.
+**⚠️ Note importante** : Ce projet est actuellement fermé aux contributions externes car il fait partie d'une évaluation académique en cours. Nous apprécions votre intérêt, mais nous ne pouvons pas accepter de pull requests ou de modifications externes pour le moment.
+
+Les fichiers [CONTRIBUTING.md](CONTRIBUTING.md) et [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) sont inclus à titre éducatif pour démontrer les bonnes pratiques de gestion de projet et pourront être utilisés ultérieurement si le projet s'ouvre aux contributions.
 
 ## 📜 Licence
 

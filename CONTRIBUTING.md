@@ -1,8 +1,25 @@
 # Guide de contribution à TutorMatch
 
+## ⚠️ AVIS IMPORTANT : CONTRIBUTIONS TEMPORAIREMENT SUSPENDUES
+
+**Ce projet est actuellement un travail académique universitaire en cours d'évaluation.**
+
+Dans cette phase du développement, nous ne pouvons pas accepter de contributions externes. Ce choix est nécessaire pour :
+- Assurer l'évaluation équitable du travail des étudiants impliqués
+- Maintenir l'intégrité du projet pendant son évaluation académique
+- Respecter les exigences pédagogiques de notre établissement
+
+Nous vous remercions pour votre compréhension et votre intérêt pour ce projet. Si vous avez identifié des problèmes ou avez des suggestions, vous pouvez toujours créer une issue pour documentation, mais veuillez noter qu'aucune pull request ne sera fusionnée pendant cette période.
+
+Ce document reste à titre informatif pour illustrer les bonnes pratiques de gestion de projet et pourrait être activé ultérieurement si le projet s'ouvre aux contributions.
+
+---
+
+## Guide de contribution (pour référence future)
+
 Merci de considérer une contribution au projet TutorMatch ! Ce document présente les lignes directrices pour contribuer au projet.
 
-## Comment contribuer
+## Comment contribuer (suspendu temporairement)
 
 ### Signaler des bugs
 
