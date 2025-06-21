@@ -5,34 +5,66 @@
  * Méthode: POST
  */
 
+require_once __DIR__ . '/../../includes/init.php';
 require_once __DIR__ . '/../utils.php';
 
 // Vérifier que l'utilisateur est connecté
-requireApiAuth();
+if (!isset($_SESSION['user_id'])) {
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Non autorisé - Utilisateur non connecté'
+    ], 401);
+    exit;
+}
 
 // Vérifier que la méthode est POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    sendJsonError('Méthode non autorisée', 405);
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Méthode non autorisée'
+    ], 405);
+    exit;
 }
 
 // Vérifier que l'utilisateur est un étudiant
 if ($_SESSION['user_role'] !== 'student') {
-    sendJsonError('Accès non autorisé', 403);
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Accès non autorisé'
+    ], 403);
+    exit;
 }
 
 try {
+    // Journaliser les données reçues
+    error_log("update-preference-order.php - REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+    error_log("update-preference-order.php - POST data: " . json_encode($_POST));
+    
     // Récupérer les données de la requête
     $action = $_POST['action'] ?? '';
     $internshipId = isset($_POST['internship_id']) ? (int)$_POST['internship_id'] : 0;
     $currentOrder = isset($_POST['current_order']) ? (int)$_POST['current_order'] : 0;
+    $fromOrder = isset($_POST['from_order']) ? (int)$_POST['from_order'] : 0;
+    $toOrder = isset($_POST['to_order']) ? (int)$_POST['to_order'] : 0;
     
-    // Si nous utilisons l'ancienne méthode (corps JSON)
-    if (empty($action) || empty($internshipId)) {
+    error_log("update-preference-order.php - Parsed values: action=$action, internshipId=$internshipId, currentOrder=$currentOrder, fromOrder=$fromOrder, toOrder=$toOrder");
+    
+    // Support pour le drag and drop qui utilise fromOrder et toOrder
+    if (!empty($fromOrder) && !empty($toOrder) && !empty($internshipId)) {
+        // Mode drag and drop
+        $action = 'drag_drop';
+    }
+    // Si nous utilisons l'ancienne méthode (corps JSON) et qu'on n'a pas de mode drag and drop
+    else if ((empty($action) || empty($internshipId)) && empty($fromOrder) && empty($toOrder)) {
         // Récupérer les données du corps de la requête
         $requestData = json_decode(file_get_contents('php://input'), true);
         
         if (!$requestData || !isset($requestData['preference_order']) || !is_array($requestData['preference_order'])) {
-            sendJsonError('Données d\'ordre de préférence requises', 400);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Données d\'ordre de préférence requises'
+            ], 400);
+            exit;
         }
         
         $preferenceOrder = $requestData['preference_order'];
@@ -42,7 +74,11 @@ try {
         $student = $studentModel->getByUserId($_SESSION['user_id']);
         
         if (!$student) {
-            sendJsonError('Profil étudiant non trouvé', 404);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Profil étudiant non trouvé'
+            ], 404);
+            exit;
         }
         
         // Début de la transaction
@@ -71,7 +107,11 @@ try {
                 ]);
             } else {
                 $db->rollBack();
-                sendJsonError('Erreur lors de la mise à jour des préférences', 500);
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'Erreur lors de la mise à jour des préférences'
+                ], 500);
+                exit;
             }
         } catch (Exception $e) {
             $db->rollBack();
@@ -80,9 +120,13 @@ try {
         return;
     }
     
-    // Vérifier les paramètres requis pour la nouvelle méthode
-    if (empty($action) || empty($internshipId) || empty($currentOrder)) {
-        sendJsonError('Paramètres manquants', 400);
+    // Vérifier les paramètres requis pour les modes 'move_up' et 'move_down'
+    if (($action === 'move_up' || $action === 'move_down') && (empty($internshipId) || empty($currentOrder))) {
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Paramètres manquants pour déplacer la préférence'
+        ], 400);
+        exit;
     }
     
     // Récupérer l'étudiant connecté
@@ -90,30 +134,148 @@ try {
     $student = $studentModel->getByUserId($_SESSION['user_id']);
     
     if (!$student) {
-        sendJsonError('Profil étudiant non trouvé', 404);
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Profil étudiant non trouvé'
+        ], 404);
+        exit;
     }
     
     // Récupérer les préférences actuelles
     $preferences = $studentModel->getPreferences($student['id']);
     
-    // Vérifier que la préférence existe
-    $preferenceIndex = -1;
-    foreach ($preferences as $index => $pref) {
-        if ($pref['internship_id'] == $internshipId && $pref['preference_order'] == $currentOrder) {
-            $preferenceIndex = $index;
-            break;
+    // Pour les modes move_up et move_down, vérifier que la préférence existe avec l'ordre actuel
+    if ($action === 'move_up' || $action === 'move_down') {
+        $preferenceIndex = -1;
+        foreach ($preferences as $index => $pref) {
+            if ($pref['internship_id'] == $internshipId && $pref['preference_order'] == $currentOrder) {
+                $preferenceIndex = $index;
+                break;
+            }
         }
-    }
-    
-    if ($preferenceIndex === -1) {
-        sendJsonError('Préférence non trouvée', 404);
+        
+        if ($preferenceIndex === -1) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Préférence non trouvée pour le déplacement'
+            ], 404);
+            exit;
+        }
     }
     
     // Déterminer le nouvel ordre
     $newOrder = $currentOrder;
     $success = false;
     
-    if ($action === 'move_up' && $currentOrder > 1) {
+    if ($action === 'drag_drop') {
+        error_log("Drag and drop mode: internship_id=$internshipId, from=$fromOrder, to=$toOrder");
+
+        // Vérifier que l'ordre de départ et d'arrivée sont valides
+        if ($fromOrder <= 0 || $toOrder <= 0) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Ordres de préférence invalides'
+            ], 400);
+            exit;
+        }
+
+        // Vérifier que la préférence à déplacer existe (on vérifie juste l'ID, pas l'ordre)
+        $preferenceToMove = null;
+        $preferenceToDropOn = null;
+        
+        // Journaliser toutes les préférences pour le débogage
+        error_log("update-preference-order.php - All preferences: " . json_encode($preferences));
+        
+        foreach ($preferences as $pref) {
+            // Trouver la préférence par ID
+            if ($pref['internship_id'] == $internshipId) {
+                $preferenceToMove = $pref;
+                error_log("update-preference-order.php - Found preference to move: " . json_encode($pref));
+            }
+            
+            // Trouver la préférence sur laquelle on dépose
+            if ($pref['preference_order'] == $toOrder) {
+                $preferenceToDropOn = $pref;
+                error_log("update-preference-order.php - Found preference to drop on: " . json_encode($pref));
+            }
+        }
+        
+        // Vérifier qu'on a trouvé la préférence à déplacer
+        if (!$preferenceToMove) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Préférence à déplacer non trouvée (ID: ' . $internshipId . ')'
+            ], 404);
+            exit;
+        }
+        
+        // Remplacer l'ordre de départ par l'ordre réel de la préférence
+        $fromOrder = $preferenceToMove['preference_order'];
+        error_log("update-preference-order.php - Using actual fromOrder: $fromOrder");
+        
+        // Vérifier qu'on a trouvé une position de destination valide
+        if (!$preferenceToDropOn && $toOrder > 0 && $toOrder <= count($preferences)) {
+            error_log("update-preference-order.php - No preference found with order $toOrder, but order is valid");
+        } else if (!$preferenceToDropOn) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Position de destination invalide (Ordre: ' . $toOrder . ')'
+            ], 400);
+            exit;
+        }
+
+        try {
+            $db->beginTransaction();
+            
+            if ($fromOrder < $toOrder) {
+                // Déplacer vers le bas
+                // Décaler les préférences entre fromOrder+1 et toOrder
+                $stmt = $db->prepare("UPDATE student_preferences 
+                                     SET preference_order = preference_order - 1 
+                                     WHERE student_id = :student_id 
+                                     AND preference_order > :from_order 
+                                     AND preference_order <= :to_order");
+                $stmt->bindParam(':student_id', $student['id']);
+                $stmt->bindParam(':from_order', $fromOrder);
+                $stmt->bindParam(':to_order', $toOrder);
+                $stmt->execute();
+            } else {
+                // Déplacer vers le haut
+                // Décaler les préférences entre toOrder et fromOrder-1
+                $stmt = $db->prepare("UPDATE student_preferences 
+                                     SET preference_order = preference_order + 1 
+                                     WHERE student_id = :student_id 
+                                     AND preference_order >= :to_order 
+                                     AND preference_order < :from_order");
+                $stmt->bindParam(':student_id', $student['id']);
+                $stmt->bindParam(':to_order', $toOrder);
+                $stmt->bindParam(':from_order', $fromOrder);
+                $stmt->execute();
+            }
+            
+            // Mettre à jour l'ordre de la préférence déplacée
+            $stmt = $db->prepare("UPDATE student_preferences 
+                                 SET preference_order = :new_order 
+                                 WHERE student_id = :student_id 
+                                 AND internship_id = :internship_id");
+            $stmt->bindParam(':student_id', $student['id']);
+            $stmt->bindParam(':internship_id', $internshipId);
+            $stmt->bindParam(':new_order', $toOrder);
+            $stmt->execute();
+            
+            $db->commit();
+            $success = true;
+            
+            error_log("Drag and drop operation successful");
+        } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Error during drag and drop: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    elseif ($action === 'move_up' && $currentOrder > 1) {
         // Trouver la préférence avec l'ordre précédent
         $previousPreference = null;
         foreach ($preferences as $pref) {
@@ -202,7 +364,11 @@ try {
             'message' => 'Ordre de préférence mis à jour avec succès'
         ]);
     } else {
-        sendJsonError('Impossible de mettre à jour l\'ordre de préférence', 400);
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Impossible de mettre à jour l\'ordre de préférence'
+        ], 400);
+        exit;
     }
     
 } catch (Exception $e) {
@@ -211,6 +377,9 @@ try {
     }
     
     error_log("Erreur lors de la mise à jour de l'ordre de préférence: " . $e->getMessage());
-    sendJsonError('Erreur lors de la mise à jour des préférences: ' . $e->getMessage(), 500);
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Erreur lors de la mise à jour des préférences: ' . $e->getMessage()
+    ], 500);
 }
 ?>

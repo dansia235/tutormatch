@@ -13,8 +13,108 @@ require_once __DIR__ . '/../../includes/init.php';
 // Vérifier que l'utilisateur est connecté et a le rôle étudiant
 requireRole('student');
 
-// Récupérer l'ID de l'étudiant
-$student_id = $_SESSION['user']['id'] ?? null;
+// CSS personnalisé pour le drag and drop
+$customCSS = "
+<style>
+.preference-item {
+    transition: all 0.2s ease;
+    cursor: grab;
+}
+
+.preference-item:active {
+    cursor: grabbing;
+}
+
+.preference-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.preference-item.drop-above {
+    border-top: 2px dashed var(--bs-primary) !important;
+    padding-top: calc(1rem - 2px);
+}
+
+.preference-item.drop-below {
+    border-bottom: 2px dashed var(--bs-primary) !important;
+    padding-bottom: calc(1rem - 2px);
+}
+
+.drag-handle {
+    font-size: 1.2rem;
+    cursor: grab;
+}
+
+.drag-handle:hover {
+    color: var(--bs-primary);
+}
+
+.highlight-drop {
+    animation: pulse-highlight 1s;
+}
+
+@keyframes pulse-highlight {
+    0% { background-color: rgba(var(--bs-primary-rgb), 0.1); }
+    50% { background-color: rgba(var(--bs-primary-rgb), 0.2); }
+    100% { background-color: transparent; }
+}
+</style>
+";
+
+// Récupérer l'ID de l'étudiant - vérifier les deux formats possibles
+$user_id = $_SESSION['user_id'] ?? ($_SESSION['user']['id'] ?? null);
+error_log("User ID (from session): " . ($user_id ?: 'null'));
+
+// Charger les préférences directement depuis la base de données
+$currentStudentPreferences = [];
+$student_id = null;
+
+try {
+    // S'assurer que l'identifiant de l'utilisateur est disponible
+    error_log("Loading preferences with user_id: " . ($user_id ?: 'null'));
+    
+    if ($user_id) {
+        $studentModel = new Student($db);
+        $student = $studentModel->getByUserId($user_id);
+        
+        if ($student) {
+            error_log("Found student with ID: " . $student['id']);
+            $preferences = $studentModel->getPreferences($student['id']);
+            error_log("Found " . count($preferences) . " preferences for student ID " . $student['id']);
+            
+            // Sauvegarder l'ID de l'étudiant pour l'utiliser dans le HTML
+            $student_id = $student['id'];
+            
+            // Formatter les préférences pour le JavaScript
+            foreach ($preferences as $pref) {
+                $currentStudentPreferences[] = [
+                    'internship_id' => $pref['internship_id'],
+                    'title' => $pref['title'] ?? 'Stage sans titre',
+                    'company_name' => $pref['company_name'] ?? 'Entreprise non spécifiée',
+                    'preference_order' => $pref['preference_order'] ?? 1,
+                    'rank' => $pref['preference_order'] ?? 1,
+                    'reason' => $pref['reason'] ?? null
+                ];
+            }
+            
+            error_log("Formatted " . count($currentStudentPreferences) . " preferences for JavaScript. Student ID: " . $student_id);
+        } else {
+            error_log("Student not found for user_id: " . $user_id);
+        }
+    } else {
+        error_log("No user_id available in session");
+    }
+} catch (Exception $e) {
+    // Log l'erreur pour le débogage
+    error_log("Error loading preferences in page: " . $e->getMessage());
+}
+
+// Statistiques pour initialiser l'interface
+$internshipModel = new Internship($db);
+$availableInternships = count($internshipModel->getAvailable());
+$preferencesCount = count($currentStudentPreferences);
 
 // Traiter le paramètre 'add' pour ajouter un stage aux préférences
 if (isset($_GET['add']) && !empty($_GET['add'])) {
@@ -85,6 +185,9 @@ if (isset($_GET['add']) && !empty($_GET['add'])) {
 
 // Inclure l'en-tête
 include_once __DIR__ . '/../common/header.php';
+
+// Ajouter le CSS personnalisé pour le drag and drop
+echo $customCSS;
 ?>
 
 <div class="container-fluid">
@@ -102,8 +205,38 @@ include_once __DIR__ . '/../common/header.php';
     
     <!-- Main content -->
     <div class="row">
+        <!-- Alert for new search functionality -->
+        <div class="col-12 mb-3">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                Utilisez notre <a href="/tutoring/views/student/search-internships.php" class="alert-link">interface de recherche améliorée</a> pour trouver et ajouter des stages à vos préférences.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+        
         <!-- Left Column with Preferences Interface -->
         <div class="col-lg-8">
+            <!-- Rechercher un stage -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Rechercher un stage</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-3">
+                        <i class="bi bi-search fs-3 text-muted mb-3"></i>
+                        <h6>Utilisez notre interface de recherche améliorée</h6>
+                        <p class="text-muted small mb-3">Trouvez facilement des stages correspondant à vos critères et ajoutez-les à vos préférences.</p>
+                        <a href="/tutoring/views/student/search-internships.php" class="btn btn-primary">
+                            <i class="bi bi-search me-2"></i>Rechercher des stages
+                        </a>
+                    </div>
+                    
+                    <!-- Hidden element for Stimulus compatibility -->
+                    <div data-student-preferences-target="searchResults" class="border rounded overflow-hidden d-none"></div>
+                    <input type="hidden" data-student-preferences-target="internshipSearch">
+                </div>
+            </div>
+            
             <!-- Preferences Interface avec Stimulus -->
             <div class="card border-0 shadow-sm mb-4 fade-in" 
                  data-controller="student-preferences" 
@@ -119,13 +252,8 @@ include_once __DIR__ . '/../common/header.php';
                 </div>
                 
                 <div class="card-body">
-                    <!-- Loading Indicator - Masqué car nous affichons directement les préférences -->
-                    <div data-student-preferences-target="loadingIndicator" class="text-center py-3 hidden">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Chargement...</span>
-                        </div>
-                        <p class="mt-2 text-muted">Chargement de vos préférences...</p>
-                    </div>
+                    
+                    <!-- Loading Indicator - Complètement supprimé -->
                     
                     <!-- Empty State -->
                     <?php if (empty($currentStudentPreferences)): ?>
@@ -133,16 +261,26 @@ include_once __DIR__ . '/../common/header.php';
                         <div class="p-4 bg-light rounded">
                             <i class="bi bi-list-stars fs-1 text-muted"></i>
                             <h5 class="mt-3">Aucune préférence de stage</h5>
-                            <p class="text-muted">Vous n'avez pas encore sélectionné de stages préférés. Utilisez la recherche ci-dessous pour ajouter des stages à vos préférences.</p>
+                            <p class="text-muted">Vous n'avez pas encore sélectionné de stages préférés. Utilisez la recherche ci-dessus pour ajouter des stages à vos préférences.</p>
                         </div>
                     </div>
                     <?php else: ?>
                     <!-- Préférences affichées directement par PHP, inspiré de internship.php -->
-                    <div class="mb-4">
+                    <div class="mb-4" id="preferences-container">
                         <?php foreach ($currentStudentPreferences as $index => $preference): ?>
-                        <div class="d-flex align-items-center p-3 border rounded mb-2 bg-white position-relative preference-item" data-preference-id="<?= $preference['internship_id'] ?>">
+                        <div class="d-flex align-items-center p-3 border rounded mb-2 bg-white position-relative preference-item" 
+                             data-preference-id="<?= $preference['internship_id'] ?>"
+                             data-preference-order="<?= $preference['preference_order'] ?>"
+                             draggable="true"
+                             ondragstart="dragStart(event)"
+                             ondragover="dragOver(event)"
+                             ondrop="drop(event)"
+                             ondragend="dragEnd(event)">
                             <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle me-3" style="width: 32px; height: 32px;">
                                 <?= $preference['preference_order'] ?>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-center me-3 drag-handle" style="cursor: move; color: #aaa;">
+                                <i class="bi bi-grip-vertical"></i>
                             </div>
                             <div class="flex-grow-1">
                                 <h5 class="mb-0"><?= htmlspecialchars($preference['title']) ?></h5>
@@ -190,31 +328,7 @@ include_once __DIR__ . '/../common/header.php';
                         Vous avez atteint le nombre maximum de préférences (5). Veuillez supprimer une préférence avant d'en ajouter une nouvelle.
                     </div>
                     
-                    <!-- Internship Search -->
-                    <div class="card mb-3">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">Rechercher un stage</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="Commencez à taper pour voir les stages correspondants..." 
-                                           data-student-preferences-target="internshipSearch" 
-                                           data-action="input->student-preferences#search"
-                                           autocomplete="off">
-                                    <button class="btn btn-outline-secondary" type="button">
-                                        <i class="bi bi-search"></i>
-                                    </button>
-                                </div>
-                                <div class="form-text small text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>Exemple: tapez "p" pour voir les stages commençant par "p", puis "pa" pour affiner la recherche.
-                                </div>
-                            </div>
-                            
-                            <!-- Search Results -->
-                            <div data-student-preferences-target="searchResults" class="border rounded overflow-hidden"></div>
-                        </div>
-                    </div>
+                    <!-- La section de recherche a été déplacée en haut de la page -->
                     
                     <?php if (!empty($currentStudentPreferences)): ?>
                     <div class="alert alert-success mb-3">
@@ -278,6 +392,9 @@ include_once __DIR__ . '/../common/header.php';
                     Actions rapides
                 </div>
                 <div class="card-body">
+                    <a href="/tutoring/views/student/search-internships.php" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-search me-2"></i>Rechercher des stages
+                    </a>
                     <a href="/tutoring/views/student/internship.php" class="btn btn-outline-primary w-100 mb-2">
                         <i class="bi bi-briefcase me-2"></i>Voir les stages
                     </a>
@@ -316,51 +433,7 @@ include_once __DIR__ . '/../common/header.php';
 </div>
 
 <?php
-// Charger les préférences directement depuis la base de données comme secours
-$currentStudentPreferences = [];
-
-try {
-    // S'assurer que l'identifiant de l'utilisateur est disponible
-    $user_id = $_SESSION['user_id'] ?? null;
-    error_log("Loading preferences with user_id: " . ($user_id ?: 'null'));
-    
-    if ($user_id) {
-        $studentModel = new Student($db);
-        $student = $studentModel->getByUserId($user_id);
-        
-        if ($student) {
-            error_log("Found student with ID: " . $student['id']);
-            $preferences = $studentModel->getPreferences($student['id']);
-            error_log("Found " . count($preferences) . " preferences for student ID " . $student['id']);
-            
-            // Formatter les préférences pour le JavaScript
-            foreach ($preferences as $pref) {
-                $currentStudentPreferences[] = [
-                    'internship_id' => $pref['internship_id'],
-                    'title' => $pref['title'] ?? 'Stage sans titre',
-                    'company_name' => $pref['company_name'] ?? 'Entreprise non spécifiée',
-                    'preference_order' => $pref['preference_order'] ?? 1,
-                    'rank' => $pref['preference_order'] ?? 1,
-                    'reason' => $pref['reason'] ?? null
-                ];
-            }
-            
-            error_log("Formatted " . count($currentStudentPreferences) . " preferences for JavaScript");
-        } else {
-            error_log("Student not found for user_id: " . $user_id);
-        }
-    } else {
-        error_log("No user_id available in session");
-    }
-} catch (Exception $e) {
-    // Log l'erreur pour le débogage
-    error_log("Error loading preferences in page: " . $e->getMessage());
-}
-
-// Statistiques de secours pour initialiser l'interface
-$internshipModel = new Internship($db);
-$availableInternships = count($internshipModel->getAvailable());
-$preferencesCount = count($currentStudentPreferences);
+// Section déplacée au début du fichier pour assurer que les préférences sont chargées avant l'affichage
 ?>
 
 <script>
@@ -635,34 +708,192 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 
-// Initialiser la recherche automatiquement au chargement
-setTimeout(() => {
-    // Déclencher une recherche vide pour afficher des stages récents
-    const searchInput = document.querySelector('[data-student-preferences-target="internshipSearch"]');
-    if (searchInput) {
-        searchInput.focus();
-        
-        // Ajouter un log pour suivre l'événement
-        console.log("Triggering initial search event");
-        
-        // Simuler un événement de recherche pour charger les stages disponibles
-        const event = new Event('input', { bubbles: true });
-        searchInput.dispatchEvent(event);
-        
-        // Forcer une recherche vide après un court délai si les résultats n'apparaissent pas
-        setTimeout(() => {
-            console.log("Forcing direct controller search call");
-            const preferencesElement = document.querySelector('[data-controller="student-preferences"]');
-            if (preferencesElement) {
-                const controller = window.Stimulus.getControllerForElementAndIdentifier(preferencesElement, 'student-preferences');
-                if (controller && typeof controller.performSearch === 'function') {
-                    console.log("Calling controller.performSearch() directly");
-                    controller.performSearch('');
-                }
-            }
-        }, 1000);
+// La recherche automatique a été désactivée puisque nous utilisons maintenant
+// une page dédiée pour la recherche de stages : search-internships.php
+console.log("Search functionality moved to dedicated page: search-internships.php");
+
+// Variables pour le drag and drop
+let draggedItem = null;
+let originalPosition = null;
+let startIndex = null;
+let endIndex = null;
+
+// Fonctions pour le drag and drop
+function dragStart(event) {
+    // Stocker l'élément qu'on est en train de déplacer
+    draggedItem = event.target;
+    originalPosition = Array.from(draggedItem.parentNode.children).indexOf(draggedItem);
+    startIndex = originalPosition;
+    
+    // Effet visuel pendant le drag
+    setTimeout(() => {
+        draggedItem.classList.add('dragging');
+    }, 0);
+    
+    // Définir les données transférées
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/html', draggedItem.outerHTML);
+}
+
+function dragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    
+    const container = document.getElementById('preferences-container');
+    const items = Array.from(container.querySelectorAll('.preference-item'));
+    
+    // Survoler l'élément sur lequel on va déposer
+    const overItem = event.target.closest('.preference-item');
+    if (!overItem || overItem === draggedItem) return;
+    
+    // Déterminer la position de l'élément survolé
+    const overIndex = items.indexOf(overItem);
+    
+    // Ajouter une classe pour indiquer où l'élément sera déposé
+    items.forEach(item => item.classList.remove('drop-above', 'drop-below'));
+    
+    if (overIndex > originalPosition) {
+        overItem.classList.add('drop-below');
+    } else {
+        overItem.classList.add('drop-above');
     }
-}, 500);
+}
+
+function drop(event) {
+    event.preventDefault();
+    
+    const container = document.getElementById('preferences-container');
+    const items = Array.from(container.querySelectorAll('.preference-item'));
+    
+    // Déterminer l'élément sur lequel on dépose
+    const overItem = event.target.closest('.preference-item');
+    if (!overItem || overItem === draggedItem) return;
+    
+    console.log("Drop event triggered");
+    console.log("Dragged item:", draggedItem);
+    console.log("Dropped over:", overItem);
+    
+    // Trouver la nouvelle position
+    endIndex = items.indexOf(overItem);
+    
+    // Récupérer les données nécessaires pour l'API
+    const internshipId = draggedItem.dataset.preferenceId;
+    const fromOrder = parseInt(draggedItem.dataset.preferenceOrder);
+    const toOrder = parseInt(overItem.dataset.preferenceOrder);
+    
+    console.log(`Drop: internship=${internshipId}, fromOrder=${fromOrder}, toOrder=${toOrder}`);
+    
+    // Débogage des attributs data
+    console.log("Dragged item attributes:", {
+        "data-preference-id": draggedItem.getAttribute("data-preference-id"),
+        "data-preference-order": draggedItem.getAttribute("data-preference-order"),
+        "dataset.preferenceId": draggedItem.dataset.preferenceId,
+        "dataset.preferenceOrder": draggedItem.dataset.preferenceOrder
+    });
+    console.log("Target item attributes:", {
+        "data-preference-id": overItem.getAttribute("data-preference-id"),
+        "data-preference-order": overItem.getAttribute("data-preference-order"),
+        "dataset.preferenceId": overItem.dataset.preferenceId,
+        "dataset.preferenceOrder": overItem.dataset.preferenceOrder
+    });
+    
+    if (isNaN(fromOrder) || isNaN(toOrder) || fromOrder === toOrder) {
+        console.error("Invalid order values or same position");
+        return;
+    }
+    
+    // Appliquer un effet visuel temporaire
+    draggedItem.style.opacity = "0.5";
+    overItem.classList.add('highlight-drop');
+    
+    // Appeler l'API pour mettre à jour l'ordre
+    updatePreferenceOrder(internshipId, fromOrder, toOrder);
+}
+
+function dragEnd(event) {
+    // Réinitialiser le style d'opacité
+    if (draggedItem) {
+        draggedItem.style.opacity = "";
+    }
+    
+    // Enlever les effets visuels
+    event.target.classList.remove('dragging');
+    
+    // Enlever les indicateurs de drop
+    const items = document.querySelectorAll('.preference-item');
+    items.forEach(item => {
+        item.classList.remove('drop-above', 'drop-below', 'highlight-drop');
+    });
+}
+
+// Fonction pour mettre à jour l'ordre des préférences via l'API
+function updatePreferenceOrder(internshipId, fromOrder, toOrder) {
+    console.log(`Updating preference order: internship=${internshipId}, from=${fromOrder}, to=${toOrder}`);
+    
+    // Validation des données côté client
+    if (!internshipId) {
+        console.error("Erreur: ID du stage manquant");
+        showNotification("Erreur: ID du stage manquant", "error");
+        return;
+    }
+    
+    if (isNaN(fromOrder) || fromOrder <= 0) {
+        console.error("Erreur: Ordre de départ invalide:", fromOrder);
+        showNotification("Erreur: Ordre de départ invalide", "error");
+        return;
+    }
+    
+    if (isNaN(toOrder) || toOrder <= 0) {
+        console.error("Erreur: Ordre de destination invalide:", toOrder);
+        showNotification("Erreur: Ordre de destination invalide", "error");
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('internship_id', internshipId);
+    formData.append('from_order', fromOrder);
+    formData.append('to_order', toOrder);
+    
+    // Log formData pour vérifier que les données sont bien présentes
+    console.log("FormData entries:");
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
+    
+    // Afficher un indicateur de chargement
+    showNotification("Mise à jour de l'ordre des préférences...", "info");
+    
+    fetch('/tutoring/api/students/update-preference-order.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        console.log("Response status:", response.status);
+        // Si la réponse n'est pas OK, log le texte brut de la réponse
+        if (!response.ok) {
+            response.text().then(text => {
+                console.error("Raw response:", text);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Response data:", data);
+        if (data.success) {
+            showNotification("Ordre des préférences mis à jour avec succès", "success");
+            // Recharger la page après un court délai
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification(data.message || "Erreur lors de la mise à jour de l'ordre des préférences", "error");
+        }
+    })
+    .catch(error => {
+        console.error("Erreur:", error);
+        showNotification("Erreur lors de la mise à jour de l'ordre des préférences", "error");
+    });
+}
 </script>
 
 <?php
