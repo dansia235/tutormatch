@@ -41,81 +41,143 @@ export default class extends Controller {
     }
     
     try {
-      // Fetch student preferences
-      const studentId = this.studentIdValue || null;
-      console.log("Loading preferences for student ID:", studentId);
-      
-      let response;
-      try {
-        if (studentId) {
-          // Fetch specific student preferences
-          response = await this.api.get(`students/${studentId}/preferences`);
-        } else {
-          // Fetch current student preferences
-          const studentData = await this.api.get('students/show.php');
-          if (studentData && studentData.data) {
-            const currentStudentId = studentData.data.id;
-            // Utiliser le endpoint direct avec fetch pour éviter les problèmes
-            const preferenceResponse = await fetch(`/tutoring/api/students/preferences.php?student_id=${currentStudentId}`);
-            if (!preferenceResponse.ok) {
-              throw new Error(`Error fetching preferences: ${preferenceResponse.status}`);
-            }
-            response = await preferenceResponse.json();
-            console.log("Raw preference response:", response);
-          } else {
-            throw new Error("Impossible de récupérer l'ID de l'étudiant courant");
-          }
-        }
-      } catch (fetchError) {
-        console.error("Fetch error:", fetchError);
-        throw new Error(`Erreur lors de la récupération des préférences: ${fetchError.message}`);
-      }
-      
-      // Check if response is valid
-      if (response && typeof response === 'object') {
-        console.log("Preferences response:", response);
+      // Vérifier si des préférences de secours sont disponibles
+      if (window.fallbackPreferencesData && Array.isArray(window.fallbackPreferencesData) && window.fallbackPreferencesData.length > 0) {
+        console.log("Using fallback preferences data:", window.fallbackPreferencesData);
         
-        // Map to correct format if needed
-        let preferences = [];
-        if (Array.isArray(response.data)) {
-          // Direct data array
-          preferences = response.data;
-        } else if (Array.isArray(response)) {
-          // Response is directly an array
-          preferences = response;
-        }
-        
-        // Normalize preferences data to ensure required fields
-        this.preferences = preferences.map(pref => {
+        // Normaliser les données de secours
+        this.preferences = window.fallbackPreferencesData.map(pref => {
           return {
             internship_id: pref.internship_id,
             title: pref.title || pref.internship_title || "Stage sans titre",
             company: pref.company_name || pref.company || "Entreprise non spécifiée",
-            rank: pref.rank || pref.preference_order || 1
+            rank: pref.rank || pref.preference_order || 1,
+            reason: pref.reason || null
           };
         });
         
-        console.log("Normalized preferences:", this.preferences);
+        console.log("Normalized fallback preferences:", this.preferences);
         this.updatePreferencesList();
-      } else {
-        console.error("Invalid preferences response:", response);
-        throw new Error("Format de réponse invalide pour les préférences");
+        
+        // Même avec les données de secours, essayer de charger depuis l'API
+        this.loadPreferencesFromAPI().catch(err => {
+          console.warn("Failed to load preferences from API after using fallback:", err);
+        });
+        
+        return;
       }
       
+      // Si pas de données de secours, charger depuis l'API
+      await this.loadPreferencesFromAPI();
+      
     } catch (error) {
-      console.error("Error loading preferences:", error);
-      if (this.hasSelectedPreferencesTarget) {
-        this.selectedPreferencesTarget.innerHTML = `
-          <div class="alert alert-danger">
-            <strong>Erreur lors du chargement des préférences:</strong> ${error.message}
-            <p class="small mt-2">Veuillez rafraîchir la page ou contacter le support.</p>
-          </div>
-        `;
+      console.error("Error in loadPreferences:", error);
+      
+      // Essayer d'utiliser les données de secours comme dernier recours
+      if (window.fallbackPreferencesData && Array.isArray(window.fallbackPreferencesData)) {
+        console.log("Using fallback preferences data after API failure");
+        this.preferences = window.fallbackPreferencesData.map(pref => {
+          return {
+            internship_id: pref.internship_id,
+            title: pref.title || "Stage sans titre",
+            company: pref.company_name || "Entreprise non spécifiée",
+            rank: pref.rank || pref.preference_order || 1
+          };
+        });
+        this.updatePreferencesList();
+      } else {
+        // Afficher l'erreur si pas de données de secours
+        if (this.hasSelectedPreferencesTarget) {
+          this.selectedPreferencesTarget.innerHTML = `
+            <div class="alert alert-danger">
+              <strong>Erreur lors du chargement des préférences:</strong> ${error.message}
+              <p class="small mt-2">Veuillez rafraîchir la page ou contacter le support.</p>
+            </div>
+          `;
+        }
       }
     } finally {
+      // Toujours masquer l'indicateur de chargement
       if (this.hasLoadingIndicatorTarget) {
         this.loadingIndicatorTarget.classList.add("hidden");
       }
+    }
+  }
+  
+  async loadPreferencesFromAPI() {
+    console.log("Loading preferences from API");
+    
+    // Fetch student preferences
+    const studentId = this.studentIdValue || null;
+    console.log("Loading preferences for student ID:", studentId);
+    
+    let response;
+    try {
+      if (studentId) {
+        // Fetch specific student preferences
+        console.log("Fetching preferences with student ID:", studentId);
+        response = await this.api.get(`students/${studentId}/preferences`);
+      } else {
+        // Fetch current student preferences
+        console.log("Fetching current student preferences");
+        const studentData = await this.api.get('students/show.php');
+        if (studentData && studentData.data) {
+          const currentStudentId = studentData.data.id;
+          console.log("Resolved current student ID:", currentStudentId);
+          
+          // Utiliser le endpoint direct avec fetch pour éviter les problèmes
+          console.log("Fetching preferences with direct endpoint");
+          const preferenceResponse = await fetch(`/tutoring/api/students/preferences.php?student_id=${currentStudentId}`);
+          if (!preferenceResponse.ok) {
+            throw new Error(`Error fetching preferences: ${preferenceResponse.status}`);
+          }
+          response = await preferenceResponse.json();
+          console.log("Raw preference response:", response);
+        } else {
+          throw new Error("Impossible de récupérer l'ID de l'étudiant courant");
+        }
+      }
+    } catch (fetchError) {
+      console.error("Fetch error:", fetchError);
+      throw new Error(`Erreur lors de la récupération des préférences: ${fetchError.message}`);
+    }
+    
+    // Check if response is valid
+    if (response && typeof response === 'object') {
+      console.log("Preferences response:", response);
+      
+      // Map to correct format if needed
+      let preferences = [];
+      if (Array.isArray(response.data)) {
+        // Direct data array
+        preferences = response.data;
+      } else if (Array.isArray(response)) {
+        // Response is directly an array
+        preferences = response;
+      }
+      
+      // Si la réponse est vide et que nous avons des données de secours, gardons les données de secours
+      if (preferences.length === 0 && this.preferences && this.preferences.length > 0) {
+        console.log("API returned empty preferences, keeping existing preferences");
+        return;
+      }
+      
+      // Normalize preferences data to ensure required fields
+      this.preferences = preferences.map(pref => {
+        return {
+          internship_id: pref.internship_id,
+          title: pref.title || pref.internship_title || "Stage sans titre",
+          company: pref.company_name || pref.company || "Entreprise non spécifiée",
+          rank: pref.rank || pref.preference_order || 1,
+          reason: pref.reason || null
+        };
+      });
+      
+      console.log("Normalized preferences:", this.preferences);
+      this.updatePreferencesList();
+    } else {
+      console.error("Invalid preferences response:", response);
+      throw new Error("Format de réponse invalide pour les préférences");
     }
   }
   
@@ -125,7 +187,7 @@ export default class extends Controller {
     const selectedPreferences = this.selectedPreferencesTarget;
     
     // Debug log
-    console.log("Updating preferences list with", this.preferences.length, "items");
+    console.log("Updating preferences list with", (this.preferences?.length || 0), "items");
     
     // Show empty state if no preferences
     if (!Array.isArray(this.preferences) || this.preferences.length === 0) {
@@ -141,6 +203,28 @@ export default class extends Controller {
     let validPreferences = this.preferences.filter(p => 
       p && typeof p === 'object' && p.internship_id && (p.title || p.internship_title)
     );
+    
+    console.log("Valid preferences count:", validPreferences.length);
+    
+    // Si nous avons des préférences mais qu'aucune n'est valide, essayer de les réparer
+    if (this.preferences.length > 0 && validPreferences.length === 0) {
+      console.log("Trying to repair invalid preferences");
+      validPreferences = this.preferences.map(p => {
+        if (!p) return null;
+        
+        // Créer un nouvel objet pour éviter la modification de l'original
+        const fixed = {
+          internship_id: p.internship_id || p.id || "unknown",
+          title: p.title || p.internship_title || "Stage sans titre",
+          company: p.company_name || p.company || "Entreprise non spécifiée",
+          rank: p.rank || p.preference_order || 1
+        };
+        
+        return fixed;
+      }).filter(p => p !== null);
+      
+      console.log("Repaired preferences:", validPreferences);
+    }
     
     // If no valid preferences, show empty state
     if (validPreferences.length === 0) {
@@ -337,12 +421,13 @@ export default class extends Controller {
       // Enregistrement détaillé pour le débogage
       console.log("Performing search with query:", query);
       
-      // Ajouter un paramètre limit pour les recherches par préfixe
+      // Ajouter un paramètre limit pour les recherches par préfixe et forcer status=available
       const limit = query.length < 3 ? 15 : 20; // Réduire le nombre de résultats pour les recherches courtes
-      console.log("Search URL:", `/tutoring/api/internships/search.php?term=${encodeURIComponent(query)}&limit=${limit}`);
+      const searchUrl = `/tutoring/api/internships/search.php?term=${encodeURIComponent(query)}&limit=${limit}&status=available`;
+      console.log("Search URL:", searchUrl);
       
       // Utilisation directe de fetch pour éviter les problèmes avec l'API client
-      const response = await fetch(`/tutoring/api/internships/search.php?term=${encodeURIComponent(query)}&limit=${limit}`);
+      const response = await fetch(searchUrl);
       console.log("Search response status:", response.status);
       
       if (!response.ok) {
@@ -352,6 +437,7 @@ export default class extends Controller {
       // Récupérer la réponse JSON directement
       const data = await response.json();
       console.log("Search found", data.count, "results");
+      console.log("Search result data:", data);
       
       if (data.success) {
         // Mettre à jour l'URL de la dernière recherche pour référence
@@ -384,7 +470,7 @@ export default class extends Controller {
     console.log("Displaying search results:", internships.length);
     
     // No results
-    if (internships.length === 0) {
+    if (!internships || internships.length === 0) {
       // Personnaliser le message en fonction de la requête
       const query = this.lastSearchQuery || '';
       
@@ -446,29 +532,56 @@ export default class extends Controller {
     // Add each internship to the results
     internships.forEach(internship => {
       try {
-        const isSelected = selectedIds.includes(internship.id.toString());
+        // Vérifier si l'ID du stage existe dans selectedIds
+        const internshipId = internship.id ? internship.id.toString() : '';
+        const isSelected = selectedIds.includes(internshipId);
+        
         const element = document.createElement('div');
         element.className = `p-3 border-bottom ${isSelected ? 'bg-light' : 'hover-bg-light'} cursor-pointer`;
         
-        if (!isSelected) {
+        if (!isSelected && internshipId) {
           element.dataset.action = "click->student-preferences#addPreference";
-          element.dataset.internshipId = internship.id;
-          element.dataset.internshipTitle = internship.title;
-          element.dataset.internshipCompany = internship.company.name;
+          element.dataset.internshipId = internshipId;
+          element.dataset.internshipTitle = internship.title || '';
+          
+          // Vérifier si company est un objet ou une chaîne
+          let companyName = 'Entreprise non spécifiée';
+          if (internship.company) {
+            if (typeof internship.company === 'object' && internship.company.name) {
+              companyName = internship.company.name;
+            } else if (typeof internship.company === 'string') {
+              companyName = internship.company;
+            }
+          } else if (internship.company_name) {
+            companyName = internship.company_name;
+          }
+          
+          element.dataset.internshipCompany = companyName;
         }
         
         // Check for missing properties and provide defaults
         const domain = internship.domain || 'Non spécifié';
         const location = internship.location || 'Non spécifié';
-        const companyName = internship.company?.name || 'Entreprise non spécifiée';
+        
+        // Déterminer le nom de l'entreprise
+        let companyName = 'Entreprise non spécifiée';
+        if (internship.company) {
+          if (typeof internship.company === 'object' && internship.company.name) {
+            companyName = internship.company.name;
+          } else if (typeof internship.company === 'string') {
+            companyName = internship.company;
+          }
+        } else if (internship.company_name) {
+          companyName = internship.company_name;
+        }
         
         // Mise en évidence du terme recherché dans le titre
-        let highlightedTitle = internship.title;
-        if (query && query.length > 0) {
+        let highlightedTitle = internship.title || 'Sans titre';
+        if (query && query.length > 0 && highlightedTitle) {
           // Échapper les caractères spéciaux pour éviter des problèmes avec RegExp
           const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const regex = new RegExp(`^(${escapedQuery})`, 'i');
-          highlightedTitle = internship.title.replace(regex, '<span class="highlight-search">$1</span>');
+          highlightedTitle = highlightedTitle.replace(regex, '<span class="highlight-search">$1</span>');
         }
         
         element.innerHTML = `

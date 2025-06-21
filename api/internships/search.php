@@ -85,6 +85,9 @@ try {
     $totalCount = $internshipModel->countSearch($term, $status, $filters);
     $totalPages = ceil($totalCount / $limit);
     
+    // Log du nombre de résultats trouvés
+    error_log("Search API found " . count($internships) . " internships");
+    
     // Transformer les données pour l'API
     $formattedInternships = [];
     foreach ($internships as $internship) {
@@ -127,9 +130,13 @@ try {
         $formattedInternships[] = $formattedInternship;
     }
     
+    // Log des internships formatés (jusqu'à 3 pour éviter des logs trop longs)
+    $logSample = array_slice($formattedInternships, 0, 3);
+    error_log("Search API formatted internships sample: " . json_encode($logSample));
+    
     // Envoyer la réponse
     header('Content-Type: application/json');
-    echo json_encode([
+    $response = [
         'success' => true,
         'data' => $formattedInternships,
         'results' => $formattedInternships, // Pour compatibilité avec le contrôleur live-search
@@ -140,7 +147,10 @@ try {
         'total_pages' => $totalPages,
         'term' => $term,
         'filters' => $filters
-    ]);
+    ];
+    
+    error_log("Search API response status: success=true, count=" . count($formattedInternships));
+    echo json_encode($response);
     exit;
 } catch (Exception $e) {
     // Loggez l'erreur dans un environnement de production

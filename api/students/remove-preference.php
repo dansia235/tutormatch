@@ -21,14 +21,20 @@ if ($_SESSION['user_role'] !== 'student') {
 }
 
 try {
-    // Récupérer les données du corps de la requête
-    $requestData = json_decode(file_get_contents('php://input'), true);
+    // Récupérer les données POST
+    $internshipId = isset($_POST['internship_id']) ? (int)$_POST['internship_id'] : 0;
     
-    if (!$requestData || !isset($requestData['internship_id'])) {
-        sendJsonError('ID de stage requis', 400);
+    // Si l'ID du stage n'est pas dans les données POST, essayer de le récupérer du corps JSON
+    if (empty($internshipId)) {
+        // Récupérer les données du corps de la requête
+        $requestData = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$requestData || !isset($requestData['internship_id'])) {
+            sendJsonError('ID de stage requis', 400);
+        }
+        
+        $internshipId = (int)$requestData['internship_id'];
     }
-    
-    $internshipId = (int)$requestData['internship_id'];
     
     // Récupérer l'ID de l'étudiant
     $studentModel = new Student($db);

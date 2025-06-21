@@ -109,6 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $preferences = $studentModel->getPreferences($student_id);
         error_log("API preferences.php: Retrieved " . count($preferences) . " preferences for student ID {$student_id}");
         
+        // Afficher les informations détaillées pour le débogage
+        error_log("API preferences.php: Raw preferences data: " . json_encode($preferences));
+        
         // Adapter le format des données pour le client JavaScript si nécessaire
         $formattedPreferences = [];
         
@@ -134,6 +137,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     ];
                 }
             }
+            
+            // Log des préférences formatées
+            error_log("API preferences.php: Formatted preferences: " . json_encode($formattedPreferences));
         }
         
         // Renvoyer les données

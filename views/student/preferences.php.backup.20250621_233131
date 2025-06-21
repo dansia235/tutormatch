@@ -119,8 +119,8 @@ include_once __DIR__ . '/../common/header.php';
                 </div>
                 
                 <div class="card-body">
-                    <!-- Loading Indicator - Masqué car nous affichons directement les préférences -->
-                    <div data-student-preferences-target="loadingIndicator" class="text-center py-3 hidden">
+                    <!-- Loading Indicator -->
+                    <div data-student-preferences-target="loadingIndicator" class="text-center py-3">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Chargement...</span>
                         </div>
@@ -128,61 +128,16 @@ include_once __DIR__ . '/../common/header.php';
                     </div>
                     
                     <!-- Empty State -->
-                    <?php if (empty($currentStudentPreferences)): ?>
-                    <div class="py-3 text-center">
+                    <div data-student-preferences-target="emptyState" class="hidden py-3 text-center">
                         <div class="p-4 bg-light rounded">
                             <i class="bi bi-list-stars fs-1 text-muted"></i>
                             <h5 class="mt-3">Aucune préférence de stage</h5>
                             <p class="text-muted">Vous n'avez pas encore sélectionné de stages préférés. Utilisez la recherche ci-dessous pour ajouter des stages à vos préférences.</p>
                         </div>
                     </div>
-                    <?php else: ?>
-                    <!-- Préférences affichées directement par PHP, inspiré de internship.php -->
-                    <div class="mb-4">
-                        <?php foreach ($currentStudentPreferences as $index => $preference): ?>
-                        <div class="d-flex align-items-center p-3 border rounded mb-2 bg-white position-relative preference-item" data-preference-id="<?= $preference['internship_id'] ?>">
-                            <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle me-3" style="width: 32px; height: 32px;">
-                                <?= $preference['preference_order'] ?>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h5 class="mb-0"><?= htmlspecialchars($preference['title']) ?></h5>
-                                <p class="text-muted mb-0"><?= htmlspecialchars($preference['company_name']) ?></p>
-                                <?php if (!empty($preference['reason'])): ?>
-                                <p class="small text-muted mt-1"><em>Raison: <?= htmlspecialchars($preference['reason']) ?></em></p>
-                                <?php endif; ?>
-                            </div>
-                            <div class="preference-actions">
-                                <?php if ($index > 0): ?>
-                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" 
-                                        onclick="movePreferenceUp(<?= $preference['internship_id'] ?>, <?= $preference['preference_order'] ?>)">
-                                    <i class="bi bi-arrow-up"></i>
-                                </button>
-                                <?php endif; ?>
-                                
-                                <?php if ($index < count($currentStudentPreferences) - 1): ?>
-                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" 
-                                        onclick="movePreferenceDown(<?= $preference['internship_id'] ?>, <?= $preference['preference_order'] ?>)">
-                                    <i class="bi bi-arrow-down"></i>
-                                </button>
-                                <?php endif; ?>
-                                
-                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" 
-                                        onclick="editReason(<?= $preference['internship_id'] ?>, '<?= addslashes($preference['reason'] ?? '') ?>')">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                
-                                <button type="button" class="btn btn-sm btn-outline-danger" 
-                                        onclick="removePreference(<?= $preference['internship_id'] ?>)">
-                                    <i class="bi bi-x"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
                     
-                    <!-- Hidden element for Stimulus compatibility -->
-                    <div data-student-preferences-target="selectedPreferences" class="hidden"></div>
+                    <!-- Selected Preferences List -->
+                    <div data-student-preferences-target="selectedPreferences" class="mb-4"></div>
                     
                     <!-- Maximum Preferences Alert -->
                     <div data-student-preferences-target="maxPreferencesAlert" class="alert alert-warning hidden mb-4">
@@ -216,11 +171,6 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                     </div>
                     
-                    <?php if (!empty($currentStudentPreferences)): ?>
-                    <div class="alert alert-success mb-3">
-                        <i class="bi bi-info-circle me-2"></i>Vos préférences sont automatiquement enregistrées à chaque modification.
-                    </div>
-                    <?php else: ?>
                     <div class="d-grid">
                         <button type="button" class="btn btn-primary" 
                                 data-student-preferences-target="saveButton" 
@@ -229,7 +179,6 @@ include_once __DIR__ . '/../common/header.php';
                             <i class="bi bi-save me-2"></i>Enregistrer mes préférences
                         </button>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -372,154 +321,6 @@ const fallbackStats = {
     profile_completion: <?= $preferencesCount > 0 ? 80 : 60 ?>
 };
 
-// Fonctions pour gérer les préférences directement
-function movePreferenceUp(internshipId, currentOrder) {
-    // Ajouter les paramètres au formulaire
-    const formData = new FormData();
-    formData.append('action', 'move_up');
-    formData.append('internship_id', internshipId);
-    formData.append('current_order', currentOrder);
-    
-    // Envoyer la requête
-    fetch('/tutoring/api/students/update-preference-order.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Recharger la page pour refléter le nouvel ordre
-            window.location.reload();
-        } else {
-            showNotification(data.message || "Erreur lors du déplacement de la préférence", "error");
-        }
-    })
-    .catch(error => {
-        console.error("Erreur:", error);
-        showNotification("Erreur lors du déplacement de la préférence", "error");
-    });
-}
-
-function movePreferenceDown(internshipId, currentOrder) {
-    // Ajouter les paramètres au formulaire
-    const formData = new FormData();
-    formData.append('action', 'move_down');
-    formData.append('internship_id', internshipId);
-    formData.append('current_order', currentOrder);
-    
-    // Envoyer la requête
-    fetch('/tutoring/api/students/update-preference-order.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Recharger la page pour refléter le nouvel ordre
-            window.location.reload();
-        } else {
-            showNotification(data.message || "Erreur lors du déplacement de la préférence", "error");
-        }
-    })
-    .catch(error => {
-        console.error("Erreur:", error);
-        showNotification("Erreur lors du déplacement de la préférence", "error");
-    });
-}
-
-function editReason(internshipId, currentReason) {
-    // Demander la nouvelle raison
-    const reason = prompt("Pourquoi avez-vous choisi ce stage? (optionnel)", currentReason || "");
-    
-    // Si l'utilisateur annule, on ne fait rien
-    if (reason === null) return;
-    
-    // Ajouter les paramètres au formulaire
-    const formData = new FormData();
-    formData.append('action', 'update_reason');
-    formData.append('internship_id', internshipId);
-    formData.append('reason', reason);
-    
-    // Envoyer la requête
-    fetch('/tutoring/api/students/update-preference-reason.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Recharger la page pour refléter la nouvelle raison
-            window.location.reload();
-        } else {
-            showNotification(data.message || "Erreur lors de la mise à jour de la raison", "error");
-        }
-    })
-    .catch(error => {
-        console.error("Erreur:", error);
-        showNotification("Erreur lors de la mise à jour de la raison", "error");
-    });
-}
-
-function removePreference(internshipId) {
-    // Demander confirmation
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette préférence?")) return;
-    
-    // Ajouter les paramètres au formulaire
-    const formData = new FormData();
-    formData.append('internship_id', internshipId);
-    
-    // Envoyer la requête
-    fetch('/tutoring/api/students/remove-preference.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Recharger la page pour refléter la suppression
-            window.location.reload();
-        } else {
-            showNotification(data.message || "Erreur lors de la suppression de la préférence", "error");
-        }
-    })
-    .catch(error => {
-        console.error("Erreur:", error);
-        showNotification("Erreur lors de la suppression de la préférence", "error");
-    });
-}
-
-function showNotification(message, type = "info") {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `position-fixed bottom-0 end-0 p-3`;
-    notification.style.zIndex = 1050;
-    
-    // Set the appropriate bootstrap class based on type
-    const alertClass = type === 'success' ? 'alert-success' : 
-                       type === 'error' ? 'alert-danger' : 
-                       'alert-info';
-    
-    notification.innerHTML = `
-      <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} text-white">
-          <strong class="me-auto">${type === 'success' ? 'Succès' : type === 'error' ? 'Erreur' : 'Information'}</strong>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body">
-          ${message}
-        </div>
-      </div>
-    `;
-    
-    // Add to document
-    document.body.appendChild(notification);
-    
-    // Remove after 5 seconds
-    setTimeout(() => {
-      notification.remove();
-    }, 5000);
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     // Enable more detailed console logging
     console.log("Initializing student preferences page");
@@ -588,8 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Nous n'avons plus besoin d'appliquer les préférences de secours car nous les affichons directement en PHP
-    // Mais nous laissons cette logique au cas où le contrôleur stimulus est toujours utilisé ailleurs
+    // Mécanisme d'initialisation forcée des préférences si le chargement échoue
     const applyFallbackPreferences = (forceUpdate = false) => {
         console.log("Checking if fallback preferences need to be applied");
         const preferencesElement = document.querySelector('[data-controller="student-preferences"]');
@@ -633,6 +433,12 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("No fallback preferences data available");
         }
     };
+    
+    // Appliquer les préférences de secours après 1 seconde si le chargement n'est pas terminé
+    setTimeout(() => applyFallbackPreferences(false), 1000);
+    
+    // Forcer l'application des préférences de secours après 3 secondes, même si le contrôleur a des données
+    setTimeout(() => applyFallbackPreferences(true), 3000);
 });
 
 // Initialiser la recherche automatiquement au chargement

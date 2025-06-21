@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 17, 2025 at 07:47 PM
+-- Generation Time: Jun 21, 2025 at 11:04 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -113,7 +113,7 @@ CREATE TABLE `assignments` (
 --
 
 INSERT INTO `assignments` (`id`, `student_id`, `teacher_id`, `internship_id`, `status`, `satisfaction_score`, `compatibility_score`, `assignment_date`, `confirmation_date`, `notes`) VALUES
-(1, 3, 2, 1, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL),
+(1, 3, 2, 1, 'confirmed', NULL, 4.10, '2025-06-07 09:42:54', '2025-06-21 16:07:32', ''),
 (2, 5, 3, 2, 'confirmed', NULL, 4.30, '2025-06-07 09:42:54', '2025-06-11 22:47:44', ''),
 (3, 7, 6, 3, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL),
 (4, 6, 2, 4, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL),
@@ -340,6 +340,7 @@ CREATE TABLE `documents` (
   `file_size` int(11) DEFAULT NULL,
   `upload_date` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('draft','submitted','approved','rejected') NOT NULL DEFAULT 'draft',
+  `visibility` enum('private','restricted','public') NOT NULL DEFAULT 'private',
   `feedback` text DEFAULT NULL,
   `version` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -348,29 +349,23 @@ CREATE TABLE `documents` (
 -- Dumping data for table `documents`
 --
 
-INSERT INTO `documents` (`id`, `user_id`, `assignment_id`, `title`, `description`, `type`, `file_path`, `file_type`, `file_size`, `upload_date`, `status`, `feedback`, `version`) VALUES
-(1, 14, 1, 'Convention de stage - Lucas Dupont', NULL, 'contract', 'uploads/documents/1_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(2, 14, 1, 'CV - Lucas Dupont', NULL, 'other', 'uploads/documents/1_cv.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(3, 14, 1, 'Rapport intermédiaire - Lucas Dupont', NULL, 'report', 'uploads/documents/1_rapport_intermediaire.pdf', NULL, NULL, '2025-06-07 09:42:54', 'draft', NULL, NULL),
-(4, 16, 2, 'Convention de stage - Louis Moreau', NULL, 'contract', 'uploads/documents/3_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(5, 16, 2, 'CV - Louis Moreau', NULL, 'other', 'uploads/documents/3_cv.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(6, 18, 3, 'Convention de stage - Hugo Simon', NULL, 'contract', 'uploads/documents/5_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(7, 17, 4, 'Convention de stage - Chloé Fournier', NULL, 'contract', 'uploads/documents/4_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(8, 9, NULL, 'Guide du rapport final', NULL, 'other', 'uploads/documents/guide_rapport_final.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(1003, 1, NULL, 'Test 1', '', 'report', 'uploads/documents/1749736178_Hugo Simon CV.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 44917, '2025-06-12 13:49:38', 'submitted', NULL, '1.0'),
-(1004, 1, NULL, 'Document de test SQL', NULL, 'report', 'uploads/documents/test_sql.pdf', 'application/pdf', 12345, '2025-06-12 13:51:42', 'submitted', NULL, NULL),
-(1005, 1, NULL, 'Document de test via modèle', NULL, 'report', 'uploads/documents/test_model.pdf', 'application/pdf', 12345, '2025-06-12 13:51:42', 'submitted', NULL, NULL),
-(1006, 18, 3, 'CV', '', 'other', 'uploads/documents/1749736339_Hugo Simon CV.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 44917, '2025-06-12 13:52:19', 'submitted', NULL, '1.0'),
-(1007, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15d67fa1b.json', 'application/json', 1024, '2025-06-15 18:49:58', 'submitted', NULL, NULL),
-(1008, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15d690689.json', 'application/json', 1024, '2025-06-15 18:49:58', 'submitted', NULL, NULL),
-(1009, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15ef9d78b.json', 'application/json', 1024, '2025-06-15 18:50:23', 'submitted', NULL, NULL),
-(1010, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15efa5fc9.json', 'application/json', 1024, '2025-06-15 18:50:23', 'submitted', NULL, NULL),
-(1011, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f1f2f0d.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', NULL, NULL),
-(1012, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f20c5e0.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', NULL, NULL),
-(1013, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f3152fe.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL),
-(1014, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f31d02e.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL),
-(1015, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f3c98cb.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL),
-(1016, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f3cd2d4.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL);
+INSERT INTO `documents` (`id`, `user_id`, `assignment_id`, `title`, `description`, `type`, `file_path`, `file_type`, `file_size`, `upload_date`, `status`, `visibility`, `feedback`, `version`) VALUES
+(2, 14, 1, 'CV - Lucas Dupont', NULL, 'other', 'uploads/documents/1_cv.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', 'private', NULL, NULL),
+(5, 16, 2, 'CV - Louis Moreau', NULL, 'other', 'uploads/documents/3_cv.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', 'private', NULL, NULL),
+(6, 18, 3, 'Convention de stage - Hugo Simon', NULL, 'contract', 'uploads/documents/5_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', 'private', NULL, NULL),
+(8, 9, NULL, 'Guide du rapport final', NULL, 'other', 'uploads/documents/guide_rapport_final.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', 'private', NULL, NULL),
+(1003, 1, NULL, 'Test 1', '', 'report', 'uploads/documents/1749736178_Hugo Simon CV.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 44917, '2025-06-12 13:49:38', '', 'private', NULL, '1.0'),
+(1004, 1, NULL, 'Document de test SQL', '', 'report', 'uploads/documents/test_sql.pdf', 'application/pdf', 12345, '2025-06-12 13:51:42', '', 'private', NULL, NULL),
+(1005, 1, NULL, 'Document de test via modèle', NULL, 'report', 'uploads/documents/test_model.pdf', 'application/pdf', 12345, '2025-06-12 13:51:42', 'submitted', 'private', NULL, NULL),
+(1006, 18, 3, 'CV', '', 'other', 'uploads/documents/1749736339_Hugo Simon CV.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 44917, '2025-06-12 13:52:19', 'submitted', 'private', NULL, '1.0'),
+(1008, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15d690689.json', 'application/json', 1024, '2025-06-15 18:49:58', 'submitted', 'private', NULL, NULL),
+(1010, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15efa5fc9.json', 'application/json', 1024, '2025-06-15 18:50:23', 'submitted', 'private', NULL, NULL),
+(1011, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f1f2f0d.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', 'private', NULL, NULL),
+(1012, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f20c5e0.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', 'private', NULL, NULL),
+(1013, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'other', 'evaluations/test_684f15f3152fe.json', 'application/json', 1024, '2025-06-15 18:50:27', '', 'private', NULL, NULL),
+(1014, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f31d02e.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', 'private', NULL, NULL),
+(1015, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f3c98cb.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', 'private', NULL, NULL),
+(1016, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f3cd2d4.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', 'private', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -431,7 +426,7 @@ CREATE TABLE `internships` (
 --
 
 INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirements`, `start_date`, `end_date`, `location`, `work_mode`, `compensation`, `domain`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Développeur Web Full-Stack', 'Stage de développement web sur un projet e-commerce. Vous participerez à la conception et au développement de nouvelles fonctionnalités.', 'JavaScript, React, Node.js, SQL', '2023-09-01', '2024-02-28', 'Paris', 'hybrid', 800.00, 'Développement Web', 'assigned', '2025-06-07 09:42:54', '2025-06-11 19:13:20'),
+(1, 1, 'Développeur Web Full-Stack', 'Stage de développement web sur un projet e-commerce. Vous participerez à la conception et au développement de nouvelles fonctionnalités.', '', '2023-09-01', '2024-02-28', '', 'on_site', 800.00, 'Développement Web', 'assigned', '2025-06-07 09:42:54', '2025-06-21 15:07:32'),
 (2, 2, 'Data Scientist Junior', 'Analyse de données clients et développement de modèles prédictifs pour optimiser les campagnes marketing.', 'Python, R, SQL, Machine Learning', '2023-09-01', '2024-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'assigned', '2025-06-07 09:42:54', '2025-06-11 19:13:20'),
 (3, 3, 'Analyste en Cybersécurité', 'Participation aux audits de sécurité et implémentation de solutions de protection pour nos clients.', 'Connaissances en cybersécurité, Linux, réseaux', '2023-09-01', '2024-02-28', 'Lille', 'on_site', 900.00, 'Cybersécurité', 'available', '2025-06-07 09:42:54', '2025-06-07 09:42:54'),
 (4, 4, 'Développeur Mobile', 'Développement d\'applications mobiles Android et iOS pour divers clients.', 'Java, Kotlin, Swift ou React Native', '2023-09-01', '2024-02-28', 'Bordeaux', 'hybrid', 800.00, 'Développement Mobile', 'available', '2025-06-07 09:42:54', '2025-06-07 09:42:54'),
@@ -681,10 +676,6 @@ CREATE TABLE `internship_skills` (
 --
 
 INSERT INTO `internship_skills` (`id`, `internship_id`, `skill_name`) VALUES
-(1, 1, 'JavaScript'),
-(2, 1, 'React'),
-(3, 1, 'Node.js'),
-(4, 1, 'SQL'),
 (5, 2, 'Python'),
 (6, 2, 'R'),
 (7, 2, 'SQL'),
@@ -700,7 +691,8 @@ INSERT INTO `internship_skills` (`id`, `internship_id`, `skill_name`) VALUES
 (17, 5, 'C'),
 (18, 5, 'C++'),
 (19, 5, 'Microcontrôleurs'),
-(20, 5, 'Électronique');
+(20, 5, 'Électronique'),
+(21, 1, 'JavaScript, React, Node.js, SQL');
 
 -- --------------------------------------------------------
 
@@ -722,24 +714,31 @@ CREATE TABLE `meetings` (
   `assignment_id` int(11) DEFAULT NULL,
   `date` date GENERATED ALWAYS AS (cast(`date_time` as date)) VIRTUAL,
   `start_time` time GENERATED ALWAYS AS (cast(`date_time` as time)) VIRTUAL,
-  `end_time` time GENERATED ALWAYS AS (cast(`date_time` + interval `duration` minute as time)) VIRTUAL
+  `end_time` time GENERATED ALWAYS AS (cast(`date_time` + interval `duration` minute as time)) VIRTUAL,
+  `student_attended` tinyint(1) DEFAULT 0 COMMENT 'Indique si l''étudiant était présent',
+  `notes` text DEFAULT NULL COMMENT 'Notes de la réunion',
+  `completed_at` datetime DEFAULT NULL COMMENT 'Date et heure de complétion',
+  `updated_at` datetime DEFAULT NULL COMMENT 'Date et heure de dernière mise à jour'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `meetings`
 --
 
-INSERT INTO `meetings` (`id`, `title`, `description`, `date_time`, `duration`, `location`, `meeting_link`, `organizer_id`, `status`, `created_at`, `assignment_id`) VALUES
-(1, 'Réunion de lancement - Stage TechSolutions', 'Première réunion pour discuter des objectifs et du déroulement du stage', '2023-09-05 14:00:00', 60, 'Bureau 203 - Bâtiment A', NULL, 9, 'scheduled', '2025-06-07 09:42:54', 1),
-(2, 'Point d\'avancement - Lucas Dupont', 'Réunion mensuelle de suivi de stage', '2023-10-03 14:00:00', 45, 'Teams', 'https://teams.microsoft.com/l/meeting/...', 9, 'scheduled', '2025-06-07 09:42:54', 1),
-(3, 'Réunion de lancement - Stage DataInsight', 'Première réunion pour discuter des objectifs et du déroulement du stage', '2023-09-06 10:00:00', 60, 'Bureau 105 - Bâtiment B', NULL, 10, 'scheduled', '2025-06-07 09:42:54', 2),
-(4, 'Point d\'avancement - Louis Moreau', 'Réunion mensuelle de suivi de stage', '2023-10-04 10:00:00', 45, 'Zoom', 'https://zoom.us/j/...', 10, 'scheduled', '2025-06-07 09:42:54', 2),
-(5, 'Réunion de lancement - Stage CyberGuard', 'Première réunion pour discuter des objectifs et du déroulement du stage', '2023-09-07 15:00:00', 60, 'Bureau 208 - Bâtiment A', NULL, 13, 'scheduled', '2025-06-07 09:42:54', 3),
-(8, 'desd', '', '2025-06-10 18:24:00', 60, 'Zoom', '', 18, 'scheduled', '2025-06-09 15:31:48', 3),
-(9, 'Besoin d\'eclaircissement', '', '2025-06-10 15:40:00', 60, 'Zoom', '', 18, 'scheduled', '2025-06-09 15:32:33', 3),
-(10, 'Approbarion du Tuteur', '', '2025-06-11 17:30:00', 60, 'Bureau du tuteur', '', 18, 'scheduled', '2025-06-09 15:33:44', 3),
-(11, 'Suivi', 'Ordre du jour : seance tenante.', '2025-06-14 10:30:00', 60, 'Bureau du tuteur', '', 18, 'scheduled', '2025-06-12 10:14:12', 3),
-(12, 'Suivi du déroulement du stage', 'Type: Suivi régulier\n\n', '2025-06-17 09:45:00', 60, 'Bureau du tuteur', NULL, 13, 'scheduled', '2025-06-13 09:10:07', 3);
+INSERT INTO `meetings` (`id`, `title`, `description`, `date_time`, `duration`, `location`, `meeting_link`, `organizer_id`, `status`, `created_at`, `assignment_id`, `student_attended`, `notes`, `completed_at`, `updated_at`) VALUES
+(1, 'Réunion de lancement - Stage TechSolutions', 'Première réunion pour discuter des objectifs et du déroulement du stage', '2023-09-05 14:00:00', 60, 'Bureau 203 - Bâtiment A', NULL, 9, 'scheduled', '2025-06-07 09:42:54', 1, 0, NULL, NULL, NULL),
+(2, 'Point d\'avancement - Lucas Dupont', 'Réunion mensuelle de suivi de stage', '2023-10-03 14:00:00', 45, 'Teams', 'https://teams.microsoft.com/l/meeting/...', 9, 'scheduled', '2025-06-07 09:42:54', 1, 0, NULL, NULL, NULL),
+(3, 'Réunion de lancement - Stage DataInsight', 'Première réunion pour discuter des objectifs et du déroulement du stage', '2023-09-06 10:00:00', 60, 'Bureau 105 - Bâtiment B', NULL, 10, 'scheduled', '2025-06-07 09:42:54', 2, 0, NULL, NULL, NULL),
+(4, 'Point d\'avancement - Louis Moreau', 'Réunion mensuelle de suivi de stage', '2023-10-04 10:00:00', 45, 'Zoom', 'https://zoom.us/j/...', 10, 'scheduled', '2025-06-07 09:42:54', 2, 0, NULL, NULL, NULL),
+(5, 'Réunion de lancement - Stage CyberGuard', 'Première réunion pour discuter des objectifs et du déroulement du stage', '2023-09-07 15:00:00', 60, 'Bureau 208 - Bâtiment A', NULL, 13, 'completed', '2025-06-07 09:42:54', 3, 1, '', '2025-06-21 21:00:09', '2025-06-21 21:00:09'),
+(8, 'desd', '', '2025-06-10 18:24:00', 60, 'Zoom', '', 18, 'completed', '2025-06-09 15:31:48', 3, 1, '', '2025-06-21 20:59:54', '2025-06-21 20:59:54'),
+(9, 'Besoin d\'eclaircissement', '', '2025-06-10 15:40:00', 60, 'Zoom', '', 18, 'completed', '2025-06-09 15:32:33', 3, 1, '', '2025-06-21 21:00:00', '2025-06-21 21:00:00'),
+(10, 'Approbarion du Tuteur', '', '2025-06-11 17:30:00', 60, 'Bureau du tuteur', '', 18, 'completed', '2025-06-09 15:33:44', 3, 1, '', '2025-06-21 20:59:49', '2025-06-21 20:59:49'),
+(11, 'Suivi', 'Ordre du jour : seance tenante.', '2025-06-14 10:30:00', 60, 'Bureau du tuteur', '', 18, 'completed', '2025-06-12 10:14:12', 3, 1, '', '2025-06-21 20:59:43', '2025-06-21 20:59:43'),
+(12, 'Suivi du déroulement du stage', 'Type: Suivi régulier\n\n', '2025-06-17 09:45:00', 60, 'Bureau du tuteur', NULL, 13, 'completed', '2025-06-13 09:10:07', 3, 1, '', '2025-06-21 20:59:27', '2025-06-21 20:59:27'),
+(13, 'Evaluation de Hugo Simon', 'Type: Évaluation\n\n', '2025-06-24 10:00:00', 60, 'Bureau du tuteur', NULL, 13, 'scheduled', '2025-06-21 18:54:50', 3, 0, NULL, NULL, NULL),
+(14, 'Reunion de prise de contact.', 'Type: Présentation\n\nPrensentation et echange sur le déroulement du stage. ', '2025-06-22 11:00:00', 60, 'Bureau du tuteur', NULL, 13, 'scheduled', '2025-06-21 18:56:20', 3, 0, NULL, NULL, NULL),
+(15, 'Reunion clarification', '', '2025-07-01 09:30:00', 60, 'Microsoft Teams', '', 18, 'scheduled', '2025-06-21 20:28:43', 3, 0, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1000,6 +999,7 @@ CREATE TABLE `student_preferences` (
   `student_id` int(11) NOT NULL,
   `internship_id` int(11) NOT NULL,
   `preference_order` int(11) NOT NULL,
+  `reason` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1007,15 +1007,16 @@ CREATE TABLE `student_preferences` (
 -- Dumping data for table `student_preferences`
 --
 
-INSERT INTO `student_preferences` (`id`, `student_id`, `internship_id`, `preference_order`, `created_at`) VALUES
-(1, 3, 1, 1, '2025-06-07 09:42:54'),
-(2, 3, 4, 2, '2025-06-07 09:42:54'),
-(3, 4, 2, 1, '2025-06-07 09:42:54'),
-(4, 4, 1, 2, '2025-06-07 09:42:54'),
-(5, 5, 2, 1, '2025-06-07 09:42:54'),
-(6, 6, 4, 1, '2025-06-07 09:42:54'),
-(7, 6, 1, 2, '2025-06-07 09:42:54'),
-(8, 7, 3, 1, '2025-06-07 09:42:54');
+INSERT INTO `student_preferences` (`id`, `student_id`, `internship_id`, `preference_order`, `reason`, `created_at`) VALUES
+(1, 3, 1, 1, NULL, '2025-06-07 09:42:54'),
+(2, 3, 4, 2, NULL, '2025-06-07 09:42:54'),
+(3, 4, 2, 1, NULL, '2025-06-07 09:42:54'),
+(4, 4, 1, 2, NULL, '2025-06-07 09:42:54'),
+(5, 5, 2, 1, NULL, '2025-06-07 09:42:54'),
+(6, 6, 4, 1, NULL, '2025-06-07 09:42:54'),
+(7, 6, 1, 2, NULL, '2025-06-07 09:42:54'),
+(8, 7, 3, 1, NULL, '2025-06-07 09:42:54'),
+(9, 7, 21, 2, NULL, '2025-06-21 20:54:55');
 
 -- --------------------------------------------------------
 
@@ -1187,7 +1188,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_name`, `role`, `department`, `profile_image`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-12 22:43:03', '2025-06-12 22:43:03'),
+(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-21 18:58:58', '2025-06-21 18:58:58'),
 (3, 'admin2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin2@example.com', 'Admin', 'Secondaire', 'admin', 'Administration', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (4, 'teacher1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher1@example.com', 'Paul', 'Martin', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (5, 'teacher2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher2@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
@@ -1198,12 +1199,12 @@ INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_
 (10, 'prof_dubois', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_dubois@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (11, 'prof_petit', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_petit@example.com', 'Jean', 'Petit', 'teacher', 'Mathématiques', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (12, 'prof_bernard', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_bernard@example.com', 'Sophie', 'Bernard', 'teacher', 'Électronique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
-(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-15 18:56:05', '2025-06-15 18:56:05'),
+(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-21 20:49:21', '2025-06-21 20:49:21'),
 (14, 'etud_dupont', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_dupont@example.com', 'Lucas', 'Dupont', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (15, 'etud_leroy', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_leroy@example.com', 'Emma', 'Leroy', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (16, 'etud_moreau', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_moreau@example.com', 'Louis', 'Moreau', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (17, 'etud_fournier', '$2y$10$PDqgdfSLyx9eDLFbi/lbR.2XOrNQBmvQ5oQv5P1OaBCPX9l3FRxty', 'etud_fournier@example.com', 'Chloé', 'Fournier', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-10 10:04:00', NULL),
-(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-17 17:13:35', '2025-06-17 17:13:35'),
+(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-21 20:54:13', '2025-06-21 20:54:13'),
 (50, 'coordo', '$2y$10$hD8jR6DTr7T8y1K3F7Ojs.WWQH6MTmXdmvEYrN/ma2crI9p/NpHJe', 'coordo@gmail.com', 'Coordo', 'Dansia', 'coordinator', '', NULL, '2025-06-08 19:11:39', '2025-06-12 08:54:16', '2025-06-12 08:54:16'),
 (51, 'hbonnet17', '$2y$10$Tpbea7gOI3fpNJkZCoPHfOSn8Kil//DT.pvcg0.FdF6MFXQP6bz6q', 'hbonnet17@example.com', 'Hugo', 'Bonnet', 'student', 'Économie', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
 (52, 'gfournier15', '$2y$10$BUBawhQhtIbTS9kARJi.AeBBiAr7VkN/msHAONtxFvIXquPCqHX1G', 'gfournier15@example.com', 'Gabriel', 'Fournier', 'student', 'Médecine', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
@@ -1657,7 +1658,7 @@ ALTER TABLE `conversation_participants`
 -- AUTO_INCREMENT for table `documents`
 --
 ALTER TABLE `documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1017;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1018;
 
 --
 -- AUTO_INCREMENT for table `evaluations`
@@ -1675,13 +1676,13 @@ ALTER TABLE `internships`
 -- AUTO_INCREMENT for table `internship_skills`
 --
 ALTER TABLE `internship_skills`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `meetings`
 --
 ALTER TABLE `meetings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `meeting_participants`
@@ -1717,7 +1718,7 @@ ALTER TABLE `students`
 -- AUTO_INCREMENT for table `student_preferences`
 --
 ALTER TABLE `student_preferences`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
