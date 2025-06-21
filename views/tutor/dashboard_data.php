@@ -37,80 +37,133 @@ try {
 switch ($type) {
     case 'meetings':
         try {
-            // Approche simplifiée et robuste
-            // 1. Récupérer l'ID du tuteur
+            // Récupérer les réunions
+            $meetingModel = new Meeting($db);
+            $userModel = new User($db);
+            $studentModel = new Student($db);
+            $userId = $_SESSION['user_id'];
             $teacherId = $teacher['id'];
             
-            // 2. Récupérer les affectations du tuteur
+            // Récupérer les affectations pour obtenir les IDs des étudiants
             $assignmentModel = new Assignment($db);
-            $studentModel = new Student($db);
-            $userModel = new User($db);
-            
-            // 3. Récupérer les assignations
             $assignments = $assignmentModel->getByTeacherId($teacherId);
-            
-            // Si aucune affectation, renvoyer un tableau vide
-            if (empty($assignments)) {
-                echo json_encode([
-                    'data' => [],
-                    'meta' => [
-                        'current_page' => 1,
-                        'total_pages' => 0,
-                        'total_records' => 0,
-                        'per_page' => 5
-                    ]
-                ]);
-                exit;
-            }
-            
-            // 4. Créer manuellement les données de réunions pour le test
-            // Note: Nous utilisons des données de test pour contourner les problèmes de base de données
-            $today = date('Y-m-d');
-            $now = date('H:i:s');
-            
-            // Préparer des données fictives pour assurer l'affichage
-            $enrichedMeetings = [];
-            $count = 0;
+            $studentIds = [];
             
             foreach ($assignments as $assignment) {
-                if ($count >= 3) break; // Limiter à 3 réunions fictives
+                $studentIds[] = $assignment['student_id'];
+            }
+            
+            // Récupérer toutes les réunions du tuteur (tous types confondus)
+            $allMeetings = [];
+            
+            // 1. Réunions où le tuteur est l'organisateur
+            $query = "SELECT m.*, 
+                      s.id as student_id, u_s.first_name as student_first_name, u_s.last_name as student_last_name
+                      FROM meetings m
+                      LEFT JOIN assignments a ON m.assignment_id = a.id
+                      LEFT JOIN students s ON a.student_id = s.id
+                      LEFT JOIN users u_s ON s.user_id = u_s.id
+                      WHERE m.organizer_id = :user_id 
+                      AND m.status NOT IN ('cancelled', 'completed')
+                      AND (m.date_time > NOW() OR DATE(m.date_time) = CURDATE())";
+                      
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->execute();
+            $organizerMeetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $allMeetings = array_merge($allMeetings, $organizerMeetings);
+            
+            // 2. Réunions associées aux affectations du tuteur
+            if (!empty($assignments)) {
+                $placeholders = implode(',', array_fill(0, count($assignments), '?'));
+                $assignmentIds = array_column($assignments, 'id');
                 
-                // Récupérer l'étudiant
-                $student = $studentModel->getById($assignment['student_id']);
-                if (!$student) continue;
+                $query = "SELECT m.*, 
+                          s.id as student_id, u_s.first_name as student_first_name, u_s.last_name as student_last_name
+                          FROM meetings m
+                          LEFT JOIN assignments a ON m.assignment_id = a.id
+                          LEFT JOIN students s ON a.student_id = s.id
+                          LEFT JOIN users u_s ON s.user_id = u_s.id
+                          WHERE m.assignment_id IN ($placeholders)
+                          AND m.status NOT IN ('cancelled', 'completed')
+                          AND (m.date_time > NOW() OR DATE(m.date_time) = CURDATE())";
+                          
+                $stmt = $db->prepare($query);
+                foreach ($assignmentIds as $index => $id) {
+                    $stmt->bindValue($index + 1, $id);
+                }
+                $stmt->execute();
+                $assignmentMeetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $allMeetings = array_merge($allMeetings, $assignmentMeetings);
+            }
+            
+            // Supprimer les doublons
+            $uniqueMeetings = [];
+            foreach ($allMeetings as $meeting) {
+                if (!isset($uniqueMeetings[$meeting['id']])) {
+                    $uniqueMeetings[$meeting['id']] = $meeting;
+                }
+            }
+            
+            $enrichedMeetings = [];
+            foreach ($uniqueMeetings as $meeting) {
+                // Formater les dates
+                $meetingDate = $meeting['date_time'] ?? $meeting['date'] . ' ' . ($meeting['start_time'] ?? '00:00:00');
                 
-                $studentUser = $userModel->getById($student['user_id']);
-                if (!$studentUser) continue;
+                // Récupérer les informations de l'étudiant
+                $studentName = "Étudiant non spécifié";
+                $studentId = null;
                 
-                // Créer une réunion fictive pour chaque étudiant
-                $meetingDate = date('Y-m-d', strtotime("+$count day"));
-                $meetingTime = date('H:i:s', strtotime("+$count hour"));
+                if (isset($meeting['student_id']) && $meeting['student_id']) {
+                    $studentId = $meeting['student_id'];
+                    if (isset($meeting['student_first_name']) && isset($meeting['student_last_name'])) {
+                        $studentName = $meeting['student_first_name'] . ' ' . $meeting['student_last_name'];
+                    }
+                } elseif (isset($meeting['assignment_id']) && $meeting['assignment_id']) {
+                    $assignment = $assignmentModel->getById($meeting['assignment_id']);
+                    if ($assignment) {
+                        $studentId = $assignment['student_id'];
+                        $student = $studentModel->getById($studentId);
+                        if ($student) {
+                            $studentUser = $userModel->getById($student['user_id']);
+                            if ($studentUser) {
+                                $studentName = $studentUser['first_name'] . ' ' . $studentUser['last_name'];
+                            }
+                        }
+                    }
+                }
                 
-                $endDateTime = new DateTime($meetingTime);
-                $endDateTime->add(new DateInterval('PT60M')); // Ajouter 60 minutes
-                $endTime = $endDateTime->format('H:i:s');
-                
-                $enrichedMeetings[] = [
-                    'id' => $assignment['id'], // Utiliser l'ID de l'assignation comme ID de réunion
-                    'title' => 'Réunion de suivi avec ' . $studentUser['first_name'] . ' ' . $studentUser['last_name'],
-                    'description' => 'Réunion de suivi périodique',
+                // Enrichir avec les détails manquants
+                $enrichedMeeting = [
+                    'id' => $meeting['id'],
+                    'title' => $meeting['title'] ?? 'Réunion',
+                    'description' => $meeting['description'] ?? '',
                     'meeting_date' => $meetingDate,
-                    'start_time' => $meetingTime,
-                    'end_time' => $endTime,
-                    'status' => 'scheduled',
+                    'status' => $meeting['status'],
+                    'location' => $meeting['location'] ?? '',
                     'assignment' => [
-                        'id' => $assignment['id'],
+                        'id' => $meeting['assignment_id'] ?? null,
                         'student' => [
-                            'id' => $student['id'],
-                            'name' => $studentUser['first_name'] . ' ' . $studentUser['last_name']
+                            'id' => $studentId,
+                            'name' => $studentName
                         ]
                     ]
                 ];
                 
-                $count++;
+                $enrichedMeetings[] = $enrichedMeeting;
             }
             
-            // 5. Renvoyer les données au format JSON
+            // Trier par date (les plus proches d'abord)
+            usort($enrichedMeetings, function($a, $b) {
+                $dateA = strtotime($a['meeting_date']);
+                $dateB = strtotime($b['meeting_date']);
+                return $dateA - $dateB;
+            });
+            
+            // Limiter à 5 réunions
+            $enrichedMeetings = array_slice($enrichedMeetings, 0, 5);
+            
+            // Réponse JSON
             echo json_encode([
                 'data' => $enrichedMeetings,
                 'meta' => [
@@ -120,7 +173,6 @@ switch ($type) {
                     'per_page' => 5
                 ]
             ]);
-            
         } catch (Exception $e) {
             // Log détaillé de l'erreur
             error_log("Erreur lors du chargement des réunions: " . $e->getMessage());

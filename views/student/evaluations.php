@@ -27,8 +27,15 @@ try {
         throw new Exception("Connexion à la base de données non disponible");
     }
     
+    // Initialiser tous les modèles nécessaires
     $studentModel = new Student($db);
     $student = $studentModel->getByUserId($user_id);
+    
+    // Vérifier si la classe Evaluation existe et l'utiliser
+    $evaluationModel = null;
+    if (class_exists('Evaluation')) {
+        $evaluationModel = new Evaluation($db);
+    }
     
     if ($student) {
         $student_id = $student['id'];
@@ -36,7 +43,63 @@ try {
         $assignment = $studentModel->getAssignment($student_id);
         $internship_id = isset($assignment['internship_id']) ? $assignment['internship_id'] : null;
         
-        // Récupérer les documents d'évaluation directement
+        // Approche en deux étapes : d'abord tenter d'utiliser le modèle Evaluation, puis les documents
+        $evaluations = [];
+        
+        // ÉTAPE 1 : Récupération via le modèle Evaluation si disponible
+        if ($evaluationModel !== null) {
+            // Récupérer l'affectation pour obtenir l'ID d'affectation
+            $assignment = $studentModel->getAssignment($student_id);
+            
+            if (isset($assignment['id'])) {
+                // Récupérer les évaluations de cette affectation
+                $evalFromModel = $evaluationModel->getByAssignmentId($assignment['id']);
+                
+                // Transformer les données au format attendu
+                foreach ($evalFromModel as $eval) {
+                    // Convertir le score de 20 à 5 si nécessaire
+                    $score = isset($eval['score']) && $eval['score'] > 5 ? round($eval['score'] / 4, 1) : $eval['score'];
+                    
+                    // Préparer les critères
+                    $criteria = [];
+                    if (isset($eval['criteria_scores']) && is_string($eval['criteria_scores'])) {
+                        $criteriaScores = json_decode($eval['criteria_scores'], true);
+                        
+                        $criteriaLabels = [
+                            'technical_skills' => 'Compétences techniques',
+                            'professional_behavior' => 'Comportement professionnel',
+                            'communication' => 'Communication',
+                            'initiative' => 'Initiative et autonomie',
+                            'teamwork' => 'Travail en équipe',
+                            'punctuality' => 'Ponctualité et assiduité'
+                        ];
+                        
+                        foreach ($criteriaScores as $key => $criterionScore) {
+                            $criteria[] = [
+                                'name' => $criteriaLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)),
+                                'score' => round($criterionScore / 4, 1) // Convertir de 20 à 5
+                            ];
+                        }
+                    }
+                    
+                    // Créer l'entrée d'évaluation formatée
+                    $evaluations[] = [
+                        'id' => $eval['id'],
+                        'student_id' => $student_id,
+                        'type' => $eval['type'],
+                        'date' => $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d'),
+                        'evaluator_name' => 'Tuteur',
+                        'score' => $score,
+                        'comments' => $eval['feedback'] ?? $eval['comments'] ?? '',
+                        'criteria' => $criteria,
+                        'areas_for_improvement' => !empty($eval['areas_to_improve']) ? explode("\n", $eval['areas_to_improve']) : [],
+                        'recommendations' => !empty($eval['next_steps']) ? explode("\n", $eval['next_steps']) : []
+                    ];
+                }
+            }
+        }
+        
+        // ÉTAPE 2 : Récupération via les documents (pour les auto-évaluations et les versions antérieures)
         $documents = $studentModel->getDocuments($student_id);
         
         // Filtrer pour ne garder que les documents de type évaluation
@@ -53,7 +116,6 @@ try {
         }
         
         // Convertir les documents en évaluations
-        $evaluations = [];
         foreach ($evaluationDocuments as $doc) {
             // Vérifier si le document a des métadonnées
             if (!isset($doc['metadata']) || !is_array($doc['metadata'])) {
@@ -62,7 +124,7 @@ try {
             
             // Extraire les informations de base du document
             $evaluation = [
-                'id' => $doc['id'],
+                'id' => 'doc_' . $doc['id'], // Préfixer pour éviter les conflits d'ID
                 'student_id' => $doc['user_id'],
                 'type' => $doc['type'] === 'self_evaluation' ? 'self' : 'teacher',
                 'date' => $doc['upload_date'] ?? date('Y-m-d H:i:s'),
@@ -77,7 +139,25 @@ try {
                 $evaluation['criteria'] = $doc['metadata']['criteria'];
             }
             
-            $evaluations[] = $evaluation;
+            // Ne pas ajouter si une évaluation avec le même type et une date proche existe déjà
+            $isDuplicate = false;
+            foreach ($evaluations as $existingEval) {
+                if ($existingEval['type'] === $evaluation['type']) {
+                    $existingDate = new DateTime($existingEval['date']);
+                    $newDate = new DateTime($evaluation['date']);
+                    $interval = $existingDate->diff($newDate);
+                    
+                    // Si les dates sont à moins de 2 jours d'écart, considérer comme un doublon
+                    if ($interval->days < 2) {
+                        $isDuplicate = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!$isDuplicate) {
+                $evaluations[] = $evaluation;
+            }
         }
         
         // Calculer les statistiques
@@ -242,6 +322,7 @@ include_once __DIR__ . '/../common/header.php';
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Mes évaluations</span>
+                    <a href="evaluations-simple.php" class="btn btn-sm btn-outline-secondary">Version simplifiée</a>
                 </div>
                 <div class="card-body">
                     <?php if (empty($evaluations)): ?>
@@ -665,108 +746,196 @@ include_once __DIR__ . '/../common/header.php';
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Si un étudiant est sélectionné et a des évaluations, initialiser le graphique de progression
-        <?php if (!empty($evaluations)): ?>
-        
-        // Données pour le graphique
-        const evaluationData = <?php echo json_encode($evaluations); ?>;
-        
-        // Préparer les données pour le graphique
-        const chartData = {
-            labels: [],
-            technical: [],
-            professional: []
-        };
-        
-        // Organiser les données chronologiquement
-        const sortedEvals = [...evaluationData].sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        sortedEvals.forEach(eval => {
-            // Ajouter la date au format court
-            chartData.labels.push(new Date(eval.date).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'}));
-            
-            // Calculer les moyennes techniques et professionnelles
-            let techScore = 0;
-            let techCount = 0;
-            let profScore = 0;
-            let profCount = 0;
-            
-            if (eval.criteria && Array.isArray(eval.criteria)) {
-                eval.criteria.forEach(criterion => {
-                    const name = criterion.name.toLowerCase();
-                    if (name.includes('technique') || 
-                        name.includes('technical') ||
-                        name.includes('maîtrise') ||
-                        name.includes('qualité') ||
-                        name.includes('problème') ||
-                        name.includes('documentation')) {
-                        techScore += criterion.score;
-                        techCount++;
-                    } else {
-                        profScore += criterion.score;
-                        profCount++;
+        // Si un graphique de progression est présent
+        const progressChartElement = document.getElementById('studentProgressChart');
+        if (progressChartElement) {
+            try {
+                // Vérifier que Chart.js est chargé
+                if (typeof Chart === 'undefined') {
+                    throw new Error('La bibliothèque Chart.js n\'est pas chargée');
+                }
+                
+                // Données pour le graphique
+                const evaluationData = <?php echo json_encode($evaluations); ?>;
+                
+                // Vérifier que les données sont valides
+                if (!evaluationData || !Array.isArray(evaluationData)) {
+                    throw new Error('Données d\'évaluations invalides ou manquantes');
+                }
+                
+                // Préparer les données pour le graphique
+                const chartData = {
+                    labels: [],
+                    technical: [],
+                    professional: []
+                };
+                
+                // Organiser les données chronologiquement
+                const sortedEvals = [...evaluationData].filter(eval => eval && typeof eval === 'object')
+                    .sort((a, b) => {
+                        // Protection contre les dates invalides
+                        const dateA = a.date ? new Date(a.date) : new Date(0);
+                        const dateB = b.date ? new Date(b.date) : new Date(0);
+                        
+                        if (isNaN(dateA.getTime())) return 1;
+                        if (isNaN(dateB.getTime())) return -1;
+                        
+                        return dateA - dateB;
+                    });
+                
+                // Vérifier si nous avons des évaluations triées
+                if (sortedEvals.length === 0) {
+                    throw new Error('Aucune évaluation valide trouvée');
+                }
+                
+                sortedEvals.forEach(eval => {
+                    // Vérifier que la date est valide
+                    let dateStr;
+                    try {
+                        const evalDate = new Date(eval.date);
+                        if (isNaN(evalDate.getTime())) {
+                            dateStr = 'Date inconnue';
+                        } else {
+                            dateStr = evalDate.toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'});
+                        }
+                    } catch (e) {
+                        dateStr = 'Date inconnue';
                     }
+                    
+                    // Ajouter la date au format court
+                    chartData.labels.push(dateStr);
+                    
+                    // Calculer les moyennes techniques et professionnelles
+                    let techScore = 0;
+                    let techCount = 0;
+                    let profScore = 0;
+                    let profCount = 0;
+                    
+                    // Traiter les critères avec une gestion d'erreur robuste
+                    if (eval.criteria && Array.isArray(eval.criteria)) {
+                        eval.criteria.forEach(criterion => {
+                            // Vérifier que le critère est valide
+                            if (!criterion || typeof criterion !== 'object' || 
+                                !('name' in criterion) || !('score' in criterion)) {
+                                return; // Ignorer les critères invalides
+                            }
+                            
+                            const score = parseFloat(criterion.score);
+                            if (isNaN(score)) return; // Ignorer les scores non numériques
+                            
+                            const name = String(criterion.name).toLowerCase();
+                            if (name.includes('technique') || 
+                                name.includes('technical') ||
+                                name.includes('maîtrise') ||
+                                name.includes('qualité') ||
+                                name.includes('problème') ||
+                                name.includes('documentation')) {
+                                techScore += score;
+                                techCount++;
+                            } else {
+                                profScore += score;
+                                profCount++;
+                            }
+                        });
+                    }
+                    
+                    // Ajouter les données avec protection contre les divisions par zéro
+                    chartData.technical.push(techCount > 0 ? parseFloat((techScore / techCount).toFixed(1)) : 0);
+                    chartData.professional.push(profCount > 0 ? parseFloat((profScore / profCount).toFixed(1)) : 0);
                 });
-            }
-            
-            chartData.technical.push(techCount > 0 ? techScore / techCount : 0);
-            chartData.professional.push(profCount > 0 ? profScore / profCount : 0);
-        });
-        
-        // Créer le graphique si des données sont disponibles
-        if (chartData.labels.length > 0) {
-            const ctx = document.getElementById('studentProgressChart');
-            if (ctx) {
-                const chart = new Chart(ctx.getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: chartData.labels,
-                        datasets: [
-                            {
-                                label: 'Technique',
-                                data: chartData.technical,
-                                borderColor: '#3498db',
-                                backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                                tension: 0.3,
-                                fill: true
-                            },
-                            {
-                                label: 'Professionnel',
-                                data: chartData.professional,
-                                borderColor: '#2ecc71',
-                                backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                                tension: 0.3,
-                                fill: true
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'bottom'
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                min: 0,
-                                max: 5,
-                                ticks: {
-                                    stepSize: 1
+                
+                // Créer le graphique si des données sont disponibles
+                if (chartData.labels.length > 0) {
+                    // Vérifier le contexte du canvas
+                    const ctx = progressChartElement.getContext('2d');
+                    if (!ctx) {
+                        throw new Error('Impossible d\'obtenir le contexte 2D du canvas');
+                    }
+                    
+                    // Créer le graphique avec gestion des erreurs
+                    const chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.labels,
+                            datasets: [
+                                {
+                                    label: 'Technique',
+                                    data: chartData.technical,
+                                    borderColor: '#3498db',
+                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
+                                },
+                                {
+                                    label: 'Professionnel',
+                                    data: chartData.professional,
+                                    borderColor: '#2ecc71',
+                                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
                                 }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom'
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        // Protection contre les valeurs NaN
+                                        label: function(context) {
+                                            const label = context.dataset.label || '';
+                                            const value = context.raw !== undefined && !isNaN(context.raw) ? 
+                                                context.raw.toFixed(1) : 'N/A';
+                                            return `${label}: ${value}/5`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    min: 0,
+                                    max: 5,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            onError: function(err) {
+                                console.error('Erreur Chart.js:', err);
                             }
                         }
-                    }
-                });
+                    });
+                    
+                    // Ajouter un gestionnaire d'erreurs global pour Chart.js
+                    Chart.defaults.plugins.customFallback = {
+                        beforeInit: function(chart) {
+                            const originalUpdate = chart.update;
+                            chart.update = function() {
+                                try {
+                                    return originalUpdate.apply(this, arguments);
+                                } catch(err) {
+                                    console.error('Erreur lors de la mise à jour du graphique:', err);
+                                }
+                            };
+                        }
+                    };
+                    
+                } else {
+                    // Si aucune donnée, afficher un message
+                    progressChartElement.parentNode.innerHTML = '<p class="text-muted text-center my-3">Pas assez de données pour afficher un graphique de progression</p>';
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'initialisation du graphique:', error);
+                progressChartElement.parentNode.innerHTML = '<div class="alert alert-warning" role="alert"><i class="bi bi-exclamation-triangle me-2"></i>Impossible de charger le graphique: ' + error.message + '</div>';
             }
         }
-        <?php endif; ?>
     });
     
     // Fonctions pour ajouter des champs dynamiques
@@ -783,35 +952,367 @@ include_once __DIR__ . '/../common/header.php';
     
     // Fonctions pour les actions d'évaluation
     function printEvaluation(index) {
-        // Implémenter la fonction d'impression
-        window.print();
+        try {
+            const evaluations = <?php echo json_encode($evaluations); ?>;
+            
+            // Vérifier que l'index et le tableau d'évaluations sont valides
+            if (!evaluations || !Array.isArray(evaluations) || !evaluations[index]) {
+                throw new Error('Évaluation non trouvée');
+            }
+            
+            const evaluation = evaluations[index];
+            
+            // Créer une fenêtre d'impression avec un contenu formaté
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert('Veuillez autoriser les fenêtres popup pour imprimer l\'évaluation.');
+                return;
+            }
+            
+            // Déterminer le type d'évaluation
+            let evaluationType = 'Évaluation';
+            if (evaluation.type) {
+                switch(evaluation.type.toLowerCase()) {
+                    case 'self':
+                    case 'self_evaluation':
+                        evaluationType = 'Auto-évaluation';
+                        break;
+                    case 'mid_term':
+                    case 'mid-term':
+                    case 'midterm':
+                        evaluationType = 'Évaluation mi-parcours';
+                        break;
+                    case 'final':
+                    case 'finale':
+                        evaluationType = 'Évaluation finale';
+                        break;
+                    case 'company':
+                    case 'enterprise':
+                    case 'entreprise':
+                        evaluationType = 'Évaluation entreprise';
+                        break;
+                    default:
+                        evaluationType = 'Évaluation ' + evaluation.type;
+                }
+            }
+            
+            // Extraire le score avec validation
+            const score = evaluation.score !== undefined ? 
+                (isNaN(parseFloat(evaluation.score)) ? '?' : parseFloat(evaluation.score).toFixed(1)) : 
+                '?';
+                
+            // Formater les critères
+            let criteriaHtml = '';
+            if (evaluation.criteria && Array.isArray(evaluation.criteria) && evaluation.criteria.length > 0) {
+                criteriaHtml = '<h4>Critères d\'évaluation</h4><table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">';
+                criteriaHtml += '<tr><th style="text-align:left; padding: 8px; border-bottom: 1px solid #ddd;">Critère</th><th style="text-align:right; padding: 8px; border-bottom: 1px solid #ddd;">Score</th></tr>';
+                
+                evaluation.criteria.forEach(criterion => {
+                    if (criterion && criterion.name && criterion.score !== undefined) {
+                        const criterionScore = isNaN(parseFloat(criterion.score)) ? '?' : parseFloat(criterion.score).toFixed(1);
+                        criteriaHtml += `<tr>
+                            <td style="text-align:left; padding: 8px; border-bottom: 1px solid #eee;">${criterion.name}</td>
+                            <td style="text-align:right; padding: 8px; border-bottom: 1px solid #eee;">${criterionScore}/5</td>
+                        </tr>`;
+                    }
+                });
+                
+                criteriaHtml += '</table>';
+            }
+            
+            // Formater les points à améliorer
+            let improvementsHtml = '';
+            if (evaluation.areas_for_improvement && (
+                Array.isArray(evaluation.areas_for_improvement) && evaluation.areas_for_improvement.length > 0 || 
+                typeof evaluation.areas_for_improvement === 'string' && evaluation.areas_for_improvement.trim() !== '')) {
+                
+                improvementsHtml = '<h4>Points à améliorer</h4><ul style="margin-bottom: 20px;">';
+                
+                if (Array.isArray(evaluation.areas_for_improvement)) {
+                    evaluation.areas_for_improvement.forEach(area => {
+                        if (area && area.trim() !== '') {
+                            improvementsHtml += `<li>${area}</li>`;
+                        }
+                    });
+                } else {
+                    const areas = evaluation.areas_for_improvement.split("\n");
+                    areas.forEach(area => {
+                        if (area && area.trim() !== '') {
+                            improvementsHtml += `<li>${area}</li>`;
+                        }
+                    });
+                }
+                
+                improvementsHtml += '</ul>';
+            }
+            
+            // Formater les recommandations
+            let recommendationsHtml = '';
+            if (evaluation.recommendations && (
+                Array.isArray(evaluation.recommendations) && evaluation.recommendations.length > 0 || 
+                typeof evaluation.recommendations === 'string' && evaluation.recommendations.trim() !== '')) {
+                
+                recommendationsHtml = '<h4>Recommandations</h4><ul style="margin-bottom: 20px;">';
+                
+                if (Array.isArray(evaluation.recommendations)) {
+                    evaluation.recommendations.forEach(rec => {
+                        if (rec && rec.trim() !== '') {
+                            recommendationsHtml += `<li>${rec}</li>`;
+                        }
+                    });
+                } else {
+                    const recs = evaluation.recommendations.split("\n");
+                    recs.forEach(rec => {
+                        if (rec && rec.trim() !== '') {
+                            recommendationsHtml += `<li>${rec}</li>`;
+                        }
+                    });
+                }
+                
+                recommendationsHtml += '</ul>';
+            }
+            
+            // Créer le contenu HTML
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>${evaluationType} - ${new Date(evaluation.date).toLocaleDateString('fr-FR')}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            line-height: 1.6;
+                            color: #333;
+                            padding: 20px;
+                            max-width: 800px;
+                            margin: 0 auto;
+                        }
+                        h1 {
+                            color: #2c3e50;
+                            margin-bottom: 20px;
+                            border-bottom: 2px solid #3498db;
+                            padding-bottom: 10px;
+                        }
+                        h2 {
+                            color: #2c3e50;
+                            margin-top: 30px;
+                            margin-bottom: 15px;
+                        }
+                        h4 {
+                            margin-top: 25px;
+                            margin-bottom: 10px;
+                            color: #2c3e50;
+                            border-bottom: 1px solid #eee;
+                            padding-bottom: 5px;
+                        }
+                        p {
+                            margin-bottom: 15px;
+                        }
+                        .meta-info {
+                            background-color: #f8f9fa;
+                            padding: 15px;
+                            border-radius: 5px;
+                            margin-bottom: 20px;
+                            border-left: 4px solid #3498db;
+                        }
+                        .score {
+                            font-size: 24px;
+                            font-weight: bold;
+                            color: #3498db;
+                            margin-bottom: 10px;
+                        }
+                        .star {
+                            color: #f1c40f;
+                            font-size: 20px;
+                        }
+                        .evaluator {
+                            font-style: italic;
+                            color: #7f8c8d;
+                            margin-bottom: 5px;
+                        }
+                        .comments {
+                            background-color: #f8f9fa;
+                            padding: 15px;
+                            border-radius: 5px;
+                            margin: 20px 0;
+                            white-space: pre-line;
+                        }
+                        .footer {
+                            margin-top: 40px;
+                            padding-top: 20px;
+                            border-top: 1px solid #eee;
+                            font-size: 0.8em;
+                            color: #7f8c8d;
+                            text-align: center;
+                        }
+                        @media print {
+                            body {
+                                padding: 0;
+                            }
+                            .no-print {
+                                display: none;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+                        <button onclick="window.print()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Imprimer
+                        </button>
+                    </div>
+                    
+                    <h1>${evaluationType}</h1>
+                    
+                    <div class="meta-info">
+                        <p><strong>Date:</strong> ${new Date(evaluation.date).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                        <p><strong>Évaluateur:</strong> ${evaluation.evaluator_name || 'Non spécifié'}</p>
+                        <div class="score">
+                            Note globale: ${score}/5
+                            <span class="stars">
+                                ${'★'.repeat(Math.round(parseFloat(score) || 0))}${'☆'.repeat(5 - Math.round(parseFloat(score) || 0))}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <h2>Commentaires</h2>
+                    <div class="comments">
+                        ${evaluation.comments || 'Aucun commentaire fourni.'}
+                    </div>
+                    
+                    ${criteriaHtml}
+                    ${improvementsHtml}
+                    ${recommendationsHtml}
+                    
+                    <div class="footer">
+                        Document généré le ${new Date().toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})} à ${new Date().toLocaleTimeString('fr-FR')}
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // Attendre que le contenu soit chargé avant d'imprimer
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+                // Ne pas fermer la fenêtre pour permettre des impressions multiples
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Erreur lors de la préparation de l\'impression:', error);
+            alert('Impossible de préparer l\'impression: ' + error.message);
+            // Fallback à l'impression standard
+            window.print();
+        }
     }
     
     function shareEvaluation(index) {
-        // Implémenter la fonction de partage
-        const evaluations = <?php echo json_encode($evaluations); ?>;
-        const evaluation = evaluations[index];
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'Mon évaluation de stage',
-                text: `Évaluation ${evaluation.type === 'self' ? 'personnelle' : 'tuteur'} - Note: ${evaluation.score}/5`,
-                url: window.location.href
-            }).then(() => {
-                console.log('Partage réussi');
-            }).catch((error) => {
-                console.error('Erreur lors du partage:', error);
-            });
-        } else {
-            // Fallback pour les navigateurs qui ne supportent pas l'API de partage
+        // Implémenter la fonction de partage avec gestion des erreurs
+        try {
+            const evaluations = <?php echo json_encode($evaluations); ?>;
+            
+            // Vérifier que l'index et le tableau d'évaluations sont valides
+            if (!evaluations || !Array.isArray(evaluations) || !evaluations[index]) {
+                throw new Error('Évaluation non trouvée');
+            }
+            
+            const evaluation = evaluations[index];
+            
+            // Déterminer le type d'évaluation avec une meilleure gestion des cas
+            let evaluationType = 'Évaluation';
+            if (evaluation.type) {
+                switch(evaluation.type.toLowerCase()) {
+                    case 'self':
+                    case 'self_evaluation':
+                        evaluationType = 'Auto-évaluation';
+                        break;
+                    case 'mid_term':
+                    case 'mid-term':
+                    case 'midterm':
+                        evaluationType = 'Évaluation mi-parcours';
+                        break;
+                    case 'final':
+                    case 'finale':
+                        evaluationType = 'Évaluation finale';
+                        break;
+                    case 'company':
+                    case 'enterprise':
+                    case 'entreprise':
+                        evaluationType = 'Évaluation entreprise';
+                        break;
+                    default:
+                        evaluationType = 'Évaluation ' + evaluation.type;
+                }
+            }
+            
+            // Extraire le score avec validation
+            const score = evaluation.score !== undefined ? 
+                (isNaN(parseFloat(evaluation.score)) ? '?' : parseFloat(evaluation.score).toFixed(1)) : 
+                '?';
+            
+            // Préparer le contenu à partager
+            const shareTitle = 'Évaluation de stage';
+            const shareText = `${evaluationType} - Note: ${score}/5`;
             const shareUrl = window.location.href;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    alert('Le lien a été copié dans le presse-papiers');
+            
+            // Utiliser l'API de partage si disponible
+            if (navigator.share) {
+                navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl
+                }).then(() => {
+                    console.log('Partage réussi');
+                }).catch((error) => {
+                    console.error('Erreur lors du partage:', error);
+                    fallbackShare(shareUrl);
                 });
             } else {
-                alert('La fonction de partage n\'est pas supportée par votre navigateur');
+                fallbackShare(shareUrl);
             }
+        } catch (error) {
+            console.error('Erreur lors du partage de l\'évaluation:', error);
+            alert('Impossible de partager cette évaluation: ' + error.message);
+        }
+    }
+    
+    // Fonction de secours pour le partage
+    function fallbackShare(url) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url)
+                .then(() => {
+                    alert('Le lien a été copié dans le presse-papiers');
+                })
+                .catch(err => {
+                    console.error('Erreur lors de la copie dans le presse-papiers:', err);
+                    alert('Impossible de copier le lien. Veuillez le copier manuellement: ' + url);
+                });
+        } else {
+            // Fallback pour les navigateurs plus anciens
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            textarea.style.position = 'fixed';  // Éviter de faire défiler la page
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    alert('Le lien a été copié dans le presse-papiers');
+                } else {
+                    alert('Impossible de copier le lien. Veuillez le copier manuellement: ' + url);
+                }
+            } catch (err) {
+                console.error('Erreur lors de la copie dans le presse-papiers:', err);
+                alert('Impossible de copier le lien. Veuillez le copier manuellement: ' + url);
+            }
+            
+            document.body.removeChild(textarea);
         }
     }
 </script>

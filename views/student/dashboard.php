@@ -19,6 +19,14 @@ $assignment = null;
 $documents = [];
 $meetings = [];
 $preferences = [];
+$evaluations = [];
+$stats = [
+    'average' => 0,
+    'completed' => 0,
+    'total_expected' => 5,
+    'technical' => 0,
+    'professional' => 0
+];
 
 // Si on est en accès direct à la page, récupérer les données
 // Cette section est utile si la page est appelée directement sans passer par le contrôleur
@@ -37,16 +45,250 @@ if (!isset($student) || empty($student)) {
         // Initialiser le modèle Student
         $studentModel = new Student($db);
         
+        // Vérifier si la classe Evaluation existe et l'utiliser
+        $evaluationModel = null;
+        if (class_exists('Evaluation')) {
+            $evaluationModel = new Evaluation($db);
+        }
+        
         // Récupérer l'étudiant connecté
         if (isset($_SESSION['user_id'])) {
             $student = $studentModel->getByUserId($_SESSION['user_id']);
+            $user_id = $_SESSION['user_id'];
+            $student_id = $student['id'] ?? null;
             
-            if ($student) {
+            if ($student && isset($student['id'])) {
                 // Récupérer les informations pour le tableau de bord
                 $assignment = $studentModel->getAssignment($student['id']);
                 $preferences = $studentModel->getPreferences($student['id']);
                 $documents = $studentModel->getDocuments($student['id']);
-                $meetings = $studentModel->getMeetings($student['id']);
+                
+                // Récupérer les réunions de manière plus robuste, comme dans meetings.php
+                try {
+                    $meetingModel = new Meeting($db);
+                    $allMeetings = [];
+                    
+                    // 1. Récupérer les réunions où l'étudiant est directement associé
+                    if (method_exists($meetingModel, 'getByStudentId')) {
+                        $studentMeetings = $meetingModel->getByStudentId($student['id']);
+                        $allMeetings = array_merge($allMeetings, $studentMeetings);
+                    } else {
+                        // Si la méthode n'existe pas, utiliser getMeetings du modèle Student
+                        $meetings = $studentModel->getMeetings($student['id']);
+                        if ($meetings && is_array($meetings)) {
+                            $allMeetings = array_merge($allMeetings, $meetings);
+                        }
+                    }
+                    
+                    // 2. Récupérer les réunions liées aux affectations de l'étudiant
+                    if (isset($assignment) && !empty($assignment) && isset($assignment['id'])) {
+                        // Requête SQL directe pour plus de fiabilité
+                        $query = "SELECT m.*, 
+                                  u.first_name as organizer_first_name, u.last_name as organizer_last_name
+                                  FROM meetings m
+                                  LEFT JOIN users u ON m.organizer_id = u.id
+                                  WHERE m.assignment_id = :assignment_id";
+                                  
+                        $stmt = $db->prepare($query);
+                        $stmt->bindParam(':assignment_id', $assignment['id']);
+                        $stmt->execute();
+                        $assignmentMeetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        if ($assignmentMeetings && is_array($assignmentMeetings)) {
+                            $allMeetings = array_merge($allMeetings, $assignmentMeetings);
+                        }
+                    }
+                    
+                    // 3. Récupérer les réunions où l'étudiant est l'organisateur
+                    $query = "SELECT m.*, 
+                              u.first_name as organizer_first_name, u.last_name as organizer_last_name
+                              FROM meetings m
+                              LEFT JOIN users u ON m.organizer_id = u.id
+                              WHERE m.organizer_id = :user_id";
+                              
+                    $stmt = $db->prepare($query);
+                    $stmt->bindParam(':user_id', $user_id);
+                    $stmt->execute();
+                    $organizerMeetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    if ($organizerMeetings && is_array($organizerMeetings)) {
+                        $allMeetings = array_merge($allMeetings, $organizerMeetings);
+                    }
+                    
+                    // Supprimer les doublons
+                    $uniqueMeetings = [];
+                    foreach ($allMeetings as $meeting) {
+                        if (isset($meeting['id']) && !isset($uniqueMeetings[$meeting['id']])) {
+                            $uniqueMeetings[$meeting['id']] = $meeting;
+                        }
+                    }
+                    
+                    $meetings = array_values($uniqueMeetings);
+                } catch (Exception $e) {
+                    error_log("Erreur lors de la récupération des réunions: " . $e->getMessage());
+                    $meetings = [];
+                }
+                
+                // Récupérer les évaluations avec l'approche robuste utilisée dans evaluations.php
+                try {
+                    $evaluations = [];
+                    
+                    // ÉTAPE 1 : Récupération via le modèle Evaluation si disponible
+                    if ($evaluationModel !== null) {
+                        if (isset($assignment['id'])) {
+                            // Récupérer les évaluations de cette affectation
+                            $evalFromModel = $evaluationModel->getByAssignmentId($assignment['id']);
+                            
+                            // Transformer les données au format attendu
+                            foreach ($evalFromModel as $eval) {
+                                // Convertir le score de 20 à 5 si nécessaire
+                                $score = isset($eval['score']) && $eval['score'] > 5 ? round($eval['score'] / 4, 1) : $eval['score'];
+                                
+                                // Préparer les critères
+                                $criteria = [];
+                                if (isset($eval['criteria_scores']) && is_string($eval['criteria_scores'])) {
+                                    $criteriaScores = json_decode($eval['criteria_scores'], true);
+                                    
+                                    $criteriaLabels = [
+                                        'technical_skills' => 'Compétences techniques',
+                                        'professional_behavior' => 'Comportement professionnel',
+                                        'communication' => 'Communication',
+                                        'initiative' => 'Initiative et autonomie',
+                                        'teamwork' => 'Travail en équipe',
+                                        'punctuality' => 'Ponctualité et assiduité'
+                                    ];
+                                    
+                                    foreach ($criteriaScores as $key => $criterionScore) {
+                                        $criteria[] = [
+                                            'name' => $criteriaLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)),
+                                            'score' => round($criterionScore / 4, 1) // Convertir de 20 à 5
+                                        ];
+                                    }
+                                }
+                                
+                                // Créer l'entrée d'évaluation formatée
+                                $evaluations[] = [
+                                    'id' => $eval['id'],
+                                    'student_id' => $student_id,
+                                    'type' => $eval['type'],
+                                    'date' => $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d'),
+                                    'evaluator_name' => 'Tuteur',
+                                    'score' => $score,
+                                    'comments' => $eval['feedback'] ?? $eval['comments'] ?? '',
+                                    'criteria' => $criteria,
+                                    'areas_for_improvement' => !empty($eval['areas_to_improve']) ? explode("\n", $eval['areas_to_improve']) : [],
+                                    'recommendations' => !empty($eval['next_steps']) ? explode("\n", $eval['next_steps']) : []
+                                ];
+                            }
+                        }
+                    }
+                    
+                    // ÉTAPE 2 : Récupération via les documents (pour les auto-évaluations et les versions antérieures)
+                    // Filtrer pour ne garder que les documents de type évaluation
+                    $evaluationDocuments = [];
+                    foreach ($documents as $doc) {
+                        if (isset($doc['type']) && (
+                            $doc['type'] === 'evaluation' || 
+                            $doc['type'] === 'self_evaluation' || 
+                            $doc['type'] === 'mid_term' || 
+                            $doc['type'] === 'final')
+                        ) {
+                            $evaluationDocuments[] = $doc;
+                        }
+                    }
+                    
+                    // Convertir les documents en évaluations
+                    foreach ($evaluationDocuments as $doc) {
+                        // Vérifier si le document a des métadonnées
+                        if (!isset($doc['metadata']) || !is_array($doc['metadata'])) {
+                            $doc['metadata'] = [];
+                        }
+                        
+                        // Extraire les informations de base du document
+                        $evaluation = [
+                            'id' => 'doc_' . $doc['id'], // Préfixer pour éviter les conflits d'ID
+                            'student_id' => $doc['user_id'],
+                            'type' => $doc['type'] === 'self_evaluation' ? 'self' : 'teacher',
+                            'date' => $doc['upload_date'] ?? date('Y-m-d H:i:s'),
+                            'evaluator_name' => isset($doc['metadata']['evaluator_name']) ? $doc['metadata']['evaluator_name'] : 'Système',
+                            'score' => isset($doc['metadata']['score']) ? $doc['metadata']['score'] : 0,
+                            'comments' => $doc['description'] ?? ($doc['metadata']['comments'] ?? ''),
+                            'criteria' => []
+                        ];
+                        
+                        // Extraire les critères s'ils existent
+                        if (isset($doc['metadata']['criteria']) && is_array($doc['metadata']['criteria'])) {
+                            $evaluation['criteria'] = $doc['metadata']['criteria'];
+                        }
+                        
+                        // Ne pas ajouter si une évaluation avec le même type et une date proche existe déjà
+                        $isDuplicate = false;
+                        foreach ($evaluations as $existingEval) {
+                            if ($existingEval['type'] === $evaluation['type']) {
+                                $existingDate = new DateTime($existingEval['date']);
+                                $newDate = new DateTime($evaluation['date']);
+                                $interval = $existingDate->diff($newDate);
+                                
+                                // Si les dates sont à moins de 2 jours d'écart, considérer comme un doublon
+                                if ($interval->days < 2) {
+                                    $isDuplicate = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!$isDuplicate) {
+                            $evaluations[] = $evaluation;
+                        }
+                    }
+                    
+                    // Calculer les statistiques pour les évaluations
+                    $totalEvaluations = count($evaluations);
+                    $totalScore = 0;
+                    $totalTechnical = 0;
+                    $totalProfessional = 0;
+                    $countTechnical = 0;
+                    $countProfessional = 0;
+                    
+                    foreach ($evaluations as $evaluation) {
+                        $totalScore += $evaluation['score'];
+                        
+                        // Parcourir les critères
+                        if (isset($evaluation['criteria']) && is_array($evaluation['criteria'])) {
+                            foreach ($evaluation['criteria'] as $criterion) {
+                                if (!isset($criterion['name']) || !isset($criterion['score'])) {
+                                    continue;
+                                }
+                                
+                                if (stripos($criterion['name'], 'technique') !== false || stripos($criterion['name'], 'technical') !== false) {
+                                    $totalTechnical += $criterion['score'];
+                                    $countTechnical++;
+                                } else if (stripos($criterion['name'], 'professionnel') !== false || 
+                                         stripos($criterion['name'], 'professional') !== false ||
+                                         stripos($criterion['name'], 'intégration') !== false ||
+                                         stripos($criterion['name'], 'integration') !== false ||
+                                         stripos($criterion['name'], 'équipe') !== false ||
+                                         stripos($criterion['name'], 'team') !== false) {
+                                    $totalProfessional += $criterion['score'];
+                                    $countProfessional++;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Calculer les moyennes
+                    $stats = [
+                        'average' => $totalEvaluations > 0 ? round($totalScore / $totalEvaluations, 1) : 0,
+                        'completed' => $totalEvaluations,
+                        'total_expected' => 5,
+                        'technical' => $countTechnical > 0 ? round($totalTechnical / $countTechnical, 1) : 0,
+                        'professional' => $countProfessional > 0 ? round($totalProfessional / $countProfessional, 1) : 0
+                    ];
+                    
+                } catch (Exception $e) {
+                    error_log("Erreur lors de la récupération des évaluations: " . $e->getMessage());
+                    $evaluations = [];
+                }
             }
         }
     } catch (Exception $e) {
@@ -136,86 +378,111 @@ include_once __DIR__ . '/../common/header.php';
         <div class="col-md-3 fade-in delay-2">
             <div class="card stat-card">
                 <?php
-                // Calculer les évaluations soumises
-                $evaluationsCount = 0;
+                // Afficher les informations d'évaluations provenant des nouvelles variables
+                $evaluationsCount = $stats['completed'];
                 $evaluationStatus = 'Pas d\'évaluation';
                 
-                // Filtrer les documents pour trouver les évaluations
-                if (isset($documents) && is_array($documents)) {
-                    $evaluationDocs = array_filter($documents, function($doc) {
-                        return isset($doc['type']) && 
-                              ($doc['type'] == 'evaluation' || 
-                               $doc['type'] == 'self_evaluation' || 
-                               $doc['type'] == 'mid_term' || 
-                               $doc['type'] == 'final');
-                    });
-                    
-                    $evaluationsCount = count($evaluationDocs);
-                    
-                    if ($evaluationsCount == 1) {
-                        $evaluationStatus = 'Évaluation soumise';
-                    } else if ($evaluationsCount > 1) {
-                        $evaluationStatus = 'Évaluations soumises';
-                    }
+                if ($evaluationsCount == 1) {
+                    $evaluationStatus = 'Évaluation soumise';
+                } else if ($evaluationsCount > 1) {
+                    $evaluationStatus = 'Évaluations soumises';
                 }
                 
                 // Calculer le pourcentage pour la barre de progression (sur une base de 4 évaluations)
                 $evalProgress = min(100, ($evaluationsCount / 4) * 100);
+                
+                // Obtenir la note moyenne
+                $averageScore = $stats['average'];
                 ?>
-                <div class="value"><?php echo $evaluationsCount; ?></div>
-                <div class="label">Évaluation<?php echo $evaluationsCount > 1 ? 's' : ''; ?></div>
+                <div class="value"><?php echo number_format($averageScore, 1); ?></div>
+                <div class="label">Note moyenne</div>
                 <div class="progress mt-2">
                     <div class="progress-bar bg-success" role="progressbar" 
-                         style="width: <?php echo $evalProgress; ?>%;" 
-                         aria-valuenow="<?php echo $evalProgress; ?>" 
+                         style="width: <?php echo ($averageScore / 5) * 100; ?>%;" 
+                         aria-valuenow="<?php echo ($averageScore / 5) * 100; ?>" 
                          aria-valuemin="0" 
                          aria-valuemax="100"></div>
                 </div>
-                <small class="text-muted"><?php echo $evaluationStatus; ?></small>
+                <small class="text-muted"><?php echo $evaluationsCount; ?> évaluation<?php echo $evaluationsCount > 1 ? 's' : ''; ?> sur 5.0</small>
             </div>
         </div>
         <div class="col-md-3 fade-in delay-3">
             <div class="card stat-card">
                 <?php
-                // Calculer les réunions à venir
-                $upcomingMeetings = 0;
-                $meetingStatus = 'Pas de réunion';
+                // Catégoriser les réunions comme dans meetings.php
+                $categorizedMeetings = [
+                    'upcoming' => [],
+                    'past' => [],
+                    'cancelled' => []
+                ];
                 
-                if (isset($meetings) && is_array($meetings)) {
-                    $today = date('Y-m-d');
-                    $upcomingMeetings = count(array_filter($meetings, function($meeting) use ($today) {
-                        // Vérifier le format de date (peut être date_time ou meeting_date)
-                        $meetingDate = null;
-                        if (isset($meeting['meeting_date'])) {
-                            $meetingDate = $meeting['meeting_date'];
-                        } elseif (isset($meeting['date_time'])) {
-                            $meetingDate = date('Y-m-d', strtotime($meeting['date_time']));
-                        } elseif (isset($meeting['date'])) {
-                            $meetingDate = $meeting['date'];
-                        }
-                        
-                        if (!$meetingDate) {
-                            return false;
-                        }
-                        
-                        // Vérifier le statut
-                        $status = isset($meeting['status']) ? $meeting['status'] : null;
-                        
-                        return $meetingDate >= $today && $status == 'scheduled';
-                    }));
+                // Compteurs et statistiques
+                $totalMeetings = count($meetings);
+                $upcomingCount = 0;
+                $pastCount = 0;
+                $attendedCount = 0;
+                $cancelledCount = 0;
+                
+                // Date actuelle pour comparer
+                $currentDate = new DateTime();
+                
+                // Organiser les réunions par catégorie
+                foreach ($meetings as $meeting) {
+                    // Gérer différents formats de date possibles
+                    $meetingDateStr = $meeting['date_time'] ?? $meeting['meeting_date'] ?? null;
+                    if (!$meetingDateStr) continue;
                     
-                    if ($upcomingMeetings == 1) {
-                        $meetingStatus = 'Réunion à venir';
-                    } else if ($upcomingMeetings > 1) {
-                        $meetingStatus = 'Réunions à venir';
+                    $meetingDate = new DateTime($meetingDateStr);
+                    
+                    // Vérifier si la réunion est passée ou à venir
+                    if ($meeting['status'] === 'cancelled') {
+                        $categorizedMeetings['cancelled'][] = $meeting;
+                        $cancelledCount++;
+                    } elseif ($meetingDate < $currentDate) {
+                        $categorizedMeetings['past'][] = $meeting;
+                        $pastCount++;
+                        
+                        // Vérifier si l'étudiant a assisté à la réunion
+                        if (isset($meeting['student_attended']) && $meeting['student_attended'] == 1) {
+                            $attendedCount++;
+                        }
+                    } else {
+                        $categorizedMeetings['upcoming'][] = $meeting;
+                        $upcomingCount++;
                     }
                 }
                 
-                // Calculer le pourcentage pour la barre de progression (base arbitraire de 5 réunions max)
-                $meetingProgress = min(100, ($upcomingMeetings / 5) * 100);
+                // Calculer le taux de participation
+                $participationRate = $pastCount > 0 ? round(($attendedCount / $pastCount) * 100) : 0;
+                
+                // Déterminer le statut des réunions
+                $meetingStatus = 'Pas de réunion';
+                if ($upcomingCount == 1) {
+                    $meetingStatus = 'Réunion à venir';
+                } else if ($upcomingCount > 1) {
+                    $meetingStatus = 'Réunions à venir';
+                }
+                
+                // Calculer le pourcentage pour la barre de progression
+                $meetingProgress = min(100, ($upcomingCount / 5) * 100);
+                
+                // Prochaine réunion
+                $nextMeetingDate = '';
+                if (!empty($categorizedMeetings['upcoming'])) {
+                    // Trier les réunions à venir par date
+                    usort($categorizedMeetings['upcoming'], function($a, $b) {
+                        $dateA = new DateTime($a['date_time'] ?? $a['meeting_date']);
+                        $dateB = new DateTime($b['date_time'] ?? $b['meeting_date']);
+                        return $dateA <=> $dateB;
+                    });
+                    
+                    $nextMeeting = $categorizedMeetings['upcoming'][0];
+                    $nextMeetingDate = new DateTime($nextMeeting['date_time'] ?? $nextMeeting['meeting_date']);
+                    $nextMeetingDate = $nextMeetingDate->format('d/m/Y');
+                }
                 ?>
-                <div class="value"><?php echo $upcomingMeetings; ?></div>
-                <div class="label">Réunion<?php echo $upcomingMeetings > 1 ? 's' : ''; ?></div>
+                <div class="value"><?php echo $upcomingCount; ?></div>
+                <div class="label">Réunion<?php echo $upcomingCount > 1 ? 's' : ''; ?> à venir</div>
                 <div class="progress mt-2">
                     <div class="progress-bar bg-info" role="progressbar" 
                          style="width: <?php echo $meetingProgress; ?>%;" 
@@ -223,7 +490,13 @@ include_once __DIR__ . '/../common/header.php';
                          aria-valuemin="0" 
                          aria-valuemax="100"></div>
                 </div>
-                <small class="text-muted"><?php echo $meetingStatus; ?></small>
+                <small class="text-muted">
+                    <?php if (!empty($nextMeetingDate)): ?>
+                        Prochaine: <?php echo $nextMeetingDate; ?>
+                    <?php else: ?>
+                        Aucune réunion planifiée
+                    <?php endif; ?>
+                </small>
             </div>
         </div>
         <div class="col-md-3 fade-in delay-4">
@@ -292,6 +565,139 @@ include_once __DIR__ . '/../common/header.php';
                 </div>
             </div>
             
+            <!-- Progression de l'étudiant avec graphique -->
+            <div class="card mb-4 fade-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Progression et Évaluations</span>
+                    <a href="/tutoring/views/student/evaluations.php" class="btn btn-sm btn-outline-primary">Voir toutes les évaluations</a>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($evaluations)): ?>
+                        <div class="row mb-4">
+                            <div class="col-md-7">
+                                <div class="chart-container" style="position: relative; height: 250px;">
+                                    <canvas id="studentProgressChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <h5 class="mb-3">Compétences</h5>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Technique</span>
+                                        <span><?php echo h($stats['technical']); ?>/5</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: <?php echo h(($stats['technical']/5)*100); ?>%;" aria-valuenow="<?php echo h($stats['technical']); ?>" aria-valuemin="0" aria-valuemax="5"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Professionnel</span>
+                                        <span><?php echo h($stats['professional']); ?>/5</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo h(($stats['professional']/5)*100); ?>%;" aria-valuenow="<?php echo h($stats['professional']); ?>" aria-valuemin="0" aria-valuemax="5"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Moyenne générale</span>
+                                        <span><?php echo h($stats['average']); ?>/5</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo h(($stats['average']/5)*100); ?>%;" aria-valuenow="<?php echo h($stats['average']); ?>" aria-valuemin="0" aria-valuemax="5"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dernière évaluation -->
+                        <?php 
+                        // Trier les évaluations par date (la plus récente d'abord)
+                        usort($evaluations, function($a, $b) {
+                            $dateA = new DateTime($a['date']);
+                            $dateB = new DateTime($b['date']);
+                            return $dateB <=> $dateA;
+                        });
+                        
+                        $latestEvaluation = $evaluations[0];
+                        
+                        // Déterminer le type d'évaluation
+                        $evaluationType = 'Évaluation';
+                        if ($latestEvaluation['type']) {
+                            switch(strtolower($latestEvaluation['type'])) {
+                                case 'self': 
+                                case 'self_evaluation':
+                                    $evaluationType = 'Auto-évaluation';
+                                    break;
+                                case 'mid_term':
+                                case 'mid-term':
+                                case 'midterm':
+                                    $evaluationType = 'Évaluation mi-parcours';
+                                    break;
+                                case 'final':
+                                case 'finale':
+                                    $evaluationType = 'Évaluation finale';
+                                    break;
+                                case 'company':
+                                case 'enterprise':
+                                case 'entreprise':
+                                    $evaluationType = 'Évaluation entreprise';
+                                    break;
+                                default:
+                                    $evaluationType = 'Évaluation ' . $latestEvaluation['type'];
+                            }
+                        }
+                        ?>
+                        
+                        <h6 class="mb-3">
+                            <i class="bi bi-clipboard-check me-2 text-primary"></i>
+                            Dernière évaluation - <?php echo $evaluationType; ?>
+                        </h6>
+                        
+                        <div class="card mb-2 border-start border-4 border-primary">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <div class="rating-stars">
+                                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                <i class="bi <?php echo ($i <= $latestEvaluation['score']) ? 'bi-star-fill' : 'bi-star'; ?> text-warning"></i>
+                                            <?php endfor; ?>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Note: <?php echo h($latestEvaluation['score']); ?>/5</h6>
+                                        <small class="text-muted">
+                                            <?php echo date('d/m/Y', strtotime($latestEvaluation['date'])); ?> - 
+                                            <?php echo h($latestEvaluation['evaluator_name']); ?>
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <?php if (!empty($latestEvaluation['comments'])): ?>
+                                <div class="mb-3">
+                                    <h6>Commentaires</h6>
+                                    <p class="small"><?php echo nl2br(h(substr($latestEvaluation['comments'], 0, 200))); ?>
+                                    <?php if (strlen($latestEvaluation['comments']) > 200): ?>
+                                        <a href="/tutoring/views/student/evaluations.php" class="text-primary">... voir plus</a>
+                                    <?php endif; ?>
+                                    </p>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <a href="/tutoring/views/student/evaluations.php" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>Voir les détails
+                                </a>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i>Aucune évaluation disponible pour le moment.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
             <!-- Tutor Details -->
             <div class="card mb-4 fade-in">
                 <div class="card-header">
@@ -334,6 +740,9 @@ include_once __DIR__ . '/../common/header.php';
                     <a href="/tutoring/views/student/meetings.php" class="btn btn-outline-primary w-100 mb-2">
                         <i class="bi bi-calendar-event me-2"></i>Demander une réunion
                     </a>
+                    <a href="/tutoring/views/student/evaluations.php" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-clipboard-check me-2"></i>Mes évaluations
+                    </a>
                     <a href="/tutoring/views/student/preferences.php" class="btn btn-outline-primary w-100 mb-2">
                         <i class="bi bi-sliders me-2"></i>Définir mes préférences
                     </a>
@@ -345,89 +754,45 @@ include_once __DIR__ . '/../common/header.php';
             
             <!-- Upcoming Events -->
             <div class="card mb-4 fade-in">
-                <div class="card-header">
-                    Événements à venir
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Réunions à venir</span>
+                    <a href="/tutoring/views/student/meetings.php" class="btn btn-sm btn-outline-primary">Voir toutes</a>
                 </div>
                 <div class="card-body p-0">
                     <?php
-                    // Filtrer les réunions à venir
-                    $upcomingEvents = [];
+                    // Utiliser les réunions à venir déjà filtrées
+                    $upcomingEvents = $categorizedMeetings['upcoming'] ?? [];
                     
-                    if (isset($meetings) && is_array($meetings)) {
-                        $today = date('Y-m-d');
-                        
-                        // Préparer les réunions avec un format de date normalisé
-                        $normalizedMeetings = array_map(function($meeting) {
-                            // Normaliser la date de réunion
-                            if (isset($meeting['meeting_date'])) {
-                                $meeting['normalized_date'] = $meeting['meeting_date'];
-                            } elseif (isset($meeting['date_time'])) {
-                                $meeting['normalized_date'] = date('Y-m-d', strtotime($meeting['date_time']));
-                                $meeting['meeting_date'] = $meeting['normalized_date'];
-                                $meeting['meeting_time'] = date('H:i:s', strtotime($meeting['date_time']));
-                            } elseif (isset($meeting['date'])) {
-                                $meeting['normalized_date'] = $meeting['date'];
-                                $meeting['meeting_date'] = $meeting['date'];
-                                if (isset($meeting['start_time'])) {
-                                    $meeting['meeting_time'] = $meeting['start_time'];
-                                }
-                            } else {
-                                $meeting['normalized_date'] = '1970-01-01';
-                            }
-                            
-                            // Normaliser l'heure de la réunion
-                            if (!isset($meeting['meeting_time']) && isset($meeting['date_time'])) {
-                                $meeting['meeting_time'] = date('H:i:s', strtotime($meeting['date_time']));
-                            }
-                            
-                            return $meeting;
-                        }, $meetings);
-                        
-                        // Filtrer les réunions à venir
-                        $upcomingEvents = array_filter($normalizedMeetings, function($meeting) use ($today) {
-                            $status = isset($meeting['status']) ? $meeting['status'] : 'unknown';
-                            return $meeting['normalized_date'] >= $today && $status == 'scheduled';
-                        });
-                        
-                        // Trier par date (la plus proche d'abord)
-                        usort($upcomingEvents, function($a, $b) {
-                            $dateA = $a['normalized_date'];
-                            $dateB = $b['normalized_date'];
-                            
-                            if ($dateA == $dateB) {
-                                $timeA = isset($a['meeting_time']) ? $a['meeting_time'] : '00:00:00';
-                                $timeB = isset($b['meeting_time']) ? $b['meeting_time'] : '00:00:00';
-                                return strtotime($timeA) - strtotime($timeB);
-                            }
-                            
-                            return strtotime($dateA) - strtotime($dateB);
-                        });
-                        
-                        // Limiter à 5 événements max
-                        $upcomingEvents = array_slice($upcomingEvents, 0, 5);
-                    }
+                    // Trier par date (la plus proche d'abord)
+                    usort($upcomingEvents, function($a, $b) {
+                        $dateA = new DateTime($a['date_time'] ?? $a['meeting_date']);
+                        $dateB = new DateTime($b['date_time'] ?? $b['meeting_date']);
+                        return $dateA <=> $dateB;
+                    });
+                    
+                    // Limiter à 3 événements max
+                    $upcomingEvents = array_slice($upcomingEvents, 0, 3);
                     
                     if (empty($upcomingEvents)):
                     ?>
                         <div class="alert alert-info m-3" role="alert">
-                            <i class="bi bi-info-circle-fill me-2"></i>Aucun événement planifié pour le moment.
+                            <i class="bi bi-info-circle-fill me-2"></i>Aucune réunion planifiée pour le moment.
                         </div>
                     <?php else: ?>
                         <ul class="list-group list-group-flush">
-                            <?php foreach ($upcomingEvents as $event): ?>
+                            <?php foreach ($upcomingEvents as $event): 
+                                $meetingDate = new DateTime($event['date_time'] ?? $event['meeting_date']);
+                                $formattedDate = $meetingDate->format('d/m/Y');
+                                $formattedTime = isset($event['meeting_time']) ? date('H:i', strtotime($event['meeting_time'])) : $meetingDate->format('H:i');
+                            ?>
                                 <li class="list-group-item">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <strong><?php echo htmlspecialchars($event['title']); ?></strong>
-                                            <?php if (isset($event['meeting_date'])): ?>
-                                                <div class="text-muted">
-                                                    <i class="bi bi-calendar me-1"></i>
-                                                    <?php echo date('d/m/Y', strtotime($event['meeting_date'])); ?>
-                                                    <?php if (isset($event['meeting_time'])): ?>
-                                                        à <?php echo date('H:i', strtotime($event['meeting_time'])); ?>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php endif; ?>
+                                            <strong><?php echo htmlspecialchars($event['title'] ?? 'Réunion de suivi'); ?></strong>
+                                            <div class="text-muted">
+                                                <i class="bi bi-calendar me-1"></i>
+                                                <?php echo $formattedDate; ?> à <?php echo $formattedTime; ?>
+                                            </div>
                                             <?php 
                                             // Afficher les informations sur l'organisateur si disponibles
                                             $organizerName = '';
@@ -441,7 +806,7 @@ include_once __DIR__ . '/../common/header.php';
                                             
                                             if (!empty($organizerName)): 
                                             ?>
-                                                <div class="text-muted">
+                                                <div class="text-muted small">
                                                     <i class="bi bi-person me-1"></i>
                                                     <?php echo htmlspecialchars($organizerName); ?>
                                                 </div>
@@ -450,6 +815,86 @@ include_once __DIR__ . '/../common/header.php';
                                         <a href="/tutoring/views/student/meetings.php" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-eye"></i>
                                         </a>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        
+                        <?php if ($upcomingCount > 3): ?>
+                        <div class="text-center py-2">
+                            <a href="/tutoring/views/student/meetings.php" class="btn btn-sm btn-link">
+                                Voir les <?php echo $upcomingCount - 3; ?> autre<?php echo $upcomingCount - 3 > 1 ? 's' : ''; ?> réunion<?php echo $upcomingCount - 3 > 1 ? 's' : ''; ?> à venir
+                            </a>
+                        </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <!-- Recent Documents -->
+            <div class="card mb-4 fade-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Documents récents</span>
+                    <a href="/tutoring/views/student/documents.php" class="btn btn-sm btn-outline-primary">Voir tous</a>
+                </div>
+                <div class="card-body p-0">
+                    <?php
+                    // Récupérer les documents récents (non-évaluations)
+                    $recentDocuments = [];
+                    
+                    if (isset($documents) && is_array($documents)) {
+                        // Filtrer pour enlever les documents d'évaluation
+                        $recentDocuments = array_filter($documents, function($doc) {
+                            return !isset($doc['type']) || (
+                                $doc['type'] !== 'evaluation' && 
+                                $doc['type'] !== 'self_evaluation' && 
+                                $doc['type'] !== 'mid_term' && 
+                                $doc['type'] !== 'final'
+                            );
+                        });
+                        
+                        // Trier par date (le plus récent d'abord)
+                        usort($recentDocuments, function($a, $b) {
+                            $dateA = strtotime($a['upload_date'] ?? '1970-01-01');
+                            $dateB = strtotime($b['upload_date'] ?? '1970-01-01');
+                            return $dateB - $dateA;
+                        });
+                        
+                        // Limiter à 3 documents
+                        $recentDocuments = array_slice($recentDocuments, 0, 3);
+                    }
+                    
+                    if (empty($recentDocuments)):
+                    ?>
+                        <div class="alert alert-info m-3" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i>Aucun document récent.
+                        </div>
+                    <?php else: ?>
+                        <ul class="list-group list-group-flush">
+                            <?php foreach ($recentDocuments as $doc): ?>
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars($doc['title'] ?? 'Document sans titre'); ?></strong>
+                                            <div class="text-muted small">
+                                                <i class="bi bi-calendar me-1"></i>
+                                                <?php echo isset($doc['upload_date']) ? date('d/m/Y', strtotime($doc['upload_date'])) : 'Date inconnue'; ?>
+                                            </div>
+                                            <?php if (isset($doc['type'])): ?>
+                                            <div class="text-muted small">
+                                                <i class="bi bi-file-earmark me-1"></i>
+                                                <?php echo htmlspecialchars(ucfirst($doc['type'])); ?>
+                                            </div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div>
+                                            <a href="/tutoring/views/student/documents.php?id=<?php echo $doc['id']; ?>" class="btn btn-sm btn-outline-primary me-1">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="/tutoring/documents/download.php?id=<?php echo $doc['id']; ?>" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                        </div>
                                     </div>
                                 </li>
                             <?php endforeach; ?>
@@ -465,3 +910,194 @@ include_once __DIR__ . '/../common/header.php';
 // Inclure le pied de page
 include_once __DIR__ . '/../common/footer.php';
 ?>
+
+<!-- Script pour le graphique de progression -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Si un graphique de progression est présent
+        const progressChartElement = document.getElementById('studentProgressChart');
+        if (progressChartElement) {
+            try {
+                // Vérifier que Chart.js est chargé
+                if (typeof Chart === 'undefined') {
+                    throw new Error('La bibliothèque Chart.js n\'est pas chargée');
+                }
+                
+                // Données pour le graphique
+                const evaluationData = <?php echo json_encode($evaluations); ?>;
+                
+                // Vérifier que les données sont valides
+                if (!evaluationData || !Array.isArray(evaluationData)) {
+                    throw new Error('Données d\'évaluations invalides ou manquantes');
+                }
+                
+                // Préparer les données pour le graphique
+                const chartData = {
+                    labels: [],
+                    technical: [],
+                    professional: []
+                };
+                
+                // Organiser les données chronologiquement
+                const sortedEvals = [...evaluationData].filter(eval => eval && typeof eval === 'object')
+                    .sort((a, b) => {
+                        // Protection contre les dates invalides
+                        const dateA = a.date ? new Date(a.date) : new Date(0);
+                        const dateB = b.date ? new Date(b.date) : new Date(0);
+                        
+                        if (isNaN(dateA.getTime())) return 1;
+                        if (isNaN(dateB.getTime())) return -1;
+                        
+                        return dateA - dateB;
+                    });
+                
+                // Vérifier si nous avons des évaluations triées
+                if (sortedEvals.length === 0) {
+                    throw new Error('Aucune évaluation valide trouvée');
+                }
+                
+                sortedEvals.forEach(eval => {
+                    // Vérifier que la date est valide
+                    let dateStr;
+                    try {
+                        const evalDate = new Date(eval.date);
+                        if (isNaN(evalDate.getTime())) {
+                            dateStr = 'Date inconnue';
+                        } else {
+                            dateStr = evalDate.toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'});
+                        }
+                    } catch (e) {
+                        dateStr = 'Date inconnue';
+                    }
+                    
+                    // Ajouter la date au format court
+                    chartData.labels.push(dateStr);
+                    
+                    // Calculer les moyennes techniques et professionnelles
+                    let techScore = 0;
+                    let techCount = 0;
+                    let profScore = 0;
+                    let profCount = 0;
+                    
+                    // Traiter les critères avec une gestion d'erreur robuste
+                    if (eval.criteria && Array.isArray(eval.criteria)) {
+                        eval.criteria.forEach(criterion => {
+                            // Vérifier que le critère est valide
+                            if (!criterion || typeof criterion !== 'object' || 
+                                !('name' in criterion) || !('score' in criterion)) {
+                                return; // Ignorer les critères invalides
+                            }
+                            
+                            const score = parseFloat(criterion.score);
+                            if (isNaN(score)) return; // Ignorer les scores non numériques
+                            
+                            const name = String(criterion.name).toLowerCase();
+                            if (name.includes('technique') || 
+                                name.includes('technical') ||
+                                name.includes('maîtrise') ||
+                                name.includes('qualité') ||
+                                name.includes('problème') ||
+                                name.includes('documentation')) {
+                                techScore += score;
+                                techCount++;
+                            } else {
+                                profScore += score;
+                                profCount++;
+                            }
+                        });
+                    }
+                    
+                    // Ajouter les données avec protection contre les divisions par zéro
+                    chartData.technical.push(techCount > 0 ? parseFloat((techScore / techCount).toFixed(1)) : 0);
+                    chartData.professional.push(profCount > 0 ? parseFloat((profScore / profCount).toFixed(1)) : 0);
+                });
+                
+                // Créer le graphique si des données sont disponibles
+                if (chartData.labels.length > 0) {
+                    // Vérifier le contexte du canvas
+                    const ctx = progressChartElement.getContext('2d');
+                    if (!ctx) {
+                        throw new Error('Impossible d\'obtenir le contexte 2D du canvas');
+                    }
+                    
+                    // Créer le graphique avec gestion des erreurs
+                    const chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.labels,
+                            datasets: [
+                                {
+                                    label: 'Technique',
+                                    data: chartData.technical,
+                                    borderColor: '#3498db',
+                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
+                                },
+                                {
+                                    label: 'Professionnel',
+                                    data: chartData.professional,
+                                    borderColor: '#2ecc71',
+                                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom'
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        // Protection contre les valeurs NaN
+                                        label: function(context) {
+                                            const label = context.dataset.label || '';
+                                            const value = context.raw !== undefined && !isNaN(context.raw) ? 
+                                                context.raw.toFixed(1) : 'N/A';
+                                            return `${label}: ${value}/5`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    min: 0,
+                                    max: 5,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    // Si aucune donnée, afficher un message
+                    progressChartElement.parentNode.innerHTML = '<p class="text-muted text-center my-3">Pas assez de données pour afficher un graphique de progression</p>';
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'initialisation du graphique:', error);
+                progressChartElement.parentNode.innerHTML = '<div class="alert alert-warning" role="alert"><i class="bi bi-exclamation-triangle me-2"></i>Impossible de charger le graphique: ' + error.message + '</div>';
+            }
+        }
+    });
+</script>
+
+<style>
+/* Ajout de styles pour la section des évaluations */
+.rating-stars {
+    color: #ffc107;
+}
+
+.chart-container {
+    height: 250px;
+    max-width: 100%;
+}
+</style>

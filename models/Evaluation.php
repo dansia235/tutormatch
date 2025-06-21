@@ -94,35 +94,39 @@ class Evaluation {
         $query = "INSERT INTO evaluations (
                     assignment_id, 
                     evaluator_id, 
-                    evaluatee_id, 
                     type, 
                     score, 
-                    feedback, 
+                    comments, 
                     strengths, 
-                    areas_to_improve, 
+                    areas_for_improvement, 
+                    next_steps,
+                    status,
                     submission_date
                 ) VALUES (
                     :assignment_id, 
                     :evaluator_id, 
-                    :evaluatee_id, 
                     :type, 
                     :score, 
-                    :feedback, 
+                    :comments, 
                     :strengths, 
-                    :areas_to_improve, 
-                    NOW()
+                    :areas_for_improvement, 
+                    :next_steps,
+                    :status,
+                    :submission_date
                 )";
                 
         $stmt = $this->db->prepare($query);
         
         $stmt->bindParam(':assignment_id', $data['assignment_id'], PDO::PARAM_INT);
         $stmt->bindParam(':evaluator_id', $data['evaluator_id'], PDO::PARAM_INT);
-        $stmt->bindParam(':evaluatee_id', $data['evaluatee_id'], PDO::PARAM_INT);
         $stmt->bindParam(':type', $data['type'], PDO::PARAM_STR);
-        $stmt->bindParam(':score', $data['score'], PDO::PARAM_STR);
-        $stmt->bindParam(':feedback', $data['feedback'], PDO::PARAM_STR);
+        $stmt->bindParam(':score', $data['score'], PDO::PARAM_INT);
+        $stmt->bindParam(':comments', $data['comments'], PDO::PARAM_STR);
         $stmt->bindParam(':strengths', $data['strengths'], PDO::PARAM_STR);
-        $stmt->bindParam(':areas_to_improve', $data['areas_to_improve'], PDO::PARAM_STR);
+        $stmt->bindParam(':areas_for_improvement', $data['areas_for_improvement'], PDO::PARAM_STR);
+        $stmt->bindParam(':next_steps', $data['next_steps'], PDO::PARAM_STR);
+        $stmt->bindParam(':status', $data['status'], PDO::PARAM_STR);
+        $stmt->bindParam(':submission_date', $data['submission_date'], PDO::PARAM_STR);
         
         if ($stmt->execute()) {
             return $this->db->lastInsertId();
@@ -140,20 +144,46 @@ class Evaluation {
      */
     public function update($id, $data) {
         $query = "UPDATE evaluations SET 
+                    type = :type,
                     score = :score,
-                    feedback = :feedback,
+                    comments = :comments,
                     strengths = :strengths,
-                    areas_to_improve = :areas_to_improve,
-                    submission_date = NOW()
-                  WHERE id = :id";
+                    areas_for_improvement = :areas_for_improvement,
+                    next_steps = :next_steps,
+                    status = :status";
+                    
+        // Ajouter la date de soumission si elle est fournie
+        if (isset($data['submission_date'])) {
+            $query .= ", submission_date = :submission_date";
+        }
+        
+        // Ajouter la date de mise à jour
+        if (isset($data['updated_at'])) {
+            $query .= ", updated_at = :updated_at";
+        } else {
+            $query .= ", updated_at = NOW()";
+        }
+        
+        $query .= " WHERE id = :id";
                   
         $stmt = $this->db->prepare($query);
         
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->bindParam(':score', $data['score'], PDO::PARAM_STR);
-        $stmt->bindParam(':feedback', $data['feedback'], PDO::PARAM_STR);
+        $stmt->bindParam(':type', $data['type'], PDO::PARAM_STR);
+        $stmt->bindParam(':score', $data['score'], PDO::PARAM_INT);
+        $stmt->bindParam(':comments', $data['comments'], PDO::PARAM_STR);
         $stmt->bindParam(':strengths', $data['strengths'], PDO::PARAM_STR);
-        $stmt->bindParam(':areas_to_improve', $data['areas_to_improve'], PDO::PARAM_STR);
+        $stmt->bindParam(':areas_for_improvement', $data['areas_for_improvement'], PDO::PARAM_STR);
+        $stmt->bindParam(':next_steps', $data['next_steps'], PDO::PARAM_STR);
+        $stmt->bindParam(':status', $data['status'], PDO::PARAM_STR);
+        
+        if (isset($data['submission_date'])) {
+            $stmt->bindParam(':submission_date', $data['submission_date'], PDO::PARAM_STR);
+        }
+        
+        if (isset($data['updated_at'])) {
+            $stmt->bindParam(':updated_at', $data['updated_at'], PDO::PARAM_STR);
+        }
         
         return $stmt->execute();
     }

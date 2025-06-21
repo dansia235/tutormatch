@@ -19,11 +19,27 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     redirect('/tutoring/views/admin/internships.php');
 }
 
-// Instancier le contrôleur
-$internshipController = new InternshipController($db);
+// S'assurer que la connexion à la base de données est disponible
+if (!isset($db) || $db === null) {
+    $db = getDBConnection();
+}
 
-// Afficher les détails du stage
-$internshipController->show($_GET['id']);
+// Instancier les modèles
+$internshipModel = new Internship($db);
+$companyModel = new Company($db);
+
+// Récupérer le stage
+$id = $_GET['id'];
+$internship = $internshipModel->getById($id);
+
+if (!$internship) {
+    setFlashMessage('error', 'Stage non trouvé');
+    redirect('/tutoring/views/admin/internships.php');
+}
+
+// Récupérer les informations complémentaires
+$skills = $internshipModel->getSkills($id);
+$company = $companyModel->getById($internship['company_id']);
 ?>
 
 <?php require_once __DIR__ . '/../../common/header.php'; ?>
@@ -176,7 +192,7 @@ $internshipController->show($_GET['id']);
                         <h6 class="fw-bold">Compétences requises</h6>
                         <div>
                             <?php foreach ($skills as $skill): ?>
-                            <span class="badge bg-secondary me-1 mb-1"><?php echo h($skill['skill_name']); ?></span>
+                            <span class="badge bg-secondary me-1 mb-1"><?php echo h($skill); ?></span>
                             <?php endforeach; ?>
                         </div>
                     </div>

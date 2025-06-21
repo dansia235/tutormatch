@@ -518,15 +518,19 @@ include_once __DIR__ . '/../common/header.php';
                                         <?php 
                                         $statusClass = match($doc['status']) {
                                             'pending' => 'bg-warning',
+                                            'submitted' => 'bg-warning',
                                             'approved' => 'bg-success',
                                             'rejected' => 'bg-danger',
+                                            'draft' => 'bg-secondary',
                                             default => 'bg-secondary'
                                         };
                                         
                                         $statusLabel = match($doc['status']) {
                                             'pending' => 'En attente',
+                                            'submitted' => 'En attente',
                                             'approved' => 'Validé',
                                             'rejected' => 'Rejeté',
+                                            'draft' => 'Brouillon',
                                             default => ucfirst($doc['status'])
                                         };
                                         ?>
@@ -535,13 +539,13 @@ include_once __DIR__ . '/../common/header.php';
                                     <td><?php echo formatFileSize($doc['file_size'] ?? null); ?></td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="/tutoring/<?php echo h($doc['file_path']); ?>" class="btn btn-sm btn-outline-primary" target="_blank" title="Visualiser">
+                                            <a href="/tutoring/views/tutor/document_details.php?id=<?php echo h($doc['id']); ?>" class="btn btn-sm btn-outline-primary" title="Visualiser">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                             <a href="/tutoring/<?php echo h($doc['file_path']); ?>" class="btn btn-sm btn-outline-secondary" download title="Télécharger">
                                                 <i class="bi bi-download"></i>
                                             </a>
-                                            <?php if ($doc['status'] === 'pending' && $doc['user_id'] != $_SESSION['user_id']): ?>
+                                            <?php if (($doc['status'] === 'pending' || $doc['status'] === 'submitted' || $doc['status'] === 'draft') && $doc['user_id'] != $_SESSION['user_id']): ?>
                                             <button type="button" class="btn btn-sm btn-outline-success" 
                                                     onclick="approveDocument(<?php echo $doc['id']; ?>, '<?php echo h($doc['title']); ?>')" title="Approuver">
                                                 <i class="bi bi-check-lg"></i>

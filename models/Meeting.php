@@ -714,16 +714,109 @@ class Meeting {
  * @return bool Succès de l'opération
  */
 public function updateStatus($id, $status) {
-    $query = "UPDATE meetings SET status = :status, updated_at = :updated_at WHERE id = :id";
-    $stmt = $this->db->prepare($query);
-    
-    $updatedAt = date('Y-m-d H:i:s');
-    
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->bindParam(':status', $status, PDO::PARAM_STR);
-    $stmt->bindParam(':updated_at', $updatedAt);
-    
-    return $stmt->execute();
+    // Vérifier si la colonne updated_at existe dans la table
+    try {
+        $checkQuery = "SHOW COLUMNS FROM meetings LIKE 'updated_at'";
+        $checkStmt = $this->db->prepare($checkQuery);
+        $checkStmt->execute();
+        $hasUpdatedAt = $checkStmt->rowCount() > 0;
+        
+        if ($hasUpdatedAt) {
+            $query = "UPDATE meetings SET status = :status, updated_at = :updated_at WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+            
+            $updatedAt = date('Y-m-d H:i:s');
+            $stmt->bindParam(':updated_at', $updatedAt);
+        } else {
+            $query = "UPDATE meetings SET status = :status WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+        }
+        
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':status', $status, PDO::PARAM_STR);
+        
+        return $stmt->execute();
+    } catch (PDOException $e) {
+        // Fallback simple en cas d'erreur
+        $query = "UPDATE meetings SET status = :status WHERE id = :id";
+        $stmt = $this->db->prepare($query);
+        
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':status', $status, PDO::PARAM_STR);
+        
+        return $stmt->execute();
+    }
+}
+
+/**
+ * Marque une réunion comme terminée et enregistre les informations associées
+ * @param int $id ID de la réunion
+ * @param int $studentAttended 1 si l'étudiant était présent, 0 sinon
+ * @param string $notes Notes de la réunion
+ * @return bool Succès de l'opération
+ */
+public function complete($id, $studentAttended, $notes) {
+    // Vérifier si la colonne updated_at existe dans la table
+    try {
+        $checkQuery = "SHOW COLUMNS FROM meetings LIKE 'updated_at'";
+        $checkStmt = $this->db->prepare($checkQuery);
+        $checkStmt->execute();
+        $hasUpdatedAt = $checkStmt->rowCount() > 0;
+        
+        $now = date('Y-m-d H:i:s');
+        $status = 'completed';
+        
+        if ($hasUpdatedAt) {
+            $query = "UPDATE meetings SET 
+                        status = :status, 
+                        student_attended = :student_attended, 
+                        notes = :notes, 
+                        completed_at = :completed_at,
+                        updated_at = :updated_at 
+                      WHERE id = :id";
+                      
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':updated_at', $now);
+        } else {
+            $query = "UPDATE meetings SET 
+                        status = :status, 
+                        student_attended = :student_attended, 
+                        notes = :notes, 
+                        completed_at = :completed_at
+                      WHERE id = :id";
+                      
+            $stmt = $this->db->prepare($query);
+        }
+        
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':status', $status, PDO::PARAM_STR);
+        $stmt->bindParam(':student_attended', $studentAttended, PDO::PARAM_INT);
+        $stmt->bindParam(':notes', $notes, PDO::PARAM_STR);
+        $stmt->bindParam(':completed_at', $now);
+        
+        return $stmt->execute();
+    } catch (PDOException $e) {
+        // Fallback en cas d'erreur : version simplifiée sans updated_at
+        $query = "UPDATE meetings SET 
+                    status = :status, 
+                    student_attended = :student_attended, 
+                    notes = :notes, 
+                    completed_at = :completed_at
+                  WHERE id = :id";
+                  
+        $stmt = $this->db->prepare($query);
+        
+        $now = date('Y-m-d H:i:s');
+        $status = 'completed';
+        
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':status', $status, PDO::PARAM_STR);
+        $stmt->bindParam(':student_attended', $studentAttended, PDO::PARAM_INT);
+        $stmt->bindParam(':notes', $notes, PDO::PARAM_STR);
+        $stmt->bindParam(':completed_at', $now);
+        
+        return $stmt->execute();
+    }
 }
 
 /**

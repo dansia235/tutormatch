@@ -49,9 +49,22 @@ class Internship {
                   JOIN companies c ON i.company_id = c.id";
                   
         if ($status) {
-            $query .= " WHERE i.status = :status";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':status', $status);
+            // Vérifier si $status est un tableau ou une chaîne
+            if (is_array($status)) {
+                // Si c'est un tableau d'options, on vérifie s'il y a un statut spécifié
+                if (isset($status['status']) && !empty($status['status'])) {
+                    $query .= " WHERE i.status = :status";
+                    $stmt = $this->db->prepare($query);
+                    $stmt->bindParam(':status', $status['status']);
+                } else {
+                    $stmt = $this->db->prepare($query);
+                }
+            } else {
+                // Si c'est une chaîne, on l'utilise directement
+                $query .= " WHERE i.status = :status";
+                $stmt = $this->db->prepare($query);
+                $stmt->bindParam(':status', $status);
+            }
         } else {
             $stmt = $this->db->prepare($query);
         }
@@ -766,5 +779,71 @@ class Internship {
         }
         
         return $internships;
+    }
+    
+    /**
+     * Compte le nombre total de stages selon les filtres
+     * @param mixed $options Options de filtrage (chaîne de statut ou tableau d'options)
+     * @return int Nombre total de stages
+     */
+    public function countAll($options = null) {
+        $query = "SELECT COUNT(*) FROM internships i JOIN companies c ON i.company_id = c.id";
+        $where = [];
+        $params = [];
+        
+        // Traiter les options de filtrage
+        if ($options) {
+            if (is_array($options)) {
+                // Filtre par statut
+                if (isset($options['status']) && !empty($options['status'])) {
+                    $where[] = "i.status = :status";
+                    $params[':status'] = $options['status'];
+                }
+                
+                // Filtre par domaine
+                if (isset($options['domain']) && !empty($options['domain'])) {
+                    $where[] = "i.domain = :domain";
+                    $params[':domain'] = $options['domain'];
+                }
+                
+                // Filtre par entreprise
+                if (isset($options['company_id']) && !empty($options['company_id'])) {
+                    $where[] = "i.company_id = :company_id";
+                    $params[':company_id'] = $options['company_id'];
+                }
+                
+                // Filtre par mode de travail
+                if (isset($options['work_mode']) && !empty($options['work_mode'])) {
+                    $where[] = "i.work_mode = :work_mode";
+                    $params[':work_mode'] = $options['work_mode'];
+                }
+                
+                // Filtre par recherche
+                if (isset($options['search']) && !empty($options['search'])) {
+                    $search = '%' . $options['search'] . '%';
+                    $where[] = "(i.title LIKE :search OR i.description LIKE :search OR c.name LIKE :search)";
+                    $params[':search'] = $search;
+                }
+            } else {
+                // Si $options est une chaîne, on l'interprète comme un statut
+                $where[] = "i.status = :status";
+                $params[':status'] = $options;
+            }
+        }
+        
+        // Ajouter les conditions WHERE si nécessaire
+        if (!empty($where)) {
+            $query .= " WHERE " . implode(" AND ", $where);
+        }
+        
+        $stmt = $this->db->prepare($query);
+        
+        // Lier les paramètres
+        foreach ($params as $param => $value) {
+            $stmt->bindValue($param, $value);
+        }
+        
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
     }
 }

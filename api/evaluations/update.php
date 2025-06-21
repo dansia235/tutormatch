@@ -1,44 +1,73 @@
 <?php
 /**
  * Mettre à jour une évaluation
- * PUT /api/evaluations/{id}
+ * POST /api/evaluations/update.php
  */
 
+// Inclure le fichier d'initialisation
+require_once __DIR__ . '/../../includes/init.php';
+
 // Vérifier la méthode HTTP
-if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
-    sendError('Méthode non autorisée', 405);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    setFlashMessage('error', 'Méthode non autorisée');
+    redirect('/tutoring/views/admin/assignments.php');
+}
+
+// Vérifier que l'utilisateur est connecté
+requireLogin();
+
+// Vérifier le jeton CSRF
+if (!verifyCsrfToken($_POST['csrf_token'])) {
+    setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
 // Vérifier que l'ID est présent
-if (!isset($urlParts[2]) || !is_numeric($urlParts[2])) {
-    sendError('ID d\'évaluation invalide', 400);
+if (!isset($_POST['id']) || !is_numeric($_POST['id'])) {
+    setFlashMessage('error', 'ID d\'évaluation invalide');
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
-$evaluationId = (int)$urlParts[2];
+$evaluationId = (int)$_POST['id'];
 
-// Récupérer les données de la requête
-$requestBody = json_decode(file_get_contents('php://input'), true);
-if (!$requestBody) {
-    sendError('Données de mise à jour manquantes', 400);
+// Valider les données requises
+$requiredFields = ['assignment_id', 'type', 'score', 'comments'];
+foreach ($requiredFields as $field) {
+    if (!isset($_POST[$field]) || (empty($_POST[$field]) && $_POST[$field] !== '0')) {
+        setFlashMessage('error', "Le champ '$field' est requis");
+        $_SESSION['form_data'] = $_POST;
+        
+        if (isset($_POST['redirect_url'])) {
+            redirect($_POST['redirect_url']);
+        } else {
+            redirect('/tutoring/views/admin/assignments/evaluation_form.php?id=' . $_POST['assignment_id'] . '&evaluation_id=' . $evaluationId);
+        }
+    }
 }
 
 // Initialiser les modèles
 $evaluationModel = new Evaluation($db);
 $assignmentModel = new Assignment($db);
-$studentModel = new Student($db);
-$teacherModel = new Teacher($db);
-$userModel = new User($db);
 
 // Récupérer l'évaluation
 $evaluation = $evaluationModel->getById($evaluationId);
 if (!$evaluation) {
-    sendError('Évaluation non trouvée', 404);
+    setFlashMessage('error', 'Évaluation non trouvée');
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
 // Récupérer l'affectation associée
-$assignment = $assignmentModel->getById($evaluation['assignment_id']);
+$assignmentId = (int)$_POST['assignment_id'];
+$assignment = $assignmentModel->getById($assignmentId);
 if (!$assignment) {
-    sendError('Affectation associée non trouvée', 404);
+    setFlashMessage('error', 'Affectation associée non trouvée');
+    redirect('/tutoring/views/admin/assignments.php');
+}
+
+// Vérifier que l'évaluation appartient bien à cette affectation
+if ($evaluation['assignment_id'] != $assignmentId) {
+    setFlashMessage('error', 'Cette évaluation n\'appartient pas à l\'affectation spécifiée');
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
 // Vérifier les permissions
@@ -49,100 +78,90 @@ $currentUserId = $_SESSION['user_id'];
 $isAuthorized = false;
 
 if ($currentUserRole === 'admin' || $currentUserRole === 'coordinator') {
-    // Les administrateurs et coordinateurs peuvent modifier toutes les évaluations
     $isAuthorized = true;
-} elseif ($evaluation['created_by'] == $currentUserId) {
-    // Le créateur de l'évaluation peut la modifier
-    $isAuthorized = true;
-} elseif ($currentUserRole === 'teacher' && $evaluation['type'] === 'teacher') {
-    // Un tuteur peut modifier une évaluation de type "teacher" pour ses propres étudiants
+} else if ($currentUserRole === 'teacher') {
+    // Vérifier si l'utilisateur est le tuteur de cette affectation
+    $teacherModel = new Teacher($db);
     $teacher = $teacherModel->getByUserId($currentUserId);
-    if ($teacher && $teacher['id'] == $assignment['teacher_id']) {
+    if ($teacher && $teacher['id'] === $assignment['teacher_id']) {
         $isAuthorized = true;
     }
-} elseif ($currentUserRole === 'student' && $evaluation['type'] === 'student') {
-    // Un étudiant peut modifier une évaluation de type "student" qu'il a créée
+} else if ($currentUserRole === 'student' && $evaluation['status'] === 'draft') {
+    // Les étudiants peuvent uniquement modifier leurs propres auto-évaluations à l'état de brouillon
+    $studentModel = new Student($db);
     $student = $studentModel->getByUserId($currentUserId);
-    if ($student && $student['id'] == $assignment['student_id']) {
+    if ($student && $student['id'] === $assignment['student_id'] && $evaluation['evaluator_id'] === $currentUserId) {
         $isAuthorized = true;
     }
 }
 
 if (!$isAuthorized) {
-    sendError('Vous n\'êtes pas autorisé à modifier cette évaluation', 403);
+    setFlashMessage('error', "Vous n'êtes pas autorisé à modifier cette évaluation");
+    redirect('/tutoring/views/admin/assignments.php');
 }
 
-// Préparer les données à mettre à jour
-$updateData = [];
-
-// Champs pouvant être mis à jour
-if (isset($requestBody['overall_rating'])) {
-    $overallRating = (float)$requestBody['overall_rating'];
-    if ($overallRating < 0 || $overallRating > 5) {
-        sendError('La note globale doit être comprise entre 0 et 5', 400);
-    }
-    $updateData['overall_rating'] = $overallRating;
+// Valider le score
+$score = (int)$_POST['score'];
+if ($score < 0 || $score > 100) {
+    setFlashMessage('error', "Le score doit être compris entre 0 et 100");
+    $_SESSION['form_data'] = $_POST;
+    redirect('/tutoring/views/admin/assignments/evaluation_form.php?id=' . $assignmentId . '&evaluation_id=' . $evaluationId);
 }
 
-if (isset($requestBody['comments'])) {
-    $updateData['comments'] = $requestBody['comments'];
-}
+// Préparer les données pour la mise à jour
+$evaluationData = [
+    'type' => $_POST['type'],
+    'score' => $score,
+    'comments' => $_POST['comments'],
+    'strengths' => $_POST['strengths'] ?? '',
+    'areas_for_improvement' => $_POST['areas_for_improvement'] ?? '',
+    'next_steps' => $_POST['next_steps'] ?? '',
+    'status' => $_POST['status'] ?? 'draft',
+    'updated_at' => date('Y-m-d H:i:s')
+];
 
-// Ajouter la date de mise à jour
-$updateData['updated_at'] = date('Y-m-d H:i:s');
+// Si le statut passe de brouillon à soumis, mettre à jour la date de soumission
+if ($evaluation['status'] === 'draft' && ($_POST['status'] === 'submitted' || $_POST['status'] === 'approved')) {
+    $evaluationData['submission_date'] = date('Y-m-d H:i:s');
+}
 
 // Mettre à jour l'évaluation
-$success = $evaluationModel->update($evaluationId, $updateData);
+$success = $evaluationModel->update($evaluationId, $evaluationData);
+
 if (!$success) {
-    sendError('Échec de la mise à jour de l\'évaluation', 500);
+    setFlashMessage('error', "Erreur lors de la mise à jour de l'évaluation");
+    $_SESSION['form_data'] = $_POST;
+    redirect('/tutoring/views/admin/assignments/evaluation_form.php?id=' . $assignmentId . '&evaluation_id=' . $evaluationId);
 }
 
-// Mettre à jour les critères d'évaluation si fournis
-if (isset($requestBody['criteria']) && is_array($requestBody['criteria'])) {
-    // Supprimer les critères existants si on fournit une nouvelle liste complète
-    if (isset($requestBody['replace_criteria']) && $requestBody['replace_criteria'] === true) {
-        $evaluationModel->deleteCriteria($evaluationId);
-    }
-    
-    foreach ($requestBody['criteria'] as $criterion) {
-        if (isset($criterion['id']) && is_numeric($criterion['id'])) {
-            // Mettre à jour un critère existant
-            $criterionId = (int)$criterion['id'];
-            $criterionData = [];
-            
-            if (isset($criterion['name'])) $criterionData['name'] = $criterion['name'];
-            if (isset($criterion['description'])) $criterionData['description'] = $criterion['description'];
-            if (isset($criterion['rating'])) $criterionData['rating'] = (float)$criterion['rating'];
-            if (isset($criterion['weight'])) $criterionData['weight'] = (float)$criterion['weight'];
-            
-            if (!empty($criterionData)) {
-                $evaluationModel->updateCriterion($criterionId, $criterionData);
-            }
-        } elseif (isset($criterion['name']) && isset($criterion['rating'])) {
-            // Ajouter un nouveau critère
-            $criterionData = [
-                'evaluation_id' => $evaluationId,
-                'name' => $criterion['name'],
-                'description' => isset($criterion['description']) ? $criterion['description'] : '',
-                'rating' => (float)$criterion['rating'],
-                'weight' => isset($criterion['weight']) ? (float)$criterion['weight'] : 1.0
+// Notifier l'étudiant si l'évaluation est soumise
+if (($evaluation['status'] === 'draft' || $evaluation['status'] !== $_POST['status']) 
+    && ($_POST['status'] === 'submitted' || $_POST['status'] === 'approved')) {
+    // Créer une notification
+    if (class_exists('Notification')) {
+        $notificationModel = new Notification($db);
+        $studentModel = new Student($db);
+        $student = $studentModel->getById($assignment['student_id']);
+        
+        if ($student) {
+            $notificationData = [
+                'user_id' => $student['user_id'],
+                'type' => 'evaluation',
+                'content' => 'Une évaluation a été mise à jour pour votre stage.',
+                'link' => '/tutoring/views/student/evaluations.php',
+                'is_read' => 0
             ];
             
-            $evaluationModel->addCriterion($criterionData);
+            $notificationModel->create($notificationData);
         }
     }
 }
 
-// Récupérer l'évaluation mise à jour
-$updatedEvaluation = $evaluationModel->getById($evaluationId);
-$criteria = $evaluationModel->getEvaluationCriteria($evaluationId);
+// Redirection
+setFlashMessage('success', "L'évaluation a été mise à jour avec succès");
 
-// Enrichir les données de l'évaluation
-$enrichedEvaluation = $updatedEvaluation;
-$enrichedEvaluation['criteria'] = $criteria;
-
-// Envoyer la réponse
-sendJsonResponse([
-    'message' => 'Évaluation mise à jour avec succès',
-    'data' => $enrichedEvaluation
-]);
+if (isset($_POST['redirect_url'])) {
+    redirect($_POST['redirect_url']);
+} else {
+    redirect('/tutoring/views/admin/assignments/show.php?id=' . $assignmentId);
+}

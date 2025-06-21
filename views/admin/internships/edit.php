@@ -267,61 +267,22 @@ $commonSkills = [
                     </div>
                 </div>
                 
-                <div style="display: flex; justify-content: flex-end; margin-top: 2rem; padding: 1rem; background-color: #f8f9fa; border-radius: 0.5rem;">
-                    <a href="/tutoring/views/admin/internships.php" style="display: inline-block; margin-right: 0.5rem; padding: 0.5rem 1rem; background-color: #6c757d; color: white; text-decoration: none; border-radius: 0.25rem; font-weight: bold;">
-                        Annuler
-                    </a>
-                    <button type="submit" style="display: inline-block; padding: 0.5rem 1rem; background-color: #0d6efd; color: white; border: none; border-radius: 0.25rem; font-weight: bold; cursor: pointer;">
-                        <i class="bi bi-save" style="margin-right: 0.5rem;"></i>Enregistrer les modifications
-                    </button>
-                </div>
+    <div class="col-12">
+        <div class="d-flex justify-content-end gap-2">
+            <a href="/tutoring/views/admin/internships.php" class="btn btn-secondary">
+                <i class="bi bi-x-circle me-2"></i>Annuler
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-2"></i>Enregistrer les modifications
+            </button>
+        </div>
+    </div>
+</div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Bouton de secours en dehors de toute structure -->
-<div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; background-color: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 10px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); border: 3px solid #0d6efd;">
-    <div style="margin-bottom: 10px; font-weight: bold; text-align: center; color: #0d6efd;">BOUTONS DE SECOURS</div>
-    <form action="/tutoring/views/admin/internships/update.php" method="POST">
-        <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
-        <input type="hidden" name="id" value="<?php echo $internship['id']; ?>">
-        <input type="hidden" name="title" value="<?php echo h($formData['title']); ?>">
-        <input type="hidden" name="company_id" value="<?php echo h($formData['company_id']); ?>">
-        <input type="hidden" name="domain" value="<?php echo h($formData['domain']); ?>">
-        <input type="hidden" name="status" value="<?php echo h($formData['status']); ?>">
-        <input type="hidden" name="start_date" value="<?php echo h($formData['start_date']); ?>">
-        <input type="hidden" name="end_date" value="<?php echo h($formData['end_date']); ?>">
-        <input type="hidden" name="location" value="<?php echo h($formData['location'] ?? ''); ?>">
-        <input type="hidden" name="work_mode" value="<?php echo h($formData['work_mode']); ?>">
-        <input type="hidden" name="compensation" value="<?php echo h($formData['compensation'] ?? ''); ?>">
-        <input type="hidden" name="description" value="<?php echo h($formData['description']); ?>">
-        <input type="hidden" name="requirements" value="<?php echo h($formData['requirements'] ?? ''); ?>">
-        
-        <?php if (!empty($skills)): ?>
-            <?php foreach ($skills as $skill): ?>
-                <input type="hidden" name="skills[]" value="<?php echo h($skill['skill_name']); ?>">
-            <?php endforeach; ?>
-        <?php endif; ?>
-        
-        <div style="display: flex; gap: 10px;">
-            <a href="/tutoring/views/admin/internships.php" style="display: inline-block; padding: 15px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                Annuler
-            </a>
-            
-            <button type="submit" style="display: inline-block; padding: 15px 20px; background-color: #0d6efd; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2); font-size: 16px; animation: pulse 2s infinite;">
-                <span style="margin-right: 5px;">💾</span> ENREGISTRER
-            </button>
-            <style>
-                @keyframes pulse {
-                    0% { transform: scale(1); }
-                    50% { transform: scale(1.1); }
-                    100% { transform: scale(1); }
-                }
-            </style>
-        </div>
-    </form>
-</div>
 
 <!-- Template pour les compétences -->
 <template id="skill-template">

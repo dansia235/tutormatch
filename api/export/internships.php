@@ -26,7 +26,12 @@ $exportAll = isset($_GET['exportAll']) && $_GET['exportAll'] === 'true';
 
 // Récupérer les colonnes à exporter
 $columns = [];
-if (isset($_GET['columns'])) {
+// Vérifier d'abord fields[] qui est utilisé dans le formulaire d'exportation
+if (isset($_GET['fields']) && is_array($_GET['fields'])) {
+    $columns = $_GET['fields'];
+} 
+// Maintenir la compatibilité avec columns[]
+elseif (isset($_GET['columns'])) {
     // Vérifier si c'est déjà un tableau (envoyé via un form avec checkboxes multiples)
     if (is_array($_GET['columns'])) {
         $columns = $_GET['columns'];
@@ -57,8 +62,14 @@ if ($reportType) {
 } else {
     // Récupérer les mêmes filtres que ceux appliqués dans la vue
     $term = isset($_GET['term']) ? $_GET['term'] : '';
-    $status = isset($_GET['status']) ? $_GET['status'] : null;
-    $domain = isset($_GET['domain']) ? $_GET['domain'] : null;
+    
+    // Support pour les paramètres export_* du formulaire d'exportation
+    $status = isset($_GET['export_status']) ? $_GET['export_status'] : 
+              (isset($_GET['status']) ? $_GET['status'] : null);
+    
+    $domain = isset($_GET['export_domain']) ? $_GET['export_domain'] : 
+              (isset($_GET['domain']) ? $_GET['domain'] : null);
+              
     $companyId = isset($_GET['company_id']) ? $_GET['company_id'] : null;
     
     // Appliquer d'abord la recherche par terme et statut
@@ -70,6 +81,26 @@ if ($reportType) {
             $matchDomain = !$domain || $internship['domain'] === $domain;
             $matchCompany = !$companyId || $internship['company_id'] == $companyId;
             return $matchDomain && $matchCompany;
+        });
+    }
+    
+    // Filtrage par timeline si spécifié
+    $timeline = isset($_GET['export_timeline']) ? $_GET['export_timeline'] : null;
+    if ($timeline) {
+        $currentDate = date('Y-m-d');
+        $internships = array_filter($internships, function($internship) use ($timeline, $currentDate) {
+            $startDate = $internship['start_date'] ?? '';
+            $endDate = $internship['end_date'] ?? '';
+            
+            if ($timeline === 'upcoming' && !empty($startDate)) {
+                return $startDate > $currentDate;
+            } elseif ($timeline === 'current' && !empty($startDate) && !empty($endDate)) {
+                return $startDate <= $currentDate && $endDate >= $currentDate;
+            } elseif ($timeline === 'past' && !empty($endDate)) {
+                return $endDate < $currentDate;
+            }
+            
+            return true;
         });
     }
 }
@@ -148,6 +179,7 @@ switch ($format) {
         break;
         
     case 'excel':
+    case 'xlsx': // Ajout de la prise en charge du format xlsx
         exportToExcel($exportData, 'stages');
         break;
         
@@ -157,7 +189,7 @@ switch ($format) {
         
     default:
         header("HTTP/1.1 400 Bad Request");
-        echo "Format d'exportation non pris en charge";
+        echo "Format d'exportation non pris en charge: " . htmlspecialchars($format);
         exit;
 }
 

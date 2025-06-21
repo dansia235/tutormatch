@@ -46,17 +46,27 @@ try {
         }
     }
     
-    // Si aucune des méthodes précédentes ne fonctionne, essayer getAll() et filtrer
-    if (empty($allMeetings) && method_exists($meetingModel, 'getAll')) {
+    // Toujours utiliser getAll() et filtrer pour s'assurer de récupérer toutes les réunions
+    if (method_exists($meetingModel, 'getAll')) {
         $allMeetingsData = $meetingModel->getAll();
         foreach ($allMeetingsData as $meeting) {
             // Inclure les réunions où le tuteur est impliqué
             if (isset($meeting['tutor_id']) && $meeting['tutor_id'] == $teacher['id']) {
                 $allMeetings[] = $meeting;
+            } elseif (isset($meeting['organizer_id']) && $meeting['organizer_id'] == $_SESSION['user_id']) {
+                $allMeetings[] = $meeting;
             } elseif (isset($meeting['created_by']) && $meeting['created_by'] == $_SESSION['user_id']) {
                 $allMeetings[] = $meeting;
             } elseif (isset($meeting['student_id']) && in_array($meeting['student_id'], $studentIds)) {
                 $allMeetings[] = $meeting;
+            } elseif (isset($meeting['assignment_id'])) {
+                // Vérifier si l'assignment_id correspond à un des étudiants assignés
+                foreach ($assignments as $assignment) {
+                    if (isset($assignment['id']) && $assignment['id'] == $meeting['assignment_id']) {
+                        $allMeetings[] = $meeting;
+                        break;
+                    }
+                }
             }
         }
     }
@@ -247,7 +257,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_meeting'])) {
             'date_time' => $_POST['meeting_date'] . ' ' . $_POST['meeting_time'] . ':00',
             'duration' => $_POST['meeting_duration'],
             'location' => $_POST['meeting_location'],
-            'meeting_type' => $_POST['meeting_type'],
             'meeting_link' => $_POST['meeting_mode'] === 'En ligne' ? $_POST['meeting_location'] : null,
             'assignment_id' => isset($assignment['id']) ? $assignment['id'] : null,
             'status' => 'scheduled', // Statut par défaut
@@ -257,7 +266,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_meeting'])) {
         
         // Créer la réunion
         try {
-            if ($meetingModel->create($meetingData)) {
+            // Essayer d'utiliser la nouvelle méthode createMeeting si disponible
+            if (method_exists($meetingModel, 'createMeeting')) {
+                if ($meetingModel->createMeeting($meetingData)) {
+                    setFlashMessage('success', 'Réunion créée avec succès');
+                    redirect('/tutoring/views/tutor/meetings.php');
+                } else {
+                    setFlashMessage('error', 'Erreur lors de la création de la réunion');
+                }
+            } else if ($meetingModel->create($meetingData)) {
                 setFlashMessage('success', 'Réunion créée avec succès');
                 redirect('/tutoring/views/tutor/meetings.php');
             } else {
@@ -279,7 +296,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_meeting'])) {
         
         if ($meeting && (
             (isset($meeting['tutor_id']) && $meeting['tutor_id'] == $teacher['id']) ||
-            (isset($meeting['created_by']) && $meeting['created_by'] == $_SESSION['user_id'])
+            (isset($meeting['created_by']) && $meeting['created_by'] == $_SESSION['user_id']) ||
+            (isset($meeting['organizer_id']) && $meeting['organizer_id'] == $_SESSION['user_id']) ||
+            (isset($meeting['teacher_id']) && $meeting['teacher_id'] == $teacher['id'])
         )) {
             if (method_exists($meetingModel, 'updateStatus')) {
                 if ($meetingModel->updateStatus($meetingId, 'cancelled')) {
@@ -315,9 +334,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['complete_meeting'])) 
         // Vérifier que la réunion appartient au tuteur
         $meeting = $meetingModel->getById($meetingId);
         
+        if (!$meeting) {
+            setFlashMessage('error', 'Réunion non trouvée');
+            redirect('/tutoring/views/tutor/meetings.php');
+        }
+        
+        // Vérifier que la réunion a déjà eu lieu
+        $meetingDate = null;
+        $now = new DateTime();
+        
+        if (isset($meeting['date_time']) && !empty($meeting['date_time'])) {
+            $meetingDate = new DateTime($meeting['date_time']);
+        } elseif (isset($meeting['date'])) {
+            if (isset($meeting['start_time'])) {
+                $meetingDate = new DateTime($meeting['date'] . ' ' . $meeting['start_time']);
+            } else {
+                $meetingDate = new DateTime($meeting['date']);
+            }
+        }
+        
+        if ($meetingDate && $meetingDate > $now) {
+            setFlashMessage('error', 'Impossible de marquer comme terminée une réunion qui n\'a pas encore eu lieu');
+            redirect('/tutoring/views/tutor/meetings.php');
+        }
+        
+        // Vérifier les droits d'accès
         if ($meeting && (
             (isset($meeting['tutor_id']) && $meeting['tutor_id'] == $teacher['id']) ||
-            (isset($meeting['created_by']) && $meeting['created_by'] == $_SESSION['user_id'])
+            (isset($meeting['created_by']) && $meeting['created_by'] == $_SESSION['user_id']) ||
+            (isset($meeting['organizer_id']) && $meeting['organizer_id'] == $_SESSION['user_id']) ||
+            (isset($meeting['teacher_id']) && $meeting['teacher_id'] == $teacher['id'])
         )) {
             // Données à mettre à jour
             $updateData = [
@@ -389,7 +435,22 @@ include_once __DIR__ . '/../common/header.php';
                 </div>
                 <small class="text-muted">
                     <?php if (!empty($meetings['upcoming'])): ?>
-                        Prochaine: <?php echo date('d/m/Y', strtotime($meetings['upcoming'][0]['meeting_date'])); ?>
+                        <?php 
+                        $nextMeetingDate = null;
+                        if (isset($meetings['upcoming'][0]['date_time'])) {
+                            $nextMeetingDate = $meetings['upcoming'][0]['date_time'];
+                        } elseif (isset($meetings['upcoming'][0]['meeting_date'])) {
+                            $nextMeetingDate = $meetings['upcoming'][0]['meeting_date'];
+                        } elseif (isset($meetings['upcoming'][0]['date'])) {
+                            $nextMeetingDate = $meetings['upcoming'][0]['date'];
+                        }
+                        
+                        if ($nextMeetingDate) {
+                            echo 'Prochaine: ' . date('d/m/Y', strtotime($nextMeetingDate));
+                        } else {
+                            echo 'Prochaine: Date non définie';
+                        }
+                        ?>
                     <?php else: ?>
                         Aucune réunion planifiée
                     <?php endif; ?>
@@ -424,9 +485,9 @@ include_once __DIR__ . '/../common/header.php';
             <div class="card">
                 <div class="card-body">
                     <form method="get" class="row g-3">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="student_id" class="form-label">Étudiant</label>
-                            <select name="student_id" id="student_id" class="form-select">
+                            <select name="student_id" id="student_id" class="form-select form-select-sm">
                                 <option value="all">Tous les étudiants</option>
                                 <?php foreach ($assignments as $assignment): ?>
                                 <option value="<?php echo h($assignment['student_id']); ?>" <?php echo $studentFilter == $assignment['student_id'] ? 'selected' : ''; ?>>
@@ -435,19 +496,20 @@ include_once __DIR__ . '/../common/header.php';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="status" class="form-label">Statut</label>
-                            <select name="status" id="status" class="form-select">
+                            <select name="status" id="status" class="form-select form-select-sm">
                                 <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>Tous les statuts</option>
                                 <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>En attente</option>
+                                <option value="scheduled" <?php echo $statusFilter === 'scheduled' ? 'selected' : ''; ?>>Planifiée</option>
                                 <option value="confirmed" <?php echo $statusFilter === 'confirmed' ? 'selected' : ''; ?>>Confirmée</option>
                                 <option value="completed" <?php echo $statusFilter === 'completed' ? 'selected' : ''; ?>>Terminée</option>
                                 <option value="cancelled" <?php echo $statusFilter === 'cancelled' ? 'selected' : ''; ?>>Annulée</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="date_range" class="form-label">Période</label>
-                            <select name="date_range" id="date_range" class="form-select">
+                            <select name="date_range" id="date_range" class="form-select form-select-sm">
                                 <option value="all" <?php echo $dateRangeFilter === 'all' ? 'selected' : ''; ?>>Toutes les dates</option>
                                 <option value="today" <?php echo $dateRangeFilter === 'today' ? 'selected' : ''; ?>>Aujourd'hui</option>
                                 <option value="week" <?php echo $dateRangeFilter === 'week' ? 'selected' : ''; ?>>Cette semaine</option>
@@ -456,9 +518,13 @@ include_once __DIR__ . '/../common/header.php';
                                 <option value="past" <?php echo $dateRangeFilter === 'past' ? 'selected' : ''; ?>>Passées</option>
                             </select>
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary me-2">Filtrer</button>
-                            <a href="/tutoring/views/tutor/meetings.php" class="btn btn-outline-secondary">Réinitialiser</a>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-sm btn-primary me-2">
+                                <i class="bi bi-funnel me-1"></i>Appliquer les filtres
+                            </button>
+                            <a href="/tutoring/views/tutor/meetings.php" class="btn btn-sm btn-outline-secondary me-3">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser
+                            </a>
                             <button type="button" class="btn btn-success ms-auto" data-bs-toggle="modal" data-bs-target="#newMeetingModal">
                                 <i class="bi bi-plus-circle me-1"></i>Nouvelle réunion
                             </button>
@@ -529,10 +595,10 @@ include_once __DIR__ . '/../common/header.php';
                                 
                                 foreach ($filteredMeetings as $meeting): 
                                     // Déterminer la date de la réunion
-                                    if (isset($meeting['meeting_date'])) {
-                                        $meetingDate = new DateTime($meeting['meeting_date']);
-                                    } elseif (isset($meeting['date_time'])) {
+                                    if (isset($meeting['date_time'])) {
                                         $meetingDate = new DateTime($meeting['date_time']);
+                                    } elseif (isset($meeting['meeting_date'])) {
+                                        $meetingDate = new DateTime($meeting['meeting_date']);
                                     } elseif (isset($meeting['date'])) {
                                         // Si on a date et start_time séparés
                                         if (isset($meeting['start_time'])) {
@@ -594,6 +660,7 @@ include_once __DIR__ . '/../common/header.php';
                                         'confirmed' => 'Confirmée',
                                         'completed' => 'Terminée',
                                         'cancelled' => 'Annulée',
+                                        'scheduled' => 'Planifiée',
                                         default => ucfirst($meeting['status'])
                                     };
                                     
@@ -692,7 +759,13 @@ include_once __DIR__ . '/../common/header.php';
                             $upcomingDisplayed = 0;
                             foreach ($meetings['upcoming'] as $meeting): 
                                 if ($upcomingDisplayed >= 5) break;
-                                $meetingDate = new DateTime($meeting['meeting_date']);
+                                if (isset($meeting['date_time'])) {
+                                    $meetingDate = new DateTime($meeting['date_time']);
+                                } elseif (isset($meeting['meeting_date'])) {
+                                    $meetingDate = new DateTime($meeting['meeting_date']);
+                                } else {
+                                    $meetingDate = new DateTime($meeting['date'] . (isset($meeting['start_time']) ? ' ' . $meeting['start_time'] : ''));
+                                }
                                 $upcomingDisplayed++;
                                 
                                 // Récupérer les informations de l'étudiant
@@ -879,6 +952,77 @@ include_once __DIR__ . '/../common/header.php';
     </div>
 </div>
 
+<!-- View Meeting Details Modal -->
+<div class="modal fade" id="viewMeetingModal" tabindex="-1" aria-labelledby="viewMeetingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewMeetingModalLabel">Détails de la réunion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="meeting-details-content">
+                            <div class="mb-3">
+                                <h5 id="meeting-title">Chargement des détails...</h5>
+                                <span class="badge" id="meeting-status"></span>
+                            </div>
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 150px;">Date et heure:</th>
+                                        <td id="meeting-datetime"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Durée:</th>
+                                        <td id="meeting-duration"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Étudiant:</th>
+                                        <td id="meeting-student"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Organisateur:</th>
+                                        <td id="meeting-organizer"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Lieu:</th>
+                                        <td id="meeting-location"></td>
+                                    </tr>
+                                    <tr id="meeting-link-row" style="display: none;">
+                                        <th>Lien:</th>
+                                        <td id="meeting-link"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Description:</th>
+                                        <td id="meeting-description"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                Actions
+                            </div>
+                            <div class="card-body">
+                                <div id="meeting-actions">
+                                    <!-- Les boutons d'action seront ajoutés dynamiquement -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Mise à jour de la date minimum pour la création de réunion
@@ -893,7 +1037,7 @@ include_once __DIR__ . '/../common/header.php';
         document.querySelectorAll('.view-meeting').forEach(button => {
             button.addEventListener('click', function() {
                 const meetingId = this.getAttribute('data-meeting-id');
-                alert('Fonction d\'affichage des détails à implémenter pour la réunion ID: ' + meetingId);
+                viewMeetingDetails(meetingId);
             });
         });
     });
@@ -910,6 +1054,140 @@ include_once __DIR__ . '/../common/header.php';
         document.getElementById('meeting_id_to_complete').value = meetingId;
         const modal = new bootstrap.Modal(document.getElementById('completeMeetingModal'));
         modal.show();
+    }
+    
+    // Fonction pour afficher les détails d'une réunion
+    function viewMeetingDetails(meetingId) {
+        // Afficher le modal de chargement
+        const viewModal = new bootstrap.Modal(document.getElementById('viewMeetingModal'));
+        viewModal.show();
+        
+        // Réinitialiser le contenu
+        document.getElementById('meeting-title').textContent = 'Chargement des détails...';
+        document.getElementById('meeting-status').textContent = '';
+        document.getElementById('meeting-datetime').textContent = '';
+        document.getElementById('meeting-duration').textContent = '';
+        document.getElementById('meeting-student').textContent = '';
+        document.getElementById('meeting-organizer').textContent = '';
+        document.getElementById('meeting-location').textContent = '';
+        document.getElementById('meeting-description').textContent = '';
+        document.getElementById('meeting-actions').innerHTML = '';
+        
+        // Masquer la ligne du lien par défaut
+        document.getElementById('meeting-link-row').style.display = 'none';
+        
+        // Faire la requête AJAX pour récupérer les détails
+        fetch(`/tutoring/views/tutor/meeting_details.php?id=${meetingId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur lors de la récupération des détails');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Mettre à jour le contenu du modal avec les données
+                document.getElementById('meeting-title').textContent = data.title;
+                
+                // Mettre à jour le statut avec la bonne classe
+                const statusBadge = document.getElementById('meeting-status');
+                statusBadge.textContent = data.status.label;
+                statusBadge.className = `badge ${data.status.class}`;
+                
+                // Mettre à jour les autres informations
+                document.getElementById('meeting-datetime').textContent = `${data.date}, ${data.time}`;
+                document.getElementById('meeting-duration').textContent = data.duration;
+                document.getElementById('meeting-student').textContent = data.student.name;
+                document.getElementById('meeting-organizer').textContent = data.organizer;
+                document.getElementById('meeting-location').textContent = data.location;
+                document.getElementById('meeting-description').textContent = data.description || 'Aucune description';
+                
+                // Afficher le lien de réunion s'il existe
+                if (data.meeting_link) {
+                    document.getElementById('meeting-link-row').style.display = '';
+                    document.getElementById('meeting-link').innerHTML = `<a href="${data.meeting_link}" target="_blank">${data.meeting_link}</a>`;
+                }
+                
+                // Générer les boutons d'action en fonction du statut
+                const actionsContainer = document.getElementById('meeting-actions');
+                actionsContainer.innerHTML = '';
+                
+                if (data.actions.can_edit) {
+                    const editButton = document.createElement('button');
+                    editButton.className = 'btn btn-outline-primary w-100 mb-2';
+                    editButton.innerHTML = '<i class="bi bi-pencil me-2"></i>Modifier';
+                    editButton.onclick = function() {
+                        // TODO: Implémenter la modification
+                        alert('Fonctionnalité à implémenter');
+                    };
+                    actionsContainer.appendChild(editButton);
+                }
+                
+                if (data.actions.can_complete) {
+                    const completeButton = document.createElement('button');
+                    completeButton.className = 'btn btn-success w-100 mb-2';
+                    completeButton.innerHTML = '<i class="bi bi-check2-circle me-2"></i>Marquer comme terminée';
+                    completeButton.onclick = function() {
+                        // Vérifier que la réunion a déjà eu lieu
+                        const now = new Date();
+                        const meetingDate = new Date(data.date.split('/').reverse().join('-') + ' ' + data.time.split(' - ')[0]);
+                        
+                        if (meetingDate > now) {
+                            alert('Impossible de marquer comme terminée une réunion qui n\'a pas encore eu lieu');
+                            return;
+                        }
+                        
+                        viewModal.hide();
+                        completeMeeting(data.id);
+                    };
+                    actionsContainer.appendChild(completeButton);
+                }
+                
+                if (data.actions.can_cancel) {
+                    const cancelButton = document.createElement('button');
+                    cancelButton.className = 'btn btn-danger w-100 mb-2';
+                    cancelButton.innerHTML = '<i class="bi bi-x-circle me-2"></i>Annuler la réunion';
+                    cancelButton.onclick = function() {
+                        viewModal.hide();
+                        confirmCancel(data.id);
+                    };
+                    actionsContainer.appendChild(cancelButton);
+                }
+                
+                // Si la réunion est terminée et a des notes, les afficher
+                if (data.status.value === 'completed' && data.notes) {
+                    const notesSection = document.createElement('div');
+                    notesSection.className = 'mt-3 border-top pt-3';
+                    notesSection.innerHTML = `
+                        <h6 class="fw-bold">Notes de réunion:</h6>
+                        <p class="mb-0">${data.notes}</p>
+                    `;
+                    actionsContainer.appendChild(notesSection);
+                    
+                    // Afficher si l'étudiant était présent
+                    const attendanceInfo = document.createElement('div');
+                    attendanceInfo.className = 'mt-2';
+                    attendanceInfo.innerHTML = data.student_attended 
+                        ? '<span class="badge bg-success">Étudiant présent</span>'
+                        : '<span class="badge bg-danger">Étudiant absent</span>';
+                    actionsContainer.appendChild(attendanceInfo);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                document.getElementById('meeting-title').textContent = 'Erreur';
+                document.getElementById('meeting-description').textContent = 'Impossible de charger les détails de la réunion.';
+                
+                // Ajouter un bouton pour réessayer
+                const actionsContainer = document.getElementById('meeting-actions');
+                actionsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>${error.message}
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="viewMeetingDetails(${meetingId})">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Réessayer
+                    </button>
+                `;
+            });
     }
 </script>
 

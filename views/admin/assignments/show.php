@@ -286,6 +286,14 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                                             <span class="text-muted ms-2">
                                                 (<?php echo isset($evaluation['created_at']) ? formatDate($evaluation['created_at'], 'd/m/Y') : formatDate($evaluation['submission_date'], 'd/m/Y'); ?>)
                                             </span>
+                                            <?php 
+                                            $statusBadges = [
+                                                'draft' => '<span class="badge bg-secondary ms-2">Brouillon</span>',
+                                                'submitted' => '<span class="badge bg-primary ms-2">Soumis</span>',
+                                                'approved' => '<span class="badge bg-success ms-2">Approuvé</span>'
+                                            ];
+                                            echo $statusBadges[$evaluation['status'] ?? 'submitted'] ?? '';
+                                            ?>
                                         </h6>
                                         <div class="d-flex align-items-center">
                                             <div class="me-2">Score:</div>
@@ -317,7 +325,7 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                                             <h6 class="card-subtitle mb-0">Feedback général</h6>
                                         </div>
                                         <div class="card-body">
-                                            <?php echo nl2br(h($evaluation['feedback'])); ?>
+                                            <?php echo nl2br(h($evaluation['comments'] ?? $evaluation['feedback'] ?? '')); ?>
                                         </div>
                                     </div>
                                     
@@ -338,10 +346,21 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                                                     <h6 class="card-subtitle mb-0">Points à améliorer</h6>
                                                 </div>
                                                 <div class="card-body">
-                                                    <?php echo $evaluation['areas_to_improve'] ? nl2br(h($evaluation['areas_to_improve'])) : 'Aucun point à améliorer spécifié.'; ?>
+                                                    <?php echo ($evaluation['areas_for_improvement'] ?? $evaluation['areas_to_improve'] ?? false) ? nl2br(h($evaluation['areas_for_improvement'] ?? $evaluation['areas_to_improve'])) : 'Aucun point à améliorer spécifié.'; ?>
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <?php if (isset($evaluation['next_steps']) && !empty($evaluation['next_steps'])): ?>
+                                        <div class="card mb-3 mt-3">
+                                            <div class="card-header">
+                                                <h6 class="card-subtitle mb-0">Prochaines étapes</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <?php echo nl2br(h($evaluation['next_steps'])); ?>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                     
                                     <div class="text-end mt-3">
@@ -407,7 +426,7 @@ $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
                                                 'presentation' => '<span class="badge bg-secondary">Présentation</span>',
                                                 'other' => '<span class="badge bg-dark">Autre</span>'
                                             ];
-                                            echo $categoryLabels[$document['category']] ?? '<span class="badge bg-secondary">Inconnu</span>';
+                                            echo $categoryLabels[$document['category'] ?? ''] ?? '<span class="badge bg-secondary">Inconnu</span>';
                                             ?>
                                             <small class="text-muted"><?php echo formatDate($document['upload_date'], 'd/m/Y'); ?></small>
                                         </div>

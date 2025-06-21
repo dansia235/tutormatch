@@ -58,20 +58,78 @@ $meetingModel = new Meeting($db);
 $allMeetings = [];
 
 try {
+    // Approche robuste pour récupérer toutes les réunions concernant l'étudiant
+    
+    // 1. Récupérer les réunions où l'étudiant est directement associé
     if (method_exists($meetingModel, 'getByStudentId')) {
-        $allMeetings = $meetingModel->getByStudentId($student['id']);
-    } else {
-        // Fallback: récupérer toutes les réunions et filtrer
+        $studentMeetings = $meetingModel->getByStudentId($student['id']);
+        $allMeetings = array_merge($allMeetings, $studentMeetings);
+    }
+    
+    // 2. Récupérer les réunions liées aux affectations de l'étudiant
+    if (!empty($assignments)) {
+        $assignmentIds = array_column($assignments, 'id');
+        
+        foreach ($assignmentIds as $assignmentId) {
+            // Utiliser une requête SQL directe pour plus de fiabilité
+            $query = "SELECT m.*, 
+                      u.first_name as organizer_first_name, u.last_name as organizer_last_name
+                      FROM meetings m
+                      LEFT JOIN users u ON m.organizer_id = u.id
+                      WHERE m.assignment_id = :assignment_id";
+                      
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(':assignment_id', $assignmentId);
+            $stmt->execute();
+            $assignmentMeetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $allMeetings = array_merge($allMeetings, $assignmentMeetings);
+        }
+    }
+    
+    // 3. Récupérer les réunions où l'étudiant est l'organisateur
+    $userId = $_SESSION['user_id'];
+    $query = "SELECT m.*, 
+              u.first_name as organizer_first_name, u.last_name as organizer_last_name
+              FROM meetings m
+              LEFT JOIN users u ON m.organizer_id = u.id
+              WHERE m.organizer_id = :user_id";
+              
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $userId);
+    $stmt->execute();
+    $organizerMeetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $allMeetings = array_merge($allMeetings, $organizerMeetings);
+    
+    // 4. Si aucune méthode spécifique n'est disponible, utiliser une méthode générique
+    if (empty($allMeetings) && method_exists($meetingModel, 'getAll')) {
         $allMeetingsData = $meetingModel->getAll();
         foreach ($allMeetingsData as $meeting) {
-            if (isset($meeting['student_id']) && $meeting['student_id'] == $student['id']) {
+            // Inclure les réunions pertinentes pour l'étudiant
+            if (
+                (isset($meeting['student_id']) && $meeting['student_id'] == $student['id']) ||
+                (isset($meeting['assignment_id']) && in_array($meeting['assignment_id'], $assignmentIds)) ||
+                (isset($meeting['organizer_id']) && $meeting['organizer_id'] == $userId) ||
+                (isset($meeting['created_by']) && $meeting['created_by'] == $userId)
+            ) {
                 $allMeetings[] = $meeting;
             }
         }
     }
+    
+    // Supprimer les doublons basés sur l'ID
+    $uniqueMeetings = [];
+    foreach ($allMeetings as $meeting) {
+        if (isset($meeting['id']) && !isset($uniqueMeetings[$meeting['id']])) {
+            $uniqueMeetings[$meeting['id']] = $meeting;
+        }
+    }
+    
+    $allMeetings = array_values($uniqueMeetings);
 } catch (Exception $e) {
     $allMeetings = [];
-    setFlashMessage('info', 'Erreur lors de la récupération des réunions.');
+    setFlashMessage('info', 'Erreur lors de la récupération des réunions: ' . $e->getMessage());
 }
 
 // Catégoriser les réunions
@@ -119,6 +177,15 @@ foreach ($allMeetings as $meeting) {
 
 // Calculer le taux de participation
 $participationRate = $pastCount > 0 ? round(($attendedCount / $pastCount) * 100) : 0;
+
+// Calculer la durée moyenne des réunions
+$totalDuration = 0;
+$meetingCount = count($allMeetings);
+foreach ($allMeetings as $meeting) {
+    $duration = isset($meeting['duration']) ? (int)$meeting['duration'] : 60; // 60 minutes par défaut
+    $totalDuration += $duration;
+}
+$averageDuration = $meetingCount > 0 ? round($totalDuration / $meetingCount) : 60;
 
 // Calculer la satisfaction moyenne (simulée pour le moment)
 $satisfactionAverage = number_format(mt_rand(30, 50) / 10, 1);
@@ -515,7 +582,7 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <span>Durée moyenne</span>
-                            <span class="text-muted" id="average-duration">60 min</span>
+                            <span class="text-muted" id="average-duration"><?php echo $averageDuration; ?> min</span>
                         </div>
                     </div>
                 </div>
@@ -650,3 +717,49 @@ include_once __DIR__ . '/../common/header.php';
 // Inclure le pied de page
 include_once __DIR__ . '/../common/footer.php';
 ?>
+
+<style>
+.stat-card {
+    padding: 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.stat-card .value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #3a5fe5);
+}
+
+.stat-card .label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Animation pour le fade-in */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Délais pour l'animation */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+</style>

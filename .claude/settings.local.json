@@ -33,7 +33,8 @@
       "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg \"CREATE TABLE.*evaluations\" --type sql /mnt/c/xampp/htdocs/tutoring/database)",
       "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 20 \"CREATE TABLE \\`evaluations\\`\" --type sql /mnt/c/xampp/htdocs/tutoring/database)",
       "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 20 \"CREATE TABLE .evaluations.\" --type sql /mnt/c/xampp/htdocs/tutoring/database)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -n \"tutor_id.*teacher\\['id'\\]\" --no-heading /mnt/c/xampp/htdocs/tutoring/views/tutor/meetings.php)"
     ],
     "deny": []
   }
