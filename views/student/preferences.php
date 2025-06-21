@@ -86,12 +86,16 @@ include_once __DIR__ . '/../common/header.php';
                         <div class="card-body">
                             <div class="mb-3">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="Rechercher par titre, entreprise ou domaine..." 
+                                    <input type="text" class="form-control" placeholder="Commencez à taper pour voir les stages correspondants..." 
                                            data-student-preferences-target="internshipSearch" 
-                                           data-action="input->student-preferences#search">
+                                           data-action="input->student-preferences#search"
+                                           autocomplete="off">
                                     <button class="btn btn-outline-secondary" type="button">
                                         <i class="bi bi-search"></i>
                                     </button>
+                                </div>
+                                <div class="form-text small text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Exemple: tapez "p" pour voir les stages commençant par "p", puis "pa" pour affiner la recherche.
                                 </div>
                             </div>
                             
@@ -193,10 +197,57 @@ include_once __DIR__ . '/../common/header.php';
     </div>
 </div>
 
+<?php
+// Charger les préférences directement depuis la base de données comme secours
+$currentStudentPreferences = [];
+
+try {
+    if (isset($_SESSION['user_id'])) {
+        $studentModel = new Student($db);
+        $student = $studentModel->getByUserId($_SESSION['user_id']);
+        
+        if ($student) {
+            $preferences = $studentModel->getPreferences($student['id']);
+            
+            // Formatter les préférences pour le JavaScript
+            foreach ($preferences as $pref) {
+                $currentStudentPreferences[] = [
+                    'internship_id' => $pref['internship_id'],
+                    'title' => $pref['title'],
+                    'company_name' => $pref['company_name'],
+                    'preference_order' => $pref['preference_order'],
+                    'rank' => $pref['preference_order']
+                ];
+            }
+        }
+    }
+} catch (Exception $e) {
+    // Silence les erreurs mais log pour le débogage
+    error_log("Error loading preferences in page: " . $e->getMessage());
+}
+
+// Statistiques de secours pour initialiser l'interface
+$internshipModel = new Internship($db);
+$availableInternships = count($internshipModel->getAvailable());
+$preferencesCount = count($currentStudentPreferences);
+?>
+
 <script>
+// Méthode de secours pour les préférences
+const fallbackPreferences = <?= json_encode($currentStudentPreferences) ?>;
+const fallbackStats = {
+    preferences_count: <?= $preferencesCount ?>,
+    available_internships: <?= $availableInternships ?>,
+    profile_completion: <?= $preferencesCount > 0 ? 80 : 60 ?>
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Enable more detailed console logging
     console.log("Initializing student preferences page");
+    
+    // Initialize the controller with fallback data if needed
+    window.fallbackPreferencesData = fallbackPreferences;
+    window.fallbackStatsData = fallbackStats;
     
     // Fetch statistics 
     fetchPreferenceStats();
@@ -214,10 +265,13 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 console.log("Stats data:", data);
-                updateStats(data.stats || {});
+                updateStats(data.stats || fallbackStats);
             })
             .catch(error => {
                 console.error('Erreur:', error);
+                // Utiliser les statistiques de secours en cas d'erreur
+                console.log("Using fallback stats:", fallbackStats);
+                updateStats(fallbackStats);
             });
     }
     
@@ -250,10 +304,29 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("Search input value:", e.target.value);
         });
     }
+    
+    // Si le contrôleur student-preferences n'a pas de données après 3 secondes, utiliser les données de secours
+    setTimeout(() => {
+        const preferencesElement = document.querySelector('[data-controller="student-preferences"]');
+        if (preferencesElement) {
+            const controller = window.Stimulus.getControllerForElementAndIdentifier(preferencesElement, 'student-preferences');
+            if (controller && (!controller.preferences || controller.preferences.length === 0) && fallbackPreferences.length > 0) {
+                console.log("Using fallback preferences data after timeout");
+                controller.preferences = fallbackPreferences;
+                controller.updatePreferencesList();
+            }
+        }
+    }, 3000);
 });
 
-// Load debug script for development
-document.write('<script src="/tutoring/assets/js/debug-student-preferences.js"><\/script>');
+// Initialiser la recherche automatiquement au chargement
+setTimeout(() => {
+    // Déclencher une recherche vide pour afficher des stages récents
+    const searchInput = document.querySelector('[data-student-preferences-target="internshipSearch"]');
+    if (searchInput) {
+        searchInput.focus();
+    }
+}, 500);
 </script>
 
 <?php

@@ -1,0 +1,51 @@
+ Read Todos
+  ⎿  ☐ Améliorer la sécurité de l'authentification
+     ☐ Corriger les vulnérabilités XSS/CSRF
+     ☐ Optimiser les requêtes SQL et résoudre les problèmes N+1
+     ☐ Améliorer la validation des entrées utilisateur
+     ☐ Corriger les permissions de fichiers (0777 à 0755)
+     ☐ Améliorer la gestion des connexions à la base de données
+     ☐ Standardiser la structure du code et l'architecture MVC
+     ☐ Implémenter un système de journalisation cohérent
+     ☐ Standardiser la gestion des erreurs
+     ☐ Ajouter des tests unitaires et d'intégration
+     ☐ Implémenter la pagination pour les listes volumineuses
+     ☐ Refactoriser les classes volumineuses
+     ☐ Optimiser les performances front-end (cache, minification)
+     ☐ Améliorer la documentation du code et de l'API
+     ☐ Uniformiser les styles de code (PSR-12)
+
+● En analysant votre système de tutorat, j'ai identifié plusieurs problèmes critiques qui nécessitent des actions
+  pour améliorer la robustesse, la sécurité et la qualité du code. Voici un résumé des actions prioritaires à
+  entreprendre :
+
+  Problèmes de sécurité critiques
+
+  - Stocker la clé JWT dans une variable d'environnement au lieu de l'avoir en dur dans le code
+  - Corriger les permissions de dossiers (0777 → 0755)
+  - Améliorer la validation des entrées utilisateur, notamment dans les API
+  - Implémenter systématiquement la protection CSRF et l'échappement HTML
+
+  Problèmes de performance
+
+  - Résoudre les problèmes N+1 dans les requêtes SQL (particulièrement dans les tableaux de bord)
+  - Améliorer la gestion des connexions à la base de données et limiter le nombre de connexions
+  - Implémenter la pagination pour toutes les listes volumineuses
+  - Optimiser le chargement des ressources front-end avec mise en cache
+
+  Problèmes de qualité de code
+
+  - Standardiser l'architecture MVC avec une séparation claire des responsabilités
+  - Refactoriser les classes trop volumineuses (AssignmentController, Internship)
+  - Uniformiser la gestion des erreurs (exceptions vs. retours booléens)
+  - Améliorer la documentation du code et de l'API
+
+  Autres améliorations
+
+  - Ajouter des tests unitaires et d'intégration
+  - Implémenter un système de journalisation cohérent
+  - Standardiser les styles de code (adopter PSR-12)
+
+  J'ai établi une liste de tâches priorisées pour vous aider à planifier ces améliorations. Les corrections de
+  sécurité devraient être traitées en premier, suivies des optimisations de performance et des améliorations de la
+  qualité du code.

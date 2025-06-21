@@ -150,7 +150,7 @@ class InternshipController {
             $this->db->commit();
             
             setFlashMessage('success', 'Stage créé avec succès');
-            redirect('/tutoring/views/admin/internships/index.php');
+            redirect('/tutoring/views/admin/internships.php');
             
         } catch (Exception $e) {
             // Annuler la transaction en cas d'erreur
@@ -220,7 +220,7 @@ class InternshipController {
         
         if (!$internship) {
             setFlashMessage('error', 'Stage non trouvé');
-            redirect('/tutoring/views/admin/internships/index.php');
+            redirect('/tutoring/views/admin/internships.php');
             return;
         }
         
@@ -254,7 +254,7 @@ class InternshipController {
         
         if (!$internship) {
             setFlashMessage('error', 'Stage non trouvé');
-            redirect('/tutoring/views/admin/internships/index.php');
+            redirect('/tutoring/views/admin/internships.php');
             return;
         }
         
@@ -343,7 +343,7 @@ class InternshipController {
             $this->db->commit();
             
             setFlashMessage('success', 'Stage mis à jour avec succès');
-            redirect('/tutoring/views/admin/internships/index.php');
+            redirect('/tutoring/views/admin/internships.php');
             
         } catch (Exception $e) {
             // Annuler la transaction en cas d'erreur
@@ -365,7 +365,7 @@ class InternshipController {
         // Vérifier le jeton CSRF
         if (!verifyCsrfToken($_POST['csrf_token'])) {
             setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
-            redirect('/tutoring/views/admin/internships/index.php');
+            redirect('/tutoring/views/admin/internships.php');
             return;
         }
         
@@ -374,7 +374,7 @@ class InternshipController {
         
         if (!$internship) {
             setFlashMessage('error', 'Stage non trouvé');
-            redirect('/tutoring/views/admin/internships/index.php');
+            redirect('/tutoring/views/admin/internships.php');
             return;
         }
         
@@ -387,7 +387,7 @@ class InternshipController {
             setFlashMessage('error', "Erreur lors de la suppression du stage");
         }
         
-        redirect('/tutoring/views/admin/internships/index.php');
+        redirect('/tutoring/views/admin/internships.php');
     }
     
     /**

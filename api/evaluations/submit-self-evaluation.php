@@ -1,36 +1,63 @@
 <?php
 /**
- * API pour soumettre une auto-évaluation
+ * API pour soumettre une auto-évaluation par un étudiant
  * Endpoint: /api/evaluations/submit-self-evaluation
  * Méthode: POST
  */
 
+require_once __DIR__ . '/../../includes/init.php';
 require_once __DIR__ . '/../utils.php';
+require_once __DIR__ . '/document-adapter.php';
 
-// Vérifier que l'utilisateur est connecté
-requireApiAuth();
-
-// Vérifier que la méthode est POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    sendJsonError('Méthode non autorisée', 405);
+// Vérifier que l'utilisateur est connecté et est un étudiant
+if (!isset($_SESSION['user_id'])) {
+    sendJsonResponse([
+        'error' => true,
+        'message' => 'Non autorisé - Utilisateur non connecté'
+    ], 401);
+    exit;
 }
 
 // Vérifier que l'utilisateur est un étudiant
-if ($_SESSION['user_role'] !== 'student') {
-    sendJsonError('Accès non autorisé', 403);
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'student') {
+    sendJsonResponse([
+        'error' => true,
+        'message' => 'Accès non autorisé - Rôle étudiant requis'
+    ], 403);
+    exit;
+}
+
+// Vérifier que la requête est une méthode POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    sendJsonResponse([
+        'error' => true,
+        'message' => 'Méthode non autorisée - Requête POST requise'
+    ], 405);
+    exit;
 }
 
 try {
-    // Récupérer les données du corps de la requête
-    $requestData = json_decode(file_get_contents('php://input'), true);
+    // Récupérer les données du formulaire
+    $data = json_decode(file_get_contents('php://input'), true);
     
-    if (!$requestData) {
-        sendJsonError('Données invalides', 400);
+    if (!$data) {
+        // Essayer de récupérer les données depuis $_POST
+        $data = $_POST;
     }
     
-    // Vérifier les champs requis
-    if (!isset($requestData['criteria']) || !is_array($requestData['criteria'])) {
-        sendJsonError('Les critères d\'évaluation sont requis', 400);
+    // Valider les données d'entrée
+    $validation = validateApiInput($data, [
+        'comments' => 'required|max:2000',
+        'criteria' => 'required'
+    ]);
+    
+    if ($validation !== true) {
+        sendJsonResponse([
+            'error' => true,
+            'message' => 'Données invalides',
+            'validation_errors' => $validation
+        ], 400);
+        exit;
     }
     
     // Récupérer l'ID de l'étudiant
@@ -38,52 +65,82 @@ try {
     $student = $studentModel->getByUserId($_SESSION['user_id']);
     
     if (!$student) {
-        sendJsonError('Profil étudiant non trouvé', 404);
+        sendJsonResponse([
+            'error' => true,
+            'message' => 'Profil étudiant non trouvé'
+        ], 404);
+        exit;
     }
     
-    // Préparer les données de l'auto-évaluation
-    $evaluationData = [
-        'student_id' => $student['id'],
-        'evaluator_id' => $_SESSION['user_id'],
-        'evaluator_type' => 'student',
-        'type' => 'self-evaluation',
-        'date' => date('Y-m-d'),
-        'criteria' => $requestData['criteria'],
-        'comments' => $requestData['comments'] ?? '',
-        'created_at' => date('Y-m-d H:i:s')
-    ];
-    
-    // Calculer le score moyen
+    // Calculer le score moyen à partir des critères
     $totalScore = 0;
     $criteriaCount = 0;
     
-    foreach ($evaluationData['criteria'] as $criterion) {
-        if (isset($criterion['score']) && is_numeric($criterion['score'])) {
-            $totalScore += (float)$criterion['score'];
-            $criteriaCount++;
+    if (isset($data['criteria']) && is_array($data['criteria'])) {
+        foreach ($data['criteria'] as $criterion) {
+            if (isset($criterion['score']) && is_numeric($criterion['score'])) {
+                $totalScore += floatval($criterion['score']);
+                $criteriaCount++;
+            }
         }
     }
     
-    $evaluationData['score'] = $criteriaCount > 0 ? round($totalScore / $criteriaCount, 1) : 0;
+    $averageScore = $criteriaCount > 0 ? round($totalScore / $criteriaCount, 1) : 0;
     
-    // Enregistrer l'auto-évaluation
-    // Note: Dans un environnement réel, cela serait enregistré dans la base de données
-    // Pour cet exemple, nous simulons simplement une réponse de succès
+    // Préparer les données pour la création du document
+    $timestamp = time();
+    $documentData = [
+        'title' => 'Auto-évaluation - ' . date('Y-m-d'),
+        'description' => $data['comments'] ?? '',
+        'type' => 'self_evaluation',
+        'file_path' => 'evaluations/self_' . $student['id'] . '_' . $timestamp . '.json',
+        'file_type' => 'application/json',
+        'user_id' => $_SESSION['user_id'],
+        'status' => 'submitted'
+    ];
     
-    // Réponse simulée
+    // Générer les métadonnées d'évaluation
+    $evaluationData = [
+        'score' => $averageScore,
+        'comments' => $data['comments'] ?? '',
+        'evaluator_id' => $_SESSION['user_id'],
+        'evaluator_name' => $_SESSION['user_first_name'] . ' ' . $_SESSION['user_last_name'],
+        'criteria' => $data['criteria'] ?? []
+    ];
+    
+    // Générer les métadonnées
+    $metadata = generateEvaluationMetadata($evaluationData);
+    
+    // Calculer la taille du fichier (métadonnées JSON)
+    $metadataJson = json_encode($metadata);
+    $documentData['file_size'] = strlen($metadataJson);
+    $documentData['metadata'] = $metadata;
+    
+    // Créer le document
+    $documentModel = new Document($db);
+    $documentId = $documentModel->create($documentData);
+    
+    if (!$documentId) {
+        sendJsonResponse([
+            'error' => true,
+            'message' => 'Erreur lors de la création du document d\'auto-évaluation'
+        ], 500);
+        exit;
+    }
+    
+    // Enregistrer la réussite
     sendJsonResponse([
         'success' => true,
         'message' => 'Auto-évaluation soumise avec succès',
-        'evaluation' => [
-            'id' => time(), // ID fictif
-            'date' => date('Y-m-d'),
-            'type' => 'self-evaluation',
-            'score' => $evaluationData['score'],
-            'criteria' => $evaluationData['criteria'],
-            'comments' => $evaluationData['comments']
-        ]
+        'evaluation_id' => $documentId,
+        'average_score' => $averageScore
     ]);
+    
 } catch (Exception $e) {
-    sendJsonError('Erreur lors de la soumission de l\'auto-évaluation: ' . $e->getMessage(), 500);
+    error_log("Erreur API auto-évaluation: " . $e->getMessage());
+    sendJsonResponse([
+        'error' => true,
+        'message' => 'Erreur lors de la soumission de l\'auto-évaluation: ' . $e->getMessage()
+    ], 500);
 }
 ?>

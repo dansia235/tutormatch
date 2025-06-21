@@ -94,7 +94,7 @@ class DocumentController {
         // Vérifier le jeton CSRF
         if (!verifyCsrfToken($_POST['csrf_token'])) {
             setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
-            redirect('/tutoring/documents/create.php');
+            redirect('/tutoring/views/admin/documents/create.php');
             return;
         }
         
@@ -243,19 +243,25 @@ class DocumentController {
                         redirect('/tutoring/teachers/show.php?id=' . $_POST['related_id']);
                         break;
                     default:
-                        redirect('/tutoring/documents/index.php');
+                        if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents.php');
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/index.php');
+            } else {
+                redirect('/tutoring/views/student/documents.php');
+            }
                 }
             } else {
                 // Rediriger vers la liste des documents
                 if (hasRole(['admin', 'coordinator'])) {
-                    redirect('/tutoring/views/admin/documents/index.php');
+                    redirect('/tutoring/views/admin/documents.php');
                 } else {
-                    redirect('/tutoring/documents/my-documents.php');
+                    redirect('/tutoring/views/admin/documents/my-documents.php');
                 }
             }
         } else {
             setFlashMessage('error', "Erreur lors de l'ajout du document");
-            redirect('/tutoring/documents/create.php');
+            redirect('/tutoring/views/admin/documents/create.php');
         }
     }
     
@@ -272,7 +278,13 @@ class DocumentController {
         
         if (!$document) {
             setFlashMessage('error', 'Document non trouvé');
-            redirect('/tutoring/documents/index.php');
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents.php');
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/index.php');
+            } else {
+                redirect('/tutoring/views/student/documents.php');
+            }
             return;
         }
         
@@ -331,7 +343,7 @@ class DocumentController {
         
         if (!$document) {
             setFlashMessage('error', 'Document non trouvé');
-            redirect('/tutoring/views/admin/documents/index.php');
+            redirect('/tutoring/views/admin/documents.php');
             return;
         }
         
@@ -364,7 +376,13 @@ class DocumentController {
         // Vérifier le jeton CSRF
         if (!verifyCsrfToken($_POST['csrf_token'])) {
             setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
-            redirect('/tutoring/documents/edit.php?id=' . $id);
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
             return;
         }
         
@@ -373,14 +391,26 @@ class DocumentController {
         
         if (!$document) {
             setFlashMessage('error', 'Document non trouvé');
-            redirect('/tutoring/documents/index.php');
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents.php');
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/index.php');
+            } else {
+                redirect('/tutoring/views/student/documents.php');
+            }
             return;
         }
         
         // Vérifier si l'utilisateur peut modifier ce document
         if ($document['user_id'] !== $_SESSION['user_id'] && !hasRole(['admin', 'coordinator'])) {
             setFlashMessage('error', "Vous n'êtes pas autorisé à modifier ce document");
-            redirect('/tutoring/documents/show.php?id=' . $id);
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
             return;
         }
         
@@ -399,7 +429,13 @@ class DocumentController {
         if (!empty($errors)) {
             $_SESSION['form_errors'] = $errors;
             $_SESSION['form_data'] = $_POST;
-            redirect('/tutoring/documents/edit.php?id=' . $id);
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
             return;
         }
         
@@ -479,7 +515,13 @@ class DocumentController {
             
             if (!$filePath) {
                 setFlashMessage('error', "Erreur lors de l'upload du fichier. Vérifiez le format et la taille.");
-                redirect('/tutoring/documents/edit.php?id=' . $id);
+                if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
                 return;
             }
             
@@ -499,10 +541,22 @@ class DocumentController {
             setFlashMessage('success', 'Document mis à jour avec succès');
             
             // Rediriger vers la page de détails
-            redirect('/tutoring/documents/show.php?id=' . $id);
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
         } else {
             setFlashMessage('error', "Erreur lors de la mise à jour du document");
-            redirect('/tutoring/documents/edit.php?id=' . $id);
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
         }
     }
     
@@ -517,7 +571,13 @@ class DocumentController {
         // Vérifier le jeton CSRF
         if (!verifyCsrfToken($_POST['csrf_token'])) {
             setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
-            redirect('/tutoring/documents/index.php');
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents.php');
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/index.php');
+            } else {
+                redirect('/tutoring/views/student/documents.php');
+            }
             return;
         }
         
@@ -526,14 +586,26 @@ class DocumentController {
         
         if (!$document) {
             setFlashMessage('error', 'Document non trouvé');
-            redirect('/tutoring/documents/index.php');
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents.php');
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/index.php');
+            } else {
+                redirect('/tutoring/views/student/documents.php');
+            }
             return;
         }
         
         // Vérifier si l'utilisateur peut supprimer ce document
         if ($document['user_id'] !== $_SESSION['user_id'] && !hasRole(['admin', 'coordinator'])) {
             setFlashMessage('error', "Vous n'êtes pas autorisé à supprimer ce document");
-            redirect('/tutoring/documents/show.php?id=' . $id);
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
             return;
         }
         
@@ -566,14 +638,20 @@ class DocumentController {
                     redirect('/tutoring/teachers/show.php?id=' . $document['related_id']);
                     break;
                 default:
-                    redirect('/tutoring/documents/index.php');
+                    if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents.php');
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/index.php');
+            } else {
+                redirect('/tutoring/views/student/documents.php');
+            }
             }
         } else {
             // Rediriger vers la liste des documents
             if (hasRole(['admin', 'coordinator'])) {
-                redirect('/tutoring/views/admin/documents/index.php');
+                redirect('/tutoring/views/admin/documents.php');
             } else {
-                redirect('/tutoring/documents/my-documents.php');
+                redirect('/tutoring/views/admin/documents/my-documents.php');
             }
         }
     }
@@ -591,7 +669,13 @@ class DocumentController {
         
         if (!$document) {
             setFlashMessage('error', 'Document non trouvé');
-            redirect('/tutoring/documents/index.php');
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents.php');
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/index.php');
+            } else {
+                redirect('/tutoring/views/student/documents.php');
+            }
             return;
         }
         
@@ -611,7 +695,13 @@ class DocumentController {
         // Vérifier si le fichier existe
         if (!file_exists($filePath)) {
             setFlashMessage('error', 'Fichier non trouvé');
-            redirect('/tutoring/documents/show.php?id=' . $id);
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
             return;
         }
         

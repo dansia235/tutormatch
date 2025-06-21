@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 11, 2025 at 05:20 PM
+-- Generation Time: Jun 17, 2025 at 07:47 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -31,57 +31,28 @@ CREATE TABLE `algorithm_executions` (
   `id` int(11) NOT NULL,
   `parameters_id` int(11) NOT NULL,
   `executed_by` int(11) NOT NULL,
-  `execution_time` decimal(10,2) NOT NULL COMMENT 'Time in seconds',
+  `execution_time` float NOT NULL,
   `students_count` int(11) NOT NULL,
   `teachers_count` int(11) NOT NULL,
   `assignments_count` int(11) NOT NULL,
   `unassigned_count` int(11) NOT NULL,
-  `average_satisfaction` decimal(5,2) NOT NULL,
-  `execution_date` timestamp NOT NULL DEFAULT current_timestamp(),
-  `notes` text DEFAULT NULL
+  `average_satisfaction` float NOT NULL,
+  `notes` text DEFAULT NULL,
+  `executed_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `algorithm_executions`
 --
 
-INSERT INTO `algorithm_executions` (`id`, `parameters_id`, `executed_by`, `execution_time`, `students_count`, `teachers_count`, `assignments_count`, `unassigned_count`, `average_satisfaction`, `execution_date`, `notes`) VALUES
-(1, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 19:18:43', 'Première exécution avec optimisation des préférences étudiants.'),
-(2, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 19:18:43', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(3, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 19:18:43', 'Exécution avec restriction stricte par département.'),
-(4, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 21:12:41', 'Première exécution avec optimisation des préférences étudiants.'),
-(5, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 21:12:41', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(6, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 21:12:41', 'Exécution avec restriction stricte par département.'),
-(7, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 21:26:05', 'Première exécution avec optimisation des préférences étudiants.'),
-(8, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 21:26:05', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(9, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 21:26:05', 'Exécution avec restriction stricte par département.'),
-(10, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 21:45:16', 'Première exécution avec optimisation des préférences étudiants.'),
-(11, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 21:45:16', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(12, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 21:45:16', 'Exécution avec restriction stricte par département.'),
-(13, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:08:43', 'Première exécution avec optimisation des préférences étudiants.'),
-(14, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:08:43', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(15, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:08:43', 'Exécution avec restriction stricte par département.'),
-(16, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:08:50', 'Première exécution avec optimisation des préférences étudiants.'),
-(17, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:08:50', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(18, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:08:50', 'Exécution avec restriction stricte par département.'),
-(19, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:09:22', 'Première exécution avec optimisation des préférences étudiants.'),
-(20, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:09:22', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(21, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:09:22', 'Exécution avec restriction stricte par département.'),
-(22, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:12:42', 'Première exécution avec optimisation des préférences étudiants.'),
-(23, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:12:42', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(24, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:12:42', 'Exécution avec restriction stricte par département.'),
-(25, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:18:42', 'Première exécution avec optimisation des préférences étudiants.'),
-(26, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:18:42', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(27, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:18:42', 'Exécution avec restriction stricte par département.'),
-(28, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:18:46', 'Première exécution avec optimisation des préférences étudiants.'),
-(29, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:18:46', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(30, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:18:46', 'Exécution avec restriction stricte par département.'),
-(31, 1, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:21:39', 'Première exécution avec optimisation des préférences étudiants.'),
-(32, 2, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:21:39', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(33, 3, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:21:39', 'Exécution avec restriction stricte par département.'),
-(34, 8, 1, 1.25, 12, 5, 10, 2, 4.20, '2025-05-17 22:31:37', 'Première exécution avec optimisation des préférences étudiants.'),
-(35, 9, 1, 0.85, 12, 5, 10, 2, 3.80, '2025-05-19 22:31:37', 'Exécution avec priorité à l\'équilibrage de la charge des tuteurs.'),
-(36, 10, 1, 0.65, 12, 5, 8, 4, 3.50, '2025-05-21 22:31:37', 'Exécution avec restriction stricte par département.');
+INSERT INTO `algorithm_executions` (`id`, `parameters_id`, `executed_by`, `execution_time`, `students_count`, `teachers_count`, `assignments_count`, `unassigned_count`, `average_satisfaction`, `notes`, `executed_at`) VALUES
+(1, 6, 1, 33.3397, 81, 38, 14, 67, 23.0952, 'Test affectation 1', '2025-06-11 19:13:20'),
+(2, 7, 1, 0.568872, 67, 37, 0, 67, 0, 'Test Affectation 2', '2025-06-11 19:14:44'),
+(3, 8, 1, 0.279732, 67, 37, 0, 67, 0, 'Test Affectation 3', '2025-06-11 19:32:43'),
+(4, 9, 1, 0.265224, 67, 37, 0, 67, 0, 'Test Affectation 4', '2025-06-11 19:33:32'),
+(5, 10, 1, 0.43345, 67, 37, 0, 67, 0, 'Afectaion 10', '2025-06-11 20:56:15'),
+(6, 11, 1, 0.169823, 67, 37, 0, 67, 0, 'Affectation 11', '2025-06-11 22:12:13'),
+(7, 12, 1, 0.158788, 67, 37, 0, 67, 0, 'Affectation 4', '2025-06-11 22:14:50');
 
 -- --------------------------------------------------------
 
@@ -91,34 +62,32 @@ INSERT INTO `algorithm_executions` (`id`, `parameters_id`, `executed_by`, `execu
 
 CREATE TABLE `algorithm_parameters` (
   `id` int(11) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `algorithm_type` enum('greedy','hungarian','genetic','hybrid') NOT NULL DEFAULT 'greedy',
+  `name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `algorithm_type` varchar(50) NOT NULL DEFAULT 'greedy',
   `department_weight` int(11) NOT NULL DEFAULT 50,
   `preference_weight` int(11) NOT NULL DEFAULT 30,
   `capacity_weight` int(11) NOT NULL DEFAULT 20,
-  `allow_cross_department` tinyint(1) NOT NULL DEFAULT 1,
+  `allow_cross_department` tinyint(1) NOT NULL DEFAULT 0,
   `prioritize_preferences` tinyint(1) NOT NULL DEFAULT 1,
   `balance_workload` tinyint(1) NOT NULL DEFAULT 1,
-  `created_by` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `is_default` tinyint(1) NOT NULL DEFAULT 0
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `algorithm_parameters`
 --
 
-INSERT INTO `algorithm_parameters` (`id`, `name`, `algorithm_type`, `department_weight`, `preference_weight`, `capacity_weight`, `allow_cross_department`, `prioritize_preferences`, `balance_workload`, `created_by`, `created_at`, `is_default`) VALUES
-(1, 'Paramètres par défaut', 'greedy', 50, 30, 20, 1, 1, 1, NULL, '2025-06-03 10:43:29', 1),
-(2, 'Optimisation préférences', 'hungarian', 40, 50, 10, 1, 1, 1, 1, '2025-05-07 19:18:43', 0),
-(3, 'Équilibrage charge tuteurs', 'greedy', 30, 30, 40, 1, 0, 1, 1, '2025-05-12 19:18:43', 0),
-(4, 'Strict départemental', 'greedy', 70, 20, 10, 0, 0, 1, 1, '2025-05-17 19:18:43', 0),
-(5, 'Optimisation préférences', 'hungarian', 40, 50, 10, 1, 1, 1, 1, '2025-05-07 21:12:41', 0),
-(6, 'Équilibrage charge tuteurs', 'greedy', 30, 30, 40, 1, 0, 1, 1, '2025-05-12 21:12:41', 0),
-(7, 'Strict départemental', 'greedy', 70, 20, 10, 0, 0, 1, 1, '2025-05-17 21:12:41', 0),
-(8, 'Optimisation préférences', 'hungarian', 40, 50, 10, 1, 1, 1, 1, '2025-05-07 22:31:37', 0),
-(9, 'Équilibrage charge tuteurs', 'greedy', 30, 30, 40, 1, 0, 1, 1, '2025-05-12 22:31:37', 0),
-(10, 'Strict départemental', 'greedy', 70, 20, 10, 0, 0, 1, 1, '2025-05-17 22:31:37', 0);
+INSERT INTO `algorithm_parameters` (`id`, `name`, `description`, `algorithm_type`, `department_weight`, `preference_weight`, `capacity_weight`, `allow_cross_department`, `prioritize_preferences`, `balance_workload`, `is_default`, `created_at`) VALUES
+(1, 'Paramètres par défaut', 'Paramètres générés automatiquement lors de l\'installation', 'greedy', 50, 30, 20, 0, 1, 1, 1, '2025-06-11 16:59:46'),
+(6, 'Exécution du 2025-06-11 21:12', 'Test affectation 1', 'hybrid', 50, 30, 20, 0, 1, 1, 0, '2025-06-11 19:12:46'),
+(7, 'Exécution du 2025-06-11 21:14', 'Test Affectation 2', 'greedy', 50, 30, 20, 0, 1, 1, 0, '2025-06-11 19:14:44'),
+(8, 'Exécution du 2025-06-11 21:32', 'Test Affectation 3', 'genetic', 50, 30, 20, 0, 1, 1, 0, '2025-06-11 19:32:43'),
+(9, 'Exécution du 2025-06-11 21:33', 'Test Affectation 4', 'genetic', 50, 30, 20, 0, 1, 1, 0, '2025-06-11 19:33:32'),
+(10, 'Exécution du 2025-06-11 22:55', 'Afectaion 10', 'genetic', 50, 30, 20, 0, 1, 1, 0, '2025-06-11 20:56:14'),
+(11, 'Exécution du 2025-06-12 00:11', 'Affectation 11', 'hungarian', 50, 30, 20, 0, 1, 1, 0, '2025-06-11 22:12:13'),
+(12, 'Exécution du 2025-06-11 00:13', 'Affectation 4', 'genetic', 50, 30, 20, 0, 1, 1, 0, '2025-06-11 22:14:50');
 
 -- --------------------------------------------------------
 
@@ -145,9 +114,23 @@ CREATE TABLE `assignments` (
 
 INSERT INTO `assignments` (`id`, `student_id`, `teacher_id`, `internship_id`, `status`, `satisfaction_score`, `compatibility_score`, `assignment_date`, `confirmation_date`, `notes`) VALUES
 (1, 3, 2, 1, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL),
-(2, 5, 3, 2, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL),
+(2, 5, 3, 2, 'confirmed', NULL, 4.30, '2025-06-07 09:42:54', '2025-06-11 22:47:44', ''),
 (3, 7, 6, 3, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL),
-(4, 6, 2, 4, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL);
+(4, 6, 2, 4, 'confirmed', NULL, NULL, '2025-06-07 09:42:54', NULL, NULL),
+(5, 97, 4, 1, 'confirmed', 0.00, 0.00, '2025-06-11 19:13:20', '2025-06-11 20:32:02', 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(6, 99, 4, 38, 'confirmed', 0.00, 0.50, '2025-06-11 19:13:20', '2025-06-11 21:00:04', 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(7, 84, 2, 45, 'confirmed', 0.00, 1.40, '2025-06-11 19:13:20', '2025-06-11 20:59:45', 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(8, 78, 4, 84, 'confirmed', 0.00, 0.50, '2025-06-11 19:13:20', '2025-06-11 21:00:34', 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(9, 4, 3, 2, 'completed', 0.00, 3.90, '2025-06-11 19:13:20', '2025-06-11 22:00:56', 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(10, 42, 3, 11, 'pending', 0.00, 24.00, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(11, 51, 2, 91, 'pending', 0.00, 23.33, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(12, 91, 13, 135, 'pending', 0.00, 20.00, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(13, 36, 14, 174, 'pending', 0.00, 20.00, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(14, 43, 15, 181, 'rejected', 0.00, 1.50, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(15, 71, 16, 225, 'pending', 0.00, 20.00, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(16, 94, 17, 10, 'pending', 0.00, 20.00, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(17, 79, 18, 51, 'rejected', 0.00, 1.50, '2025-06-11 19:13:20', NULL, 'Affectation générée automatiquement par l\'algorithme hybrid'),
+(18, 29, 32, 56, 'completed', 0.00, 1.33, '2025-06-11 19:13:20', '2025-06-11 22:01:15', 'Affectation générée automatiquement par l\'algorithme hybrid');
 
 -- --------------------------------------------------------
 
@@ -350,8 +333,11 @@ CREATE TABLE `documents` (
   `user_id` int(11) NOT NULL,
   `assignment_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
   `type` enum('contract','report','evaluation','certificate','other') NOT NULL,
   `file_path` varchar(255) NOT NULL,
+  `file_type` varchar(100) DEFAULT NULL,
+  `file_size` int(11) DEFAULT NULL,
   `upload_date` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('draft','submitted','approved','rejected') NOT NULL DEFAULT 'draft',
   `feedback` text DEFAULT NULL,
@@ -362,15 +348,29 @@ CREATE TABLE `documents` (
 -- Dumping data for table `documents`
 --
 
-INSERT INTO `documents` (`id`, `user_id`, `assignment_id`, `title`, `type`, `file_path`, `upload_date`, `status`, `feedback`, `version`) VALUES
-(1, 14, 1, 'Convention de stage - Lucas Dupont', 'contract', 'uploads/documents/1_convention_stage.pdf', '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(2, 14, 1, 'CV - Lucas Dupont', 'other', 'uploads/documents/1_cv.pdf', '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(3, 14, 1, 'Rapport intermédiaire - Lucas Dupont', 'report', 'uploads/documents/1_rapport_intermediaire.pdf', '2025-06-07 09:42:54', 'draft', NULL, NULL),
-(4, 16, 2, 'Convention de stage - Louis Moreau', 'contract', 'uploads/documents/3_convention_stage.pdf', '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(5, 16, 2, 'CV - Louis Moreau', 'other', 'uploads/documents/3_cv.pdf', '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(6, 18, 3, 'Convention de stage - Hugo Simon', 'contract', 'uploads/documents/5_convention_stage.pdf', '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(7, 17, 4, 'Convention de stage - Chloé Fournier', 'contract', 'uploads/documents/4_convention_stage.pdf', '2025-06-07 09:42:54', 'approved', NULL, NULL),
-(8, 9, NULL, 'Guide du rapport final', 'other', 'uploads/documents/guide_rapport_final.pdf', '2025-06-07 09:42:54', 'approved', NULL, NULL);
+INSERT INTO `documents` (`id`, `user_id`, `assignment_id`, `title`, `description`, `type`, `file_path`, `file_type`, `file_size`, `upload_date`, `status`, `feedback`, `version`) VALUES
+(1, 14, 1, 'Convention de stage - Lucas Dupont', NULL, 'contract', 'uploads/documents/1_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
+(2, 14, 1, 'CV - Lucas Dupont', NULL, 'other', 'uploads/documents/1_cv.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
+(3, 14, 1, 'Rapport intermédiaire - Lucas Dupont', NULL, 'report', 'uploads/documents/1_rapport_intermediaire.pdf', NULL, NULL, '2025-06-07 09:42:54', 'draft', NULL, NULL),
+(4, 16, 2, 'Convention de stage - Louis Moreau', NULL, 'contract', 'uploads/documents/3_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
+(5, 16, 2, 'CV - Louis Moreau', NULL, 'other', 'uploads/documents/3_cv.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
+(6, 18, 3, 'Convention de stage - Hugo Simon', NULL, 'contract', 'uploads/documents/5_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
+(7, 17, 4, 'Convention de stage - Chloé Fournier', NULL, 'contract', 'uploads/documents/4_convention_stage.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
+(8, 9, NULL, 'Guide du rapport final', NULL, 'other', 'uploads/documents/guide_rapport_final.pdf', NULL, NULL, '2025-06-07 09:42:54', 'approved', NULL, NULL),
+(1003, 1, NULL, 'Test 1', '', 'report', 'uploads/documents/1749736178_Hugo Simon CV.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 44917, '2025-06-12 13:49:38', 'submitted', NULL, '1.0'),
+(1004, 1, NULL, 'Document de test SQL', NULL, 'report', 'uploads/documents/test_sql.pdf', 'application/pdf', 12345, '2025-06-12 13:51:42', 'submitted', NULL, NULL),
+(1005, 1, NULL, 'Document de test via modèle', NULL, 'report', 'uploads/documents/test_model.pdf', 'application/pdf', 12345, '2025-06-12 13:51:42', 'submitted', NULL, NULL),
+(1006, 18, 3, 'CV', '', 'other', 'uploads/documents/1749736339_Hugo Simon CV.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 44917, '2025-06-12 13:52:19', 'submitted', NULL, '1.0'),
+(1007, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15d67fa1b.json', 'application/json', 1024, '2025-06-15 18:49:58', 'submitted', NULL, NULL),
+(1008, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15d690689.json', 'application/json', 1024, '2025-06-15 18:49:58', 'submitted', NULL, NULL),
+(1009, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15ef9d78b.json', 'application/json', 1024, '2025-06-15 18:50:23', 'submitted', NULL, NULL),
+(1010, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15efa5fc9.json', 'application/json', 1024, '2025-06-15 18:50:23', 'submitted', NULL, NULL),
+(1011, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f1f2f0d.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', NULL, NULL),
+(1012, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f20c5e0.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', NULL, NULL),
+(1013, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f3152fe.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL),
+(1014, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f31d02e.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL),
+(1015, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f3c98cb.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL),
+(1016, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f3cd2d4.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -399,7 +399,9 @@ INSERT INTO `evaluations` (`id`, `assignment_id`, `evaluator_id`, `evaluatee_id`
 (1, 1, 9, 14, 'teacher', 4.5, 'Excellent travail et bonne intégration dans l\'équipe. Continue ainsi.', NULL, NULL, '2025-06-07 09:42:54'),
 (2, 2, 10, 16, 'teacher', 4.0, 'Bon travail, participation active aux projets de l\'équipe.', NULL, NULL, '2025-06-07 09:42:54'),
 (3, 3, 13, 18, 'teacher', 4.2, 'Très bonnes compétences techniques et bonne autonomie.', NULL, NULL, '2025-06-07 09:42:54'),
-(4, 4, 9, 17, 'teacher', 3.8, 'Bon travail, mais besoin d\'améliorer la communication.', NULL, NULL, '2025-06-07 09:42:54');
+(4, 4, 9, 17, 'teacher', 3.8, 'Bon travail, mais besoin d\'améliorer la communication.', NULL, NULL, '2025-06-07 09:42:54'),
+(5, 3, 6, 7, 'final', 14.0, 'Etudiant travailleur.', '', '', '2025-06-12 14:46:52'),
+(6, 3, 6, 7, 'mid_term', 18.0, 'Prends en compte les suggestions et remarque. Tres attentionné.', '', '', '2025-06-12 22:24:06');
 
 -- --------------------------------------------------------
 
@@ -429,8 +431,8 @@ CREATE TABLE `internships` (
 --
 
 INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirements`, `start_date`, `end_date`, `location`, `work_mode`, `compensation`, `domain`, `status`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Développeur Web Full-Stack', 'Stage de développement web sur un projet e-commerce. Vous participerez à la conception et au développement de nouvelles fonctionnalités.', 'JavaScript, React, Node.js, SQL', '2023-09-01', '2024-02-28', 'Paris', 'hybrid', 800.00, 'Développement Web', 'available', '2025-06-07 09:42:54', '2025-06-07 09:42:54'),
-(2, 2, 'Data Scientist Junior', 'Analyse de données clients et développement de modèles prédictifs pour optimiser les campagnes marketing.', 'Python, R, SQL, Machine Learning', '2023-09-01', '2024-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'available', '2025-06-07 09:42:54', '2025-06-07 09:42:54'),
+(1, 1, 'Développeur Web Full-Stack', 'Stage de développement web sur un projet e-commerce. Vous participerez à la conception et au développement de nouvelles fonctionnalités.', 'JavaScript, React, Node.js, SQL', '2023-09-01', '2024-02-28', 'Paris', 'hybrid', 800.00, 'Développement Web', 'assigned', '2025-06-07 09:42:54', '2025-06-11 19:13:20'),
+(2, 2, 'Data Scientist Junior', 'Analyse de données clients et développement de modèles prédictifs pour optimiser les campagnes marketing.', 'Python, R, SQL, Machine Learning', '2023-09-01', '2024-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'assigned', '2025-06-07 09:42:54', '2025-06-11 19:13:20'),
 (3, 3, 'Analyste en Cybersécurité', 'Participation aux audits de sécurité et implémentation de solutions de protection pour nos clients.', 'Connaissances en cybersécurité, Linux, réseaux', '2023-09-01', '2024-02-28', 'Lille', 'on_site', 900.00, 'Cybersécurité', 'available', '2025-06-07 09:42:54', '2025-06-07 09:42:54'),
 (4, 4, 'Développeur Mobile', 'Développement d\'applications mobiles Android et iOS pour divers clients.', 'Java, Kotlin, Swift ou React Native', '2023-09-01', '2024-02-28', 'Bordeaux', 'hybrid', 800.00, 'Développement Mobile', 'available', '2025-06-07 09:42:54', '2025-06-07 09:42:54'),
 (5, 5, 'Ingénieur en Systèmes Embarqués', 'Conception et programmation de systèmes embarqués pour l\'industrie automobile.', 'C/C++, microcontrôleurs, électronique de base', '2023-09-01', '2024-02-28', 'Toulouse', 'on_site', 900.00, 'Systèmes Embarqués', 'available', '2025-06-07 09:42:54', '2025-06-07 09:42:54'),
@@ -438,8 +440,8 @@ INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirem
 (7, 8, 'Développeur Back-End PHP', 'Développement et maintenance d\'APIs et services backend pour une plateforme e-commerce.', 'PHP, MySQL, RESTful APIs, Laravel ou Symfony', '2025-09-01', '2026-02-28', 'Strasbourg', 'on_site', 850.00, 'Développement Web', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (8, 12, 'Développeur Full-Stack JavaScript', 'Conception et implémentation de fonctionnalités full-stack pour une application SaaS en croissance.', 'JavaScript, Node.js, React, MongoDB, Express', '2025-09-01', '2026-02-28', 'Marseille', 'hybrid', 900.00, 'Développement Web', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (9, 15, 'Intégrateur Web / UX', 'Intégration de maquettes et développement d\'interfaces utilisateur pour des applications de Smart City.', 'HTML5, CSS3, SASS, JavaScript, expérience en design', '2025-09-01', '2026-02-28', 'Dijon', 'remote', 750.00, 'Développement Web', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
-(10, 2, 'Analyste de Données Marketing', 'Analyse des données client et des campagnes marketing pour optimiser les conversions et le ROI.', 'Python, Pandas, SQL, visualisation de données (Tableau ou PowerBI)', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
-(11, 7, 'Data Scientist en NLP', 'Développement de modèles de traitement du langage naturel pour l\'analyse de sentiments et la classification de textes.', 'Python, scikit-learn, NLTK ou spaCy, PyTorch ou TensorFlow', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 950.00, 'Intelligence Artificielle', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
+(10, 2, 'Analyste de Données Marketing', 'Analyse des données client et des campagnes marketing pour optimiser les conversions et le ROI.', 'Python, Pandas, SQL, visualisation de données (Tableau ou PowerBI)', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'assigned', '2025-06-10 09:23:15', '2025-06-11 19:13:20'),
+(11, 7, 'Data Scientist en NLP', 'Développement de modèles de traitement du langage naturel pour l\'analyse de sentiments et la classification de textes.', 'Python, scikit-learn, NLTK ou spaCy, PyTorch ou TensorFlow', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 950.00, 'Intelligence Artificielle', 'assigned', '2025-06-10 09:23:15', '2025-06-11 19:13:20'),
 (12, 11, 'Chercheur en Informatique Quantique', 'Participation à des projets de recherche sur les algorithmes quantiques et leurs applications.', 'Python, algèbre linéaire, notions d\'informatique quantique', '2025-09-01', '2026-02-28', 'Rennes', 'on_site', 1000.00, 'Informatique Quantique', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (13, 14, 'Bio-informaticien', 'Analyse de données génomiques et développement d\'algorithmes pour la recherche médicale.', 'Python ou R, statistiques, connaissances en biologie', '2025-09-01', '2026-02-28', 'Tours', 'hybrid', 900.00, 'Bio-informatique', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (14, 25, 'Ingénieur IA pour interfaces neuronales', 'Développement d\'algorithmes d\'apprentissage pour interpréter les signaux cérébraux.', 'Python, TensorFlow ou PyTorch, traitement du signal', '2025-09-01', '2026-02-28', 'Marseille', 'on_site', 1000.00, 'NeuroTechnologies', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
@@ -466,25 +468,25 @@ INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirem
 (35, 20, 'Ingénieur en Efficacité Énergétique', 'Développement de solutions logicielles pour optimiser la consommation énergétique des bâtiments.', 'Python, IoT, algorithmes d\'optimisation', '2025-09-01', '2026-02-28', 'Nantes', 'hybrid', 880.00, 'Green Tech', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (36, 29, 'Développeur pour Solutions RH', 'Développement de modules pour une plateforme SaaS de gestion des talents et du recrutement.', 'JavaScript, React, Node.js, bases de données', '2025-09-01', '2026-02-28', 'Bordeaux', 'hybrid', 850.00, 'HR Tech', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (37, 30, 'Développeur Legal Tech', 'Conception et développement d\'outils d\'automatisation pour le secteur juridique.', 'Python ou Java, NLP, bases de données', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 900.00, 'Legal Tech', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
-(38, 1, 'Architecte Logiciel Junior', 'Participation à la conception et à l\'évolution de l\'architecture de nos solutions cloud.', 'Java, Spring, microservices, patterns de conception', '2025-09-01', '2026-02-28', 'Paris', 'on_site', 950.00, 'Architecture Logicielle', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
+(38, 1, 'Architecte Logiciel Junior', 'Participation à la conception et à l\'évolution de l\'architecture de nos solutions cloud.', 'Java, Spring, microservices, patterns de conception', '2025-09-01', '2026-02-28', 'Paris', 'on_site', 950.00, 'Architecture Logicielle', 'assigned', '2025-06-10 09:23:15', '2025-06-11 19:13:20'),
 (39, 8, 'UX/UI Designer', 'Conception d\'interfaces utilisateur et amélioration de l\'expérience utilisateur sur nos applications web.', 'Figma ou Adobe XD, HTML/CSS, notions de JavaScript', '2025-09-01', '2026-02-28', 'Strasbourg', 'hybrid', 800.00, 'Design Numérique', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (40, 25, 'Ingénieur Test et Qualité', 'Mise en place de stratégies de test et automatisation pour garantir la qualité des applications.', 'Selenium, Cypress ou JUnit, CI/CD, méthodologies de test', '2025-09-01', '2026-02-28', 'Marseille', 'hybrid', 850.00, 'Qualité Logicielle', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (41, 27, 'Ingénieur en Traitement du Signal Audio', 'Développement d\'algorithmes de traitement du signal pour des applications de reconnaissance vocale.', 'Python, traitement du signal, machine learning', '2025-09-01', '2026-02-28', 'Nice', 'on_site', 900.00, 'Traitement Audio', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (42, 7, 'Data Engineer', 'Conception et développement de pipelines de données pour l\'alimentation de modèles d\'IA.', 'Python, Spark, SQL, cloud (AWS/Azure/GCP)', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 920.00, 'Ingénierie des Données', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (43, 28, 'Développeur de Jeux Vidéo', 'Développement de mécaniques de jeu et intégration de contenus pour un jeu mobile.', 'Unity, C#, game design, 2D/3D', '2025-09-01', '2026-02-28', 'Lille', 'on_site', 850.00, 'Jeux Vidéo', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (44, 26, 'Ingénieur Logistique et Supply Chain', 'Développement d\'outils d\'optimisation pour la chaîne d\'approvisionnement et la logistique.', 'Python, algorithmes d\'optimisation, bases de données', '2025-09-01', '2026-02-28', 'Le Havre', 'hybrid', 880.00, 'Logistique', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
-(45, 1, 'Développeur Web React Junior', 'Développement de composants React et intégration avec des API REST.', 'React, JavaScript, HTML/CSS, Git', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 800.00, 'Développement Web', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
+(45, 1, 'Développeur Web React Junior', 'Développement de composants React et intégration avec des API REST.', 'React, JavaScript, HTML/CSS, Git', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 800.00, 'Développement Web', 'assigned', '2025-06-10 09:23:15', '2025-06-11 19:13:20'),
 (46, 7, 'Machine Learning Engineer', 'Implémentation et optimisation de modèles de machine learning pour des applications industrielles.', 'Python, scikit-learn, TensorFlow ou PyTorch', '2026-01-01', '2026-06-30', 'Grenoble', 'on_site', 950.00, 'Intelligence Artificielle', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (47, 3, 'Analyste en Sécurité des Réseaux', 'Surveillance et analyse de la sécurité des infrastructures réseau.', 'Réseaux, sécurité, Linux, outils de monitoring', '2026-01-01', '2026-06-30', 'Lille', 'on_site', 900.00, 'Cybersécurité', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (48, 10, 'Développeur IoT Firmware', 'Développement de firmware pour objets connectés dans le domaine de la domotique.', 'C/C++, microcontrôleurs, protocoles IoT', '2026-01-01', '2026-06-30', 'Nice', 'on_site', 880.00, 'Internet des Objets', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (49, 24, 'Ingénieur CI/CD', 'Amélioration des pipelines de déploiement continu et automatisation des tests.', 'GitLab CI ou Jenkins, Docker, Kubernetes, scripting', '2026-01-01', '2026-06-30', 'Strasbourg', 'hybrid', 900.00, 'DevOps', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
 (50, 15, 'Développeur Python pour Smart City', 'Développement de services backend pour applications de ville intelligente.', 'Python, Django ou Flask, APIs, bases de données', '2026-01-01', '2026-06-30', 'Dijon', 'hybrid', 850.00, 'Smart City', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
-(51, 2, 'Data Scientist Marketing', 'Analyse de données clients et modélisation prédictive pour optimiser les campagnes marketing.', 'Python, R, SQL, statistiques, machine learning', '2026-01-01', '2026-06-30', 'Lyon', 'hybrid', 900.00, 'Data Science', 'available', '2025-06-10 09:23:15', '2025-06-10 09:23:15'),
+(51, 2, 'Data Scientist Marketing', 'Analyse de données clients et modélisation prédictive pour optimiser les campagnes marketing.', 'Python, R, SQL, statistiques, machine learning', '2026-01-01', '2026-06-30', 'Lyon', 'hybrid', 900.00, 'Data Science', 'assigned', '2025-06-10 09:23:15', '2025-06-11 19:13:20'),
 (52, 6, 'Développeur Front-End React', 'Développement d\'interfaces utilisateurs modernes avec React et intégration avec des APIs REST.', 'React, JavaScript, HTML5, CSS3, Git', '2025-09-01', '2026-02-28', 'Paris', 'hybrid', 800.00, 'Développement Web', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (53, 8, 'Développeur Back-End PHP', 'Développement et maintenance d\'APIs et services backend pour une plateforme e-commerce.', 'PHP, MySQL, RESTful APIs, Laravel ou Symfony', '2025-09-01', '2026-02-28', 'Strasbourg', 'on_site', 850.00, 'Développement Web', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (54, 12, 'Développeur Full-Stack JavaScript', 'Conception et implémentation de fonctionnalités full-stack pour une application SaaS en croissance.', 'JavaScript, Node.js, React, MongoDB, Express', '2025-09-01', '2026-02-28', 'Marseille', 'hybrid', 900.00, 'Développement Web', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (55, 15, 'Intégrateur Web / UX', 'Intégration de maquettes et développement d\'interfaces utilisateur pour des applications de Smart City.', 'HTML5, CSS3, SASS, JavaScript, expérience en design', '2025-09-01', '2026-02-28', 'Dijon', 'remote', 750.00, 'Développement Web', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
-(56, 2, 'Analyste de Données Marketing', 'Analyse des données client et des campagnes marketing pour optimiser les conversions et le ROI.', 'Python, Pandas, SQL, visualisation de données (Tableau ou PowerBI)', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
+(56, 2, 'Analyste de Données Marketing', 'Analyse des données client et des campagnes marketing pour optimiser les conversions et le ROI.', 'Python, Pandas, SQL, visualisation de données (Tableau ou PowerBI)', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'assigned', '2025-06-10 09:50:27', '2025-06-11 19:13:20'),
 (57, 7, 'Data Scientist en NLP', 'Développement de modèles de traitement du langage naturel pour l\'analyse de sentiments et la classification de textes.', 'Python, scikit-learn, NLTK ou spaCy, PyTorch ou TensorFlow', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 950.00, 'Intelligence Artificielle', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (58, 11, 'Chercheur en Informatique Quantique', 'Participation à des projets de recherche sur les algorithmes quantiques et leurs applications.', 'Python, algèbre linéaire, notions d\'informatique quantique', '2025-09-01', '2026-02-28', 'Rennes', 'on_site', 1000.00, 'Informatique Quantique', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (59, 14, 'Bio-informaticien', 'Analyse de données génomiques et développement d\'algorithmes pour la recherche médicale.', 'Python ou R, statistiques, connaissances en biologie', '2025-09-01', '2026-02-28', 'Tours', 'hybrid', 900.00, 'Bio-informatique', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
@@ -512,14 +514,14 @@ INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirem
 (81, 20, 'Ingénieur en Efficacité Énergétique', 'Développement de solutions logicielles pour optimiser la consommation énergétique des bâtiments.', 'Python, IoT, algorithmes d\'optimisation', '2025-09-01', '2026-02-28', 'Nantes', 'hybrid', 880.00, 'Green Tech', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (82, 29, 'Développeur pour Solutions RH', 'Développement de modules pour une plateforme SaaS de gestion des talents et du recrutement.', 'JavaScript, React, Node.js, bases de données', '2025-09-01', '2026-02-28', 'Bordeaux', 'hybrid', 850.00, 'HR Tech', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (83, 30, 'Développeur Legal Tech', 'Conception et développement d\'outils d\'automatisation pour le secteur juridique.', 'Python ou Java, NLP, bases de données', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 900.00, 'Legal Tech', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
-(84, 1, 'Architecte Logiciel Junior', 'Participation à la conception et à l\'évolution de l\'architecture de nos solutions cloud.', 'Java, Spring, microservices, patterns de conception', '2025-09-01', '2026-02-28', 'Paris', 'on_site', 950.00, 'Architecture Logicielle', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
+(84, 1, 'Architecte Logiciel Junior', 'Participation à la conception et à l\'évolution de l\'architecture de nos solutions cloud.', 'Java, Spring, microservices, patterns de conception', '2025-09-01', '2026-02-28', 'Paris', 'on_site', 950.00, 'Architecture Logicielle', 'assigned', '2025-06-10 09:50:27', '2025-06-11 19:13:20'),
 (85, 8, 'UX/UI Designer', 'Conception d\'interfaces utilisateur et amélioration de l\'expérience utilisateur sur nos applications web.', 'Figma ou Adobe XD, HTML/CSS, notions de JavaScript', '2025-09-01', '2026-02-28', 'Strasbourg', 'hybrid', 800.00, 'Design Numérique', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (86, 25, 'Ingénieur Test et Qualité', 'Mise en place de stratégies de test et automatisation pour garantir la qualité des applications.', 'Selenium, Cypress ou JUnit, CI/CD, méthodologies de test', '2025-09-01', '2026-02-28', 'Marseille', 'hybrid', 850.00, 'Qualité Logicielle', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (87, 27, 'Ingénieur en Traitement du Signal Audio', 'Développement d\'algorithmes de traitement du signal pour des applications de reconnaissance vocale.', 'Python, traitement du signal, machine learning', '2025-09-01', '2026-02-28', 'Nice', 'on_site', 900.00, 'Traitement Audio', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (88, 7, 'Data Engineer', 'Conception et développement de pipelines de données pour l\'alimentation de modèles d\'IA.', 'Python, Spark, SQL, cloud (AWS/Azure/GCP)', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 920.00, 'Ingénierie des Données', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (89, 28, 'Développeur de Jeux Vidéo', 'Développement de mécaniques de jeu et intégration de contenus pour un jeu mobile.', 'Unity, C#, game design, 2D/3D', '2025-09-01', '2026-02-28', 'Lille', 'on_site', 850.00, 'Jeux Vidéo', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (90, 26, 'Ingénieur Logistique et Supply Chain', 'Développement d\'outils d\'optimisation pour la chaîne d\'approvisionnement et la logistique.', 'Python, algorithmes d\'optimisation, bases de données', '2025-09-01', '2026-02-28', 'Le Havre', 'hybrid', 880.00, 'Logistique', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
-(91, 1, 'Développeur Web React Junior', 'Développement de composants React et intégration avec des API REST.', 'React, JavaScript, HTML/CSS, Git', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 800.00, 'Développement Web', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
+(91, 1, 'Développeur Web React Junior', 'Développement de composants React et intégration avec des API REST.', 'React, JavaScript, HTML/CSS, Git', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 800.00, 'Développement Web', 'assigned', '2025-06-10 09:50:27', '2025-06-11 19:13:20'),
 (92, 7, 'Machine Learning Engineer', 'Implémentation et optimisation de modèles de machine learning pour des applications industrielles.', 'Python, scikit-learn, TensorFlow ou PyTorch', '2026-01-01', '2026-06-30', 'Grenoble', 'on_site', 950.00, 'Intelligence Artificielle', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (93, 3, 'Analyste en Sécurité des Réseaux', 'Surveillance et analyse de la sécurité des infrastructures réseau.', 'Réseaux, sécurité, Linux, outils de monitoring', '2026-01-01', '2026-06-30', 'Lille', 'on_site', 900.00, 'Cybersécurité', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (94, 10, 'Développeur IoT Firmware', 'Développement de firmware pour objets connectés dans le domaine de la domotique.', 'C/C++, microcontrôleurs, protocoles IoT', '2026-01-01', '2026-06-30', 'Nice', 'on_site', 880.00, 'Internet des Objets', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
@@ -563,7 +565,7 @@ INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirem
 (132, 46, 'Développeur Expérience Touristique', 'Création d\'applications mobiles pour enrichir l\'expérience touristique avec la réalité augmentée.', 'Swift ou Kotlin, ARKit/ARCore, Unity, géolocalisation, POI, backend REST, contenu multimédia, UX/UI, design', '2025-09-01', '2026-02-28', 'Nice', 'hybrid', 850.00, 'Tourisme', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (133, 47, 'Développeur Gestion Événementielle', 'Conception et développement de solutions pour la gestion et la billetterie d\'événements.', 'PHP ou Node.js, React, SQL, RabbitMQ, APIs REST, paiement en ligne, QR codes, RFID, cartographie, CRM', '2025-09-01', '2026-02-28', 'Cannes', 'hybrid', 850.00, 'Événementiel', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (134, 46, 'Développeur Réalité Mixte Tourisme', 'Développement d\'applications de réalité mixte pour la mise en valeur du patrimoine culturel.', 'Unity, C#, AR/VR, modélisation 3D, WebGL, WebXR, contenu historique, design d\'expérience, storytelling', '2026-01-01', '2026-06-30', 'Nice', 'hybrid', 880.00, 'Tourisme', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
-(135, 1, 'Développeur Full-Stack Web3', 'Développement d\'une plateforme décentralisée avec composants frontaux et intégration blockchain.', 'React, Node.js, Ethereum, Web3.js, Solidity, GraphQL, IPFS, testing DApps, UX/UI pour crypto', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 950.00, 'Blockchain', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
+(135, 1, 'Développeur Full-Stack Web3', 'Développement d\'une plateforme décentralisée avec composants frontaux et intégration blockchain.', 'React, Node.js, Ethereum, Web3.js, Solidity, GraphQL, IPFS, testing DApps, UX/UI pour crypto', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 950.00, 'Blockchain', 'assigned', '2025-06-10 09:50:27', '2025-06-11 19:13:20'),
 (136, 25, 'Bioinformaticien Génomique', 'Analyse de données de séquençage et développement d\'algorithmes pour la recherche génomique.', 'Python ou R, NGS, pipelines bioinformatiques, statistiques, Bioconductor, génomique, data visualization', '2026-01-01', '2026-06-30', 'Marseille', 'hybrid', 920.00, 'Bio-informatique', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (137, 28, 'Développeur Unity 3D', 'Création d\'un jeu vidéo mobile avec intégration de fonctionnalités multijoueurs et monétisation.', 'Unity, C#, design patterns, networking, UI/UX, animations, optimisation mobile, shaders, analytics', '2026-01-01', '2026-06-30', 'Lille', 'hybrid', 900.00, 'Jeux Vidéo', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
 (138, 13, 'Ingénieur Énergie Renouvelable', 'Développement de solutions pour le monitoring et l\'optimisation de systèmes d\'énergie renouvelable.', 'Python, IoT, algorithmes d\'optimisation, modélisation énergétique, SCADA, séries temporelles, prévision', '2026-01-01', '2026-06-30', 'Angers', 'hybrid', 900.00, 'Green Tech', 'available', '2025-06-10 09:50:27', '2025-06-10 09:50:27'),
@@ -575,9 +577,9 @@ INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirem
 (144, 12, 'Développeur Full-Stack JavaScript', 'Conception et implémentation de fonctionnalités full-stack pour une application SaaS en croissance.', 'JavaScript, Node.js, React, MongoDB, Express', '2025-09-01', '2026-02-28', 'Marseille', 'hybrid', 900.00, 'Développement Web', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (145, 15, 'Intégrateur Web / UX', 'Intégration de maquettes et développement d\'interfaces utilisateur pour des applications de Smart City.', 'HTML5, CSS3, SASS, JavaScript, expérience en design', '2025-09-01', '2026-02-28', 'Dijon', 'remote', 750.00, 'Développement Web', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (146, 2, 'Analyste de Données Marketing', 'Analyse des données client et des campagnes marketing pour optimiser les conversions et le ROI.', 'Python, Pandas, SQL, visualisation de données (Tableau ou PowerBI)', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 850.00, 'Data Science', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
-(147, 7, 'Data Scientist en NLP', 'Développement de modèles de traitement du langage naturel pour l\'analyse de sentiments et la classification de textes.', 'Python, scikit-learn, NLTK ou spaCy, PyTorch ou TensorFlow', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 950.00, 'Intelligence Artificielle', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42');
+(147, 7, 'Data Scientist en NLP', 'Développement de modèles de traitement du langage naturel pour l\'analyse de sentiments et la classification de textes.', 'Python, scikit-learn, NLTK ou spaCy, PyTorch ou TensorFlow', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 950.00, 'Intelligence Artificielle', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
+(148, 11, 'Chercheur en Informatique Quantique', 'Participation à des projets de recherche sur les algorithmes quantiques et leurs applications.', 'Python, algèbre linéaire, notions d\'informatique quantique', '2025-09-01', '2026-02-28', 'Rennes', 'on_site', 1000.00, 'Informatique Quantique', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42');
 INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirements`, `start_date`, `end_date`, `location`, `work_mode`, `compensation`, `domain`, `status`, `created_at`, `updated_at`) VALUES
-(148, 11, 'Chercheur en Informatique Quantique', 'Participation à des projets de recherche sur les algorithmes quantiques et leurs applications.', 'Python, algèbre linéaire, notions d\'informatique quantique', '2025-09-01', '2026-02-28', 'Rennes', 'on_site', 1000.00, 'Informatique Quantique', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (149, 14, 'Bio-informaticien', 'Analyse de données génomiques et développement d\'algorithmes pour la recherche médicale.', 'Python ou R, statistiques, connaissances en biologie', '2025-09-01', '2026-02-28', 'Tours', 'hybrid', 900.00, 'Bio-informatique', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (150, 25, 'Ingénieur IA pour interfaces neuronales', 'Développement d\'algorithmes d\'apprentissage pour interpréter les signaux cérébraux.', 'Python, TensorFlow ou PyTorch, traitement du signal', '2025-09-01', '2026-02-28', 'Marseille', 'on_site', 1000.00, 'NeuroTechnologies', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (151, 3, 'Analyste SOC Junior', 'Surveillance des alertes de sécurité et analyse des incidents dans un centre opérationnel de sécurité.', 'Connaissances en cybersécurité, réseaux, Linux', '2025-09-01', '2026-02-28', 'Lille', 'on_site', 900.00, 'Cybersécurité', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
@@ -603,14 +605,14 @@ INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirem
 (171, 20, 'Ingénieur en Efficacité Énergétique', 'Développement de solutions logicielles pour optimiser la consommation énergétique des bâtiments.', 'Python, IoT, algorithmes d\'optimisation', '2025-09-01', '2026-02-28', 'Nantes', 'hybrid', 880.00, 'Green Tech', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (172, 29, 'Développeur pour Solutions RH', 'Développement de modules pour une plateforme SaaS de gestion des talents et du recrutement.', 'JavaScript, React, Node.js, bases de données', '2025-09-01', '2026-02-28', 'Bordeaux', 'hybrid', 850.00, 'HR Tech', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (173, 30, 'Développeur Legal Tech', 'Conception et développement d\'outils d\'automatisation pour le secteur juridique.', 'Python ou Java, NLP, bases de données', '2025-09-01', '2026-02-28', 'Lyon', 'hybrid', 900.00, 'Legal Tech', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
-(174, 1, 'Architecte Logiciel Junior', 'Participation à la conception et à l\'évolution de l\'architecture de nos solutions cloud.', 'Java, Spring, microservices, patterns de conception', '2025-09-01', '2026-02-28', 'Paris', 'on_site', 950.00, 'Architecture Logicielle', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
+(174, 1, 'Architecte Logiciel Junior', 'Participation à la conception et à l\'évolution de l\'architecture de nos solutions cloud.', 'Java, Spring, microservices, patterns de conception', '2025-09-01', '2026-02-28', 'Paris', 'on_site', 950.00, 'Architecture Logicielle', 'assigned', '2025-06-10 10:01:42', '2025-06-11 19:13:20'),
 (175, 8, 'UX/UI Designer', 'Conception d\'interfaces utilisateur et amélioration de l\'expérience utilisateur sur nos applications web.', 'Figma ou Adobe XD, HTML/CSS, notions de JavaScript', '2025-09-01', '2026-02-28', 'Strasbourg', 'hybrid', 800.00, 'Design Numérique', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (176, 25, 'Ingénieur Test et Qualité', 'Mise en place de stratégies de test et automatisation pour garantir la qualité des applications.', 'Selenium, Cypress ou JUnit, CI/CD, méthodologies de test', '2025-09-01', '2026-02-28', 'Marseille', 'hybrid', 850.00, 'Qualité Logicielle', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (177, 27, 'Ingénieur en Traitement du Signal Audio', 'Développement d\'algorithmes de traitement du signal pour des applications de reconnaissance vocale.', 'Python, traitement du signal, machine learning', '2025-09-01', '2026-02-28', 'Nice', 'on_site', 900.00, 'Traitement Audio', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (178, 7, 'Data Engineer', 'Conception et développement de pipelines de données pour l\'alimentation de modèles d\'IA.', 'Python, Spark, SQL, cloud (AWS/Azure/GCP)', '2025-09-01', '2026-02-28', 'Grenoble', 'hybrid', 920.00, 'Ingénierie des Données', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (179, 28, 'Développeur de Jeux Vidéo', 'Développement de mécaniques de jeu et intégration de contenus pour un jeu mobile.', 'Unity, C#, game design, 2D/3D', '2025-09-01', '2026-02-28', 'Lille', 'on_site', 850.00, 'Jeux Vidéo', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (180, 26, 'Ingénieur Logistique et Supply Chain', 'Développement d\'outils d\'optimisation pour la chaîne d\'approvisionnement et la logistique.', 'Python, algorithmes d\'optimisation, bases de données', '2025-09-01', '2026-02-28', 'Le Havre', 'hybrid', 880.00, 'Logistique', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
-(181, 1, 'Développeur Web React Junior', 'Développement de composants React et intégration avec des API REST.', 'React, JavaScript, HTML/CSS, Git', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 800.00, 'Développement Web', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
+(181, 1, 'Développeur Web React Junior', 'Développement de composants React et intégration avec des API REST.', 'React, JavaScript, HTML/CSS, Git', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 800.00, 'Développement Web', 'assigned', '2025-06-10 10:01:42', '2025-06-11 19:13:20'),
 (182, 7, 'Machine Learning Engineer', 'Implémentation et optimisation de modèles de machine learning pour des applications industrielles.', 'Python, scikit-learn, TensorFlow ou PyTorch', '2026-01-01', '2026-06-30', 'Grenoble', 'on_site', 950.00, 'Intelligence Artificielle', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (183, 3, 'Analyste en Sécurité des Réseaux', 'Surveillance et analyse de la sécurité des infrastructures réseau.', 'Réseaux, sécurité, Linux, outils de monitoring', '2026-01-01', '2026-06-30', 'Lille', 'on_site', 900.00, 'Cybersécurité', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (184, 10, 'Développeur IoT Firmware', 'Développement de firmware pour objets connectés dans le domaine de la domotique.', 'C/C++, microcontrôleurs, protocoles IoT', '2026-01-01', '2026-06-30', 'Nice', 'on_site', 880.00, 'Internet des Objets', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
@@ -654,7 +656,7 @@ INSERT INTO `internships` (`id`, `company_id`, `title`, `description`, `requirem
 (222, 46, 'Développeur Expérience Touristique', 'Création d\'applications mobiles pour enrichir l\'expérience touristique avec la réalité augmentée.', 'Swift ou Kotlin, ARKit/ARCore, Unity, géolocalisation, POI, backend REST, contenu multimédia, UX/UI, design', '2025-09-01', '2026-02-28', 'Nice', 'hybrid', 850.00, 'Tourisme', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (223, 47, 'Développeur Gestion Événementielle', 'Conception et développement de solutions pour la gestion et la billetterie d\'événements.', 'PHP ou Node.js, React, SQL, RabbitMQ, APIs REST, paiement en ligne, QR codes, RFID, cartographie, CRM', '2025-09-01', '2026-02-28', 'Cannes', 'hybrid', 850.00, 'Événementiel', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (224, 46, 'Développeur Réalité Mixte Tourisme', 'Développement d\'applications de réalité mixte pour la mise en valeur du patrimoine culturel.', 'Unity, C#, AR/VR, modélisation 3D, WebGL, WebXR, contenu historique, design d\'expérience, storytelling', '2026-01-01', '2026-06-30', 'Nice', 'hybrid', 880.00, 'Tourisme', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
-(225, 1, 'Développeur Full-Stack Web3', 'Développement d\'une plateforme décentralisée avec composants frontaux et intégration blockchain.', 'React, Node.js, Ethereum, Web3.js, Solidity, GraphQL, IPFS, testing DApps, UX/UI pour crypto', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 950.00, 'Blockchain', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
+(225, 1, 'Développeur Full-Stack Web3', 'Développement d\'une plateforme décentralisée avec composants frontaux et intégration blockchain.', 'React, Node.js, Ethereum, Web3.js, Solidity, GraphQL, IPFS, testing DApps, UX/UI pour crypto', '2026-01-01', '2026-06-30', 'Paris', 'hybrid', 950.00, 'Blockchain', 'assigned', '2025-06-10 10:01:42', '2025-06-11 19:13:20'),
 (226, 25, 'Bioinformaticien Génomique', 'Analyse de données de séquençage et développement d\'algorithmes pour la recherche génomique.', 'Python ou R, NGS, pipelines bioinformatiques, statistiques, Bioconductor, génomique, data visualization', '2026-01-01', '2026-06-30', 'Marseille', 'hybrid', 920.00, 'Bio-informatique', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (227, 28, 'Développeur Unity 3D', 'Création d\'un jeu vidéo mobile avec intégration de fonctionnalités multijoueurs et monétisation.', 'Unity, C#, design patterns, networking, UI/UX, animations, optimisation mobile, shaders, analytics', '2026-01-01', '2026-06-30', 'Lille', 'hybrid', 900.00, 'Jeux Vidéo', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
 (228, 13, 'Ingénieur Énergie Renouvelable', 'Développement de solutions pour le monitoring et l\'optimisation de systèmes d\'énergie renouvelable.', 'Python, IoT, algorithmes d\'optimisation, modélisation énergétique, SCADA, séries temporelles, prévision', '2026-01-01', '2026-06-30', 'Angers', 'hybrid', 900.00, 'Green Tech', 'available', '2025-06-10 10:01:42', '2025-06-10 10:01:42'),
@@ -735,7 +737,9 @@ INSERT INTO `meetings` (`id`, `title`, `description`, `date_time`, `duration`, `
 (5, 'Réunion de lancement - Stage CyberGuard', 'Première réunion pour discuter des objectifs et du déroulement du stage', '2023-09-07 15:00:00', 60, 'Bureau 208 - Bâtiment A', NULL, 13, 'scheduled', '2025-06-07 09:42:54', 3),
 (8, 'desd', '', '2025-06-10 18:24:00', 60, 'Zoom', '', 18, 'scheduled', '2025-06-09 15:31:48', 3),
 (9, 'Besoin d\'eclaircissement', '', '2025-06-10 15:40:00', 60, 'Zoom', '', 18, 'scheduled', '2025-06-09 15:32:33', 3),
-(10, 'Approbarion du Tuteur', '', '2025-06-11 17:30:00', 60, 'Bureau du tuteur', '', 18, 'scheduled', '2025-06-09 15:33:44', 3);
+(10, 'Approbarion du Tuteur', '', '2025-06-11 17:30:00', 60, 'Bureau du tuteur', '', 18, 'scheduled', '2025-06-09 15:33:44', 3),
+(11, 'Suivi', 'Ordre du jour : seance tenante.', '2025-06-14 10:30:00', 60, 'Bureau du tuteur', '', 18, 'scheduled', '2025-06-12 10:14:12', 3),
+(12, 'Suivi du déroulement du stage', 'Type: Suivi régulier\n\n', '2025-06-17 09:45:00', 60, 'Bureau du tuteur', NULL, 13, 'scheduled', '2025-06-13 09:10:07', 3);
 
 -- --------------------------------------------------------
 
@@ -819,8 +823,13 @@ INSERT INTO `messages` (`id`, `sender_id`, `sender_type`, `receiver_id`, `recipi
 (28, 13, 'teacher', 50, 'coordinator', 'Nouveau message', 'Hello\r\n', '2025-06-08 22:02:05', NULL, 'sent', '2025-06-08 21:02:05', NULL, 0),
 (29, 13, NULL, 18, NULL, 'Nouveau message', 'Je vais bien et vous ?', '2025-06-09 10:53:13', '2025-06-09 11:18:11', 'read', '2025-06-09 09:53:13', NULL, 0),
 (30, 18, NULL, 13, NULL, 'Nouveau message', 'Cava, Merci.', '2025-06-09 10:53:55', '2025-06-09 09:54:18', 'read', '2025-06-09 09:53:55', NULL, 0),
-(31, 18, NULL, 13, NULL, 'Message de l\'étudiant', 'Bonjour', '2025-06-09 13:00:21', NULL, 'sent', '2025-06-09 12:00:21', NULL, 0),
-(32, 1, NULL, 18, NULL, 'Nouveau message', 'Bonjour Hugo', '2025-06-10 14:37:18', NULL, 'sent', '2025-06-10 13:37:18', NULL, 0);
+(31, 18, NULL, 13, NULL, 'Message de l\'étudiant', 'Bonjour', '2025-06-09 13:00:21', '2025-06-12 09:31:16', 'read', '2025-06-09 12:00:21', NULL, 0),
+(32, 1, NULL, 18, NULL, 'Nouveau message', 'Bonjour Hugo', '2025-06-10 14:37:18', '2025-06-12 08:34:59', 'read', '2025-06-10 13:37:18', NULL, 0),
+(33, 18, NULL, 1, NULL, 'Nouveau message', 'Bonjour Monsieur', '2025-06-12 09:35:20', '2025-06-12 08:44:17', 'read', '2025-06-12 08:35:20', NULL, 0),
+(34, 18, NULL, 13, NULL, 'Nouveau message', 'Bonjour Tuteur', '2025-06-12 09:35:35', '2025-06-12 09:31:16', 'read', '2025-06-12 08:35:35', NULL, 0),
+(35, 18, NULL, 1, NULL, 'Nouveau message', 'Bonjour Admin', '2025-06-12 10:12:09', '2025-06-12 09:12:53', 'read', '2025-06-12 09:12:09', NULL, 0),
+(36, 1, NULL, 18, NULL, 'Nouveau message', 'Oui Simon ! Bonjour !', '2025-06-12 10:13:07', '2025-06-15 18:19:49', 'read', '2025-06-12 09:13:07', NULL, 0),
+(37, 13, NULL, 18, NULL, 'Nouveau message', 'Bonjour Hugo', '2025-06-12 10:31:25', '2025-06-15 18:19:47', 'read', '2025-06-12 09:31:25', NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -864,10 +873,11 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `relat
 (3, 14, 'Nouvelle évaluation', 'Vous avez reçu une nouvelle évaluation de votre tuteur', 'evaluation', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/student/evaluations.php'),
 (4, 16, 'Nouveau document partagé', 'Un nouveau document a été partagé avec vous: Guide du rapport final', 'document', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/student/documents.php'),
 (5, 16, 'Réunion planifiée', 'Réunion de lancement - Stage DataInsight le 06/09/2023 à 10h00', 'meeting', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/student/meetings.php'),
-(6, 18, 'Réunion planifiée', 'Réunion de lancement - Stage CyberGuard le 07/09/2023 à 15h00', 'meeting', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/student/meetings.php'),
+(6, 18, 'Réunion planifiée', 'Réunion de lancement - Stage CyberGuard le 07/09/2023 à 15h00', 'meeting', NULL, NULL, '2025-06-07 09:42:54', '2025-06-12 10:11:36', '/tutoring/views/student/meetings.php'),
 (7, 9, 'Document en attente', 'Un nouveau document a été soumis et est en attente de validation: Rapport intermédiaire - Lucas Dupont', 'document', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/tutor/documents.php'),
 (8, 9, 'Réunion planifiée', 'Rappel: Point d\'avancement - Lucas Dupont le 03/10/2023 à 14h00', 'meeting', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/tutor/meetings.php'),
-(9, 10, 'Réunion planifiée', 'Rappel: Point d\'avancement - Louis Moreau le 04/10/2023 à 10h00', 'meeting', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/tutor/meetings.php');
+(9, 10, 'Réunion planifiée', 'Rappel: Point d\'avancement - Louis Moreau le 04/10/2023 à 10h00', 'meeting', NULL, NULL, '2025-06-07 09:42:54', NULL, '/tutoring/views/tutor/meetings.php'),
+(10, 13, 'Nouveau document', 'L\'étudiant Hugo Simon a téléversé un nouveau document: CV', 'info', 'document', 1006, '2025-06-12 14:52:19', '2025-06-15 18:10:35', '/tutoring/views/tutor/documents.php');
 
 -- --------------------------------------------------------
 
@@ -1177,7 +1187,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_name`, `role`, `department`, `profile_image`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-10 13:37:04', '2025-06-10 13:37:04'),
+(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-12 22:43:03', '2025-06-12 22:43:03'),
 (3, 'admin2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin2@example.com', 'Admin', 'Secondaire', 'admin', 'Administration', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (4, 'teacher1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher1@example.com', 'Paul', 'Martin', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (5, 'teacher2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher2@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
@@ -1188,13 +1198,13 @@ INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_
 (10, 'prof_dubois', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_dubois@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (11, 'prof_petit', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_petit@example.com', 'Jean', 'Petit', 'teacher', 'Mathématiques', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (12, 'prof_bernard', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_bernard@example.com', 'Sophie', 'Bernard', 'teacher', 'Électronique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
-(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-09 16:44:38', '2025-06-09 16:44:38'),
+(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-15 18:56:05', '2025-06-15 18:56:05'),
 (14, 'etud_dupont', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_dupont@example.com', 'Lucas', 'Dupont', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (15, 'etud_leroy', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_leroy@example.com', 'Emma', 'Leroy', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (16, 'etud_moreau', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_moreau@example.com', 'Louis', 'Moreau', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (17, 'etud_fournier', '$2y$10$PDqgdfSLyx9eDLFbi/lbR.2XOrNQBmvQ5oQv5P1OaBCPX9l3FRxty', 'etud_fournier@example.com', 'Chloé', 'Fournier', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-10 10:04:00', NULL),
-(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-10 10:54:09', '2025-06-10 10:54:09'),
-(50, 'coordo', '$2y$10$hD8jR6DTr7T8y1K3F7Ojs.WWQH6MTmXdmvEYrN/ma2crI9p/NpHJe', 'coordo@gmail.com', 'Coordo', 'Dansia', 'coordinator', '', NULL, '2025-06-08 19:11:39', '2025-06-09 16:52:06', '2025-06-09 16:52:06'),
+(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-17 17:13:35', '2025-06-17 17:13:35'),
+(50, 'coordo', '$2y$10$hD8jR6DTr7T8y1K3F7Ojs.WWQH6MTmXdmvEYrN/ma2crI9p/NpHJe', 'coordo@gmail.com', 'Coordo', 'Dansia', 'coordinator', '', NULL, '2025-06-08 19:11:39', '2025-06-12 08:54:16', '2025-06-12 08:54:16'),
 (51, 'hbonnet17', '$2y$10$Tpbea7gOI3fpNJkZCoPHfOSn8Kil//DT.pvcg0.FdF6MFXQP6bz6q', 'hbonnet17@example.com', 'Hugo', 'Bonnet', 'student', 'Économie', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
 (52, 'gfournier15', '$2y$10$BUBawhQhtIbTS9kARJi.AeBBiAr7VkN/msHAONtxFvIXquPCqHX1G', 'gfournier15@example.com', 'Gabriel', 'Fournier', 'student', 'Médecine', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
 (53, 'jgirard60', '$2y$10$ZOXMWgrQnvWa0BE2HmPyXefLZV/saAEzMk0sGK974NHvrnocilbuy', 'jgirard60@example.com', 'Juliette', 'Girard', 'student', 'Chimie', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
@@ -1431,8 +1441,7 @@ ALTER TABLE `algorithm_executions`
 -- Indexes for table `algorithm_parameters`
 --
 ALTER TABLE `algorithm_parameters`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `created_by` (`created_by`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `assignments`
@@ -1469,8 +1478,10 @@ ALTER TABLE `conversation_participants`
 --
 ALTER TABLE `documents`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `assignment_id` (`assignment_id`);
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_assignment_id` (`assignment_id`),
+  ADD KEY `idx_type` (`type`),
+  ADD KEY `idx_status` (`status`);
 
 --
 -- Indexes for table `evaluations`
@@ -1610,19 +1621,19 @@ ALTER TABLE `user_preferences`
 -- AUTO_INCREMENT for table `algorithm_executions`
 --
 ALTER TABLE `algorithm_executions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `algorithm_parameters`
 --
 ALTER TABLE `algorithm_parameters`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `assignments`
 --
 ALTER TABLE `assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `companies`
@@ -1646,13 +1657,13 @@ ALTER TABLE `conversation_participants`
 -- AUTO_INCREMENT for table `documents`
 --
 ALTER TABLE `documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1017;
 
 --
 -- AUTO_INCREMENT for table `evaluations`
 --
 ALTER TABLE `evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `internships`
@@ -1670,7 +1681,7 @@ ALTER TABLE `internship_skills`
 -- AUTO_INCREMENT for table `meetings`
 --
 ALTER TABLE `meetings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `meeting_participants`
@@ -1682,7 +1693,7 @@ ALTER TABLE `meeting_participants`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
 
 --
 -- AUTO_INCREMENT for table `message_recipients`
@@ -1694,7 +1705,7 @@ ALTER TABLE `message_recipients`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `students`
@@ -1712,7 +1723,7 @@ ALTER TABLE `student_preferences`
 -- AUTO_INCREMENT for table `system_settings`
 --
 ALTER TABLE `system_settings`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=141;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=132;
 
 --
 -- AUTO_INCREMENT for table `tasks`
@@ -1758,14 +1769,8 @@ ALTER TABLE `user_preferences`
 -- Constraints for table `algorithm_executions`
 --
 ALTER TABLE `algorithm_executions`
-  ADD CONSTRAINT `algorithm_executions_ibfk_1` FOREIGN KEY (`parameters_id`) REFERENCES `algorithm_parameters` (`id`),
-  ADD CONSTRAINT `algorithm_executions_ibfk_2` FOREIGN KEY (`executed_by`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `algorithm_parameters`
---
-ALTER TABLE `algorithm_parameters`
-  ADD CONSTRAINT `algorithm_parameters_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `algorithm_executions_ibfk_1` FOREIGN KEY (`parameters_id`) REFERENCES `algorithm_parameters` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `algorithm_executions_ibfk_2` FOREIGN KEY (`executed_by`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `assignments`

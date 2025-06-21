@@ -20,6 +20,7 @@
     <script type="module" src="/tutoring/assets/js/app.js"></script>
     <script src="/tutoring/assets/js/main.js"></script>
     
+    
     <?php if (isset($extraScripts)) echo $extraScripts; ?>
 
     <script>

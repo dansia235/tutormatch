@@ -6,13 +6,24 @@
  */
 
 require_once __DIR__ . '/../utils.php';
+require_once __DIR__ . '/document-adapter.php';
 
 // Vérifier que l'utilisateur est connecté
-requireApiAuth();
+if (!isset($_SESSION['user_id'])) {
+    sendJsonResponse([
+        'error' => true,
+        'message' => 'Non autorisé - Utilisateur non connecté'
+    ], 401);
+    exit;
+}
 
 // Vérifier que l'utilisateur est un étudiant
-if ($_SESSION['user_role'] !== 'student') {
-    sendJsonError('Accès non autorisé', 403);
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'student') {
+    sendJsonResponse([
+        'error' => true,
+        'message' => 'Accès non autorisé - Rôle étudiant requis'
+    ], 403);
+    exit;
 }
 
 try {
@@ -21,15 +32,44 @@ try {
     $student = $studentModel->getByUserId($_SESSION['user_id']);
     
     if (!$student) {
-        sendJsonError('Profil étudiant non trouvé', 404);
+        sendJsonResponse([
+            'error' => true,
+            'message' => 'Profil étudiant non trouvé'
+        ], 404);
+        exit;
     }
     
-    // Récupérer les évaluations de l'étudiant
-    $evaluationModel = new Evaluation($db);
-    $evaluations = $evaluationModel->getByStudentId($student['id']);
+    // Récupérer les documents d'évaluation de l'étudiant
+    $documents = $studentModel->getDocuments($student['id']);
     
-    // En cas d'erreur ou pour des fins de démonstration, générer des données fictives
-    if (!$evaluations || empty($evaluations)) {
+    // Journaliser le nombre de documents trouvés
+    error_log("API évaluations: " . count($documents) . " documents trouvés pour l'étudiant ID: " . $student['id']);
+    
+    // Filtrer pour ne garder que les documents de type évaluation
+    $evaluationDocuments = [];
+    foreach ($documents as $doc) {
+        // Journaliser les types de documents
+        error_log("Document ID: " . $doc['id'] . ", Type: " . ($doc['type'] ?? 'non défini'));
+        
+        if (isset($doc['type']) && (
+            $doc['type'] === 'evaluation' || 
+            $doc['type'] === 'self_evaluation' || 
+            $doc['type'] === 'mid_term' || 
+            $doc['type'] === 'final')
+        ) {
+            $evaluationDocuments[] = $doc;
+            error_log("Document d'évaluation ajouté: " . $doc['id']);
+        }
+    }
+    
+    // Convertir les documents en format d'évaluation
+    $evaluations = [];
+    foreach ($evaluationDocuments as $doc) {
+        $evaluations[] = convertDocumentToEvaluation($doc);
+    }
+    
+    // Si aucune évaluation, générer des exemples fictifs pour le développement
+    if (empty($evaluations) && defined('DEVELOPMENT_MODE') && DEVELOPMENT_MODE) {
         $evaluations = [
             [
                 'id' => 1,
@@ -80,18 +120,24 @@ try {
         $totalScore += $evaluation['score'];
         
         // Parcourir les critères
-        foreach ($evaluation['criteria'] as $criterion) {
-            if (stripos($criterion['name'], 'technique') !== false || stripos($criterion['name'], 'technical') !== false) {
-                $totalTechnical += $criterion['score'];
-                $countTechnical++;
-            } else if (stripos($criterion['name'], 'professionnel') !== false || 
-                       stripos($criterion['name'], 'professional') !== false ||
-                       stripos($criterion['name'], 'intégration') !== false ||
-                       stripos($criterion['name'], 'integration') !== false ||
-                       stripos($criterion['name'], 'équipe') !== false ||
-                       stripos($criterion['name'], 'team') !== false) {
-                $totalProfessional += $criterion['score'];
-                $countProfessional++;
+        if (isset($evaluation['criteria']) && is_array($evaluation['criteria'])) {
+            foreach ($evaluation['criteria'] as $criterion) {
+                if (!isset($criterion['name']) || !isset($criterion['score'])) {
+                    continue;
+                }
+                
+                if (stripos($criterion['name'], 'technique') !== false || stripos($criterion['name'], 'technical') !== false) {
+                    $totalTechnical += $criterion['score'];
+                    $countTechnical++;
+                } else if (stripos($criterion['name'], 'professionnel') !== false || 
+                        stripos($criterion['name'], 'professional') !== false ||
+                        stripos($criterion['name'], 'intégration') !== false ||
+                        stripos($criterion['name'], 'integration') !== false ||
+                        stripos($criterion['name'], 'équipe') !== false ||
+                        stripos($criterion['name'], 'team') !== false) {
+                    $totalProfessional += $criterion['score'];
+                    $countProfessional++;
+                }
             }
         }
     }
@@ -134,6 +180,10 @@ try {
         'objectives' => $objectives
     ]);
 } catch (Exception $e) {
-    sendJsonError('Erreur lors de la récupération des évaluations: ' . $e->getMessage(), 500);
+    error_log("Erreur API évaluations: " . $e->getMessage());
+    sendJsonResponse([
+        'error' => true,
+        'message' => 'Erreur lors de la récupération des évaluations: ' . $e->getMessage()
+    ], 500);
 }
 ?>

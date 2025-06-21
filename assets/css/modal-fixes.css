@@ -1,0 +1,25 @@
+/* Styles pour assurer que les modals fonctionnent correctement */
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
+.modal {
+  z-index: 1050 !important;
+}
+
+.modal-dialog {
+  z-index: 1060 !important;
+}
+
+/* Assurer que les boutons sont cliquables */
+.modal-content button,
+.modal-content a,
+.modal-content input[type="submit"] {
+  z-index: 1070 !important;
+  position: relative;
+}
+
+/* Styles pour les boutons de suppression */
+.btn-outline-danger:focus {
+  box-shadow: none !important;
+}

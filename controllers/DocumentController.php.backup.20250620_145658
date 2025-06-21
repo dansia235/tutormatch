@@ -1,0 +1,811 @@
+<?php
+/**
+ * Contrôleur pour la gestion des documents
+ */
+class DocumentController {
+    private $db;
+    private $documentModel;
+    private $userModel;
+    private $studentModel;
+    private $teacherModel;
+    private $assignmentModel;
+    private $internshipModel;
+    
+    /**
+     * Constructeur
+     * @param PDO $db Instance de connexion à la base de données
+     */
+    public function __construct($db) {
+        $this->db = $db;
+        $this->documentModel = new Document($db);
+        $this->userModel = new User($db);
+        $this->studentModel = new Student($db);
+        $this->teacherModel = new Teacher($db);
+        $this->assignmentModel = new Assignment($db);
+        $this->internshipModel = new Internship($db);
+    }
+    
+    /**
+     * Affiche la liste des documents
+     * @param string $category Catégorie pour filtrer (optionnel)
+     */
+    public function index($category = null) {
+        // Vérifier les permissions
+        requireRole(['admin', 'coordinator']);
+        
+        // Récupérer les documents
+        $documents = $this->documentModel->getAll($category);
+        
+        // Récupérer les statistiques
+        $stats = $this->documentModel->countByCategory();
+        
+        // Afficher la vue
+        include ROOT_PATH . '/views/admin/documents/index.php';
+    }
+    
+    /**
+     * Affiche le formulaire d'ajout de document
+     */
+    public function create() {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Initialiser les variables
+        $relatedId = isset($_GET['related_id']) ? $_GET['related_id'] : null;
+        $relatedType = isset($_GET['related_type']) ? $_GET['related_type'] : null;
+        
+        // Récupérer les informations associées si nécessaire
+        $relatedInfo = null;
+        
+        if ($relatedId && $relatedType) {
+            switch ($relatedType) {
+                case 'assignment':
+                    $relatedInfo = $this->assignmentModel->getById($relatedId);
+                    break;
+                case 'internship':
+                    $relatedInfo = $this->internshipModel->getById($relatedId);
+                    break;
+                case 'student':
+                    $relatedInfo = $this->studentModel->getById($relatedId);
+                    break;
+                case 'teacher':
+                    $relatedInfo = $this->teacherModel->getById($relatedId);
+                    break;
+            }
+        }
+        
+        // Afficher la vue appropriée selon le rôle
+        if (hasRole(['admin', 'coordinator'])) {
+            include ROOT_PATH . '/views/admin/documents/create.php';
+        } elseif (hasRole('teacher')) {
+            include ROOT_PATH . '/views/tutor/documents/create.php';
+        } else {
+            include ROOT_PATH . '/views/student/documents/create.php';
+        }
+    }
+    
+    /**
+     * Traite l'ajout d'un document
+     */
+    public function store() {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Vérifier le jeton CSRF
+        if (!verifyCsrfToken($_POST['csrf_token'])) {
+            setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
+            redirect('/tutoring/documents/create.php');
+            return;
+        }
+        
+        // Valider les données
+        $errors = [];
+        
+        if (empty($_POST['title'])) {
+            $errors[] = "Le titre est requis";
+        }
+        
+        if (!isset($_FILES['document']) || $_FILES['document']['error'] != 0) {
+            $errors[] = "Le fichier est requis";
+        }
+        
+        if (empty($_POST['category'])) {
+            $errors[] = "La catégorie est requise";
+        }
+        
+        // S'il y a des erreurs, rediriger avec les erreurs
+        if (!empty($errors)) {
+            $_SESSION['form_errors'] = $errors;
+            $_SESSION['form_data'] = $_POST;
+            
+            $redirectUrl = '/tutoring/documents/create.php';
+            
+            // Ajouter les paramètres de relation si présents
+            if (!empty($_POST['related_id']) && !empty($_POST['related_type'])) {
+                $redirectUrl .= '?related_id=' . $_POST['related_id'] . '&related_type=' . $_POST['related_type'];
+            }
+            
+            redirect($redirectUrl);
+            return;
+        }
+        
+        // Définir les types de fichiers autorisés selon la catégorie
+        $allowedTypes = [];
+        
+        switch ($_POST['category']) {
+            case 'contract':
+                $allowedTypes = [
+                    'application/pdf', 
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                ];
+                break;
+                
+            case 'report':
+                $allowedTypes = [
+                    'application/pdf', 
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                ];
+                break;
+                
+            case 'evaluation':
+                $allowedTypes = [
+                    'application/pdf',
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                ];
+                break;
+                
+            case 'certificate':
+                $allowedTypes = [
+                    'application/pdf',
+                    'image/jpeg', 
+                    'image/png'
+                ];
+                break;
+                
+            case 'other':
+                $allowedTypes = [
+                    'application/pdf', 
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'text/plain',
+                    'application/zip',
+                    'application/x-rar-compressed',
+                    'image/jpeg', 
+                    'image/png', 
+                    'image/gif'
+                ];
+                break;
+        }
+        
+        // Déterminer le sous-dossier selon la catégorie
+        $destination = 'documents/' . $_POST['category'];
+        
+        // Télécharger le fichier
+        $filePath = uploadFile($_FILES['document'], $destination, $allowedTypes);
+        
+        if (!$filePath) {
+            setFlashMessage('error', "Erreur lors de l'upload du fichier. Vérifiez le format et la taille.");
+            
+            $redirectUrl = '/tutoring/documents/create.php';
+            
+            // Ajouter les paramètres de relation si présents
+            if (!empty($_POST['related_id']) && !empty($_POST['related_type'])) {
+                $redirectUrl .= '?related_id=' . $_POST['related_id'] . '&related_type=' . $_POST['related_type'];
+            }
+            
+            redirect($redirectUrl);
+            return;
+        }
+        
+        // Préparer les données
+        $documentData = [
+            'title' => $_POST['title'],
+            'description' => $_POST['description'] ?? null,
+            'file_path' => $filePath,
+            'file_type' => $_FILES['document']['type'],
+            'file_size' => $_FILES['document']['size'],
+            'type' => $_POST['category'], // Convertir 'category' en 'type' pour correspondre à la structure de la BDD
+            'user_id' => $_SESSION['user_id'],
+            'related_id' => $_POST['related_id'] ?? null,
+            'related_type' => $_POST['related_type'] ?? null,
+            'visibility' => $_POST['visibility'] ?? 'private',
+            'status' => 'submitted' // Utiliser un statut valide selon l'enum: 'draft','submitted','approved','rejected'
+        ];
+        
+        // Créer le document
+        $documentId = $this->documentModel->create($documentData);
+        
+        if ($documentId) {
+            setFlashMessage('success', 'Document ajouté avec succès');
+            
+            // Rediriger selon le contexte
+            if (!empty($_POST['related_id']) && !empty($_POST['related_type'])) {
+                switch ($_POST['related_type']) {
+                    case 'assignment':
+                        redirect('/tutoring/assignments/show.php?id=' . $_POST['related_id']);
+                        break;
+                    case 'internship':
+                        redirect('/tutoring/internships/show.php?id=' . $_POST['related_id']);
+                        break;
+                    case 'student':
+                        redirect('/tutoring/students/show.php?id=' . $_POST['related_id']);
+                        break;
+                    case 'teacher':
+                        redirect('/tutoring/teachers/show.php?id=' . $_POST['related_id']);
+                        break;
+                    default:
+                        redirect('/tutoring/documents/index.php');
+                }
+            } else {
+                // Rediriger vers la liste des documents
+                if (hasRole(['admin', 'coordinator'])) {
+                    redirect('/tutoring/views/admin/documents/index.php');
+                } else {
+                    redirect('/tutoring/documents/my-documents.php');
+                }
+            }
+        } else {
+            setFlashMessage('error', "Erreur lors de l'ajout du document");
+            redirect('/tutoring/documents/create.php');
+        }
+    }
+    
+    /**
+     * Affiche les détails d'un document
+     * @param int $id ID du document
+     */
+    public function show($id) {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Récupérer le document
+        $document = $this->documentModel->getById($id);
+        
+        if (!$document) {
+            setFlashMessage('error', 'Document non trouvé');
+            redirect('/tutoring/documents/index.php');
+            return;
+        }
+        
+        // Vérifier les autorisations de visibilité
+        $visibility = isset($document['visibility']) ? $document['visibility'] : 'private';
+        $userId = isset($document['user_id']) ? $document['user_id'] : 0;
+        
+        if ($visibility === 'private' && $userId !== $_SESSION['user_id'] && !hasRole(['admin', 'coordinator'])) {
+            setFlashMessage('error', "Vous n'avez pas accès à ce document");
+            redirect('/tutoring/dashboard.php');
+            return;
+        }
+        
+        // Récupérer les informations associées si nécessaire
+        $relatedInfo = null;
+        
+        if (isset($document['related_id']) && !empty($document['related_id']) && 
+            isset($document['related_type']) && !empty($document['related_type'])) {
+            switch ($document['related_type']) {
+                case 'assignment':
+                    $relatedInfo = $this->assignmentModel->getById($document['related_id']);
+                    break;
+                case 'internship':
+                    $relatedInfo = $this->internshipModel->getById($document['related_id']);
+                    break;
+                case 'student':
+                    $relatedInfo = $this->studentModel->getById($document['related_id']);
+                    break;
+                case 'teacher':
+                    $relatedInfo = $this->teacherModel->getById($document['related_id']);
+                    break;
+            }
+        }
+        
+        // Afficher la vue appropriée selon le rôle
+        if (hasRole(['admin', 'coordinator'])) {
+            include ROOT_PATH . '/views/admin/documents/show.php';
+        } elseif (hasRole('teacher')) {
+            include ROOT_PATH . '/views/tutor/documents/show.php';
+        } else {
+            include ROOT_PATH . '/views/student/documents/show.php';
+        }
+    }
+    
+    /**
+     * Affiche le formulaire de modification d'un document
+     * @param int $id ID du document
+     */
+    public function edit($id) {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Récupérer le document et le rendre global pour qu'il soit accessible dans la vue
+        global $document;
+        $document = $this->documentModel->getById($id);
+        
+        if (!$document) {
+            setFlashMessage('error', 'Document non trouvé');
+            redirect('/tutoring/views/admin/documents/index.php');
+            return;
+        }
+        
+        // Vérifier si l'utilisateur peut modifier ce document
+        if ($document['user_id'] !== $_SESSION['user_id'] && !hasRole(['admin', 'coordinator'])) {
+            setFlashMessage('error', "Vous n'êtes pas autorisé à modifier ce document");
+            redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            return;
+        }
+        
+        // Afficher la vue appropriée selon le rôle
+        if (hasRole(['admin', 'coordinator'])) {
+            define('CONTROLLER_INCLUDED', true);
+            include ROOT_PATH . '/views/admin/documents/edit.php';
+        } elseif (hasRole('teacher')) {
+            include ROOT_PATH . '/views/tutor/documents/edit.php';
+        } else {
+            include ROOT_PATH . '/views/student/documents/edit.php';
+        }
+    }
+    
+    /**
+     * Traite la modification d'un document
+     * @param int $id ID du document
+     */
+    public function update($id) {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Vérifier le jeton CSRF
+        if (!verifyCsrfToken($_POST['csrf_token'])) {
+            setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
+            return;
+        }
+        
+        // Récupérer le document
+        $document = $this->documentModel->getById($id);
+        
+        if (!$document) {
+            setFlashMessage('error', 'Document non trouvé');
+            redirect('/tutoring/documents/index.php');
+            return;
+        }
+        
+        // Vérifier si l'utilisateur peut modifier ce document
+        if ($document['user_id'] !== $_SESSION['user_id'] && !hasRole(['admin', 'coordinator'])) {
+            setFlashMessage('error', "Vous n'êtes pas autorisé à modifier ce document");
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
+            return;
+        }
+        
+        // Valider les données
+        $errors = [];
+        
+        if (empty($_POST['title'])) {
+            $errors[] = "Le titre est requis";
+        }
+        
+        if (empty($_POST['category'])) {
+            $errors[] = "La catégorie est requise";
+        }
+        
+        // S'il y a des erreurs, rediriger avec les erreurs
+        if (!empty($errors)) {
+            $_SESSION['form_errors'] = $errors;
+            $_SESSION['form_data'] = $_POST;
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
+            return;
+        }
+        
+        // Préparer les données
+        $documentData = [
+            'title' => $_POST['title'],
+            'description' => $_POST['description'] ?? null,
+            'type' => $_POST['category'], // Convertir 'category' en 'type' pour correspondre à la structure de la BDD
+            'visibility' => $_POST['visibility'] ?? 'private',
+            'status' => $_POST['status'] ?? 'submitted' // Utiliser un statut valide: 'draft','submitted','approved','rejected'
+        ];
+        
+        // Traiter le nouveau fichier si fourni
+        if (isset($_FILES['document']) && $_FILES['document']['error'] == 0) {
+            // Définir les types de fichiers autorisés selon la catégorie
+            $allowedTypes = [];
+            
+            switch ($_POST['category']) {
+                case 'contract':
+                    $allowedTypes = [
+                        'application/pdf', 
+                        'application/msword', 
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    ];
+                    break;
+                    
+                case 'report':
+                    $allowedTypes = [
+                        'application/pdf', 
+                        'application/msword', 
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    ];
+                    break;
+                    
+                case 'evaluation':
+                    $allowedTypes = [
+                        'application/pdf',
+                        'application/msword', 
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    ];
+                    break;
+                    
+                case 'certificate':
+                    $allowedTypes = [
+                        'application/pdf',
+                        'image/jpeg', 
+                        'image/png'
+                    ];
+                    break;
+                    
+                case 'other':
+                    $allowedTypes = [
+                        'application/pdf', 
+                        'application/msword', 
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/vnd.ms-powerpoint',
+                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                        'text/plain',
+                        'application/zip',
+                        'application/x-rar-compressed',
+                        'image/jpeg', 
+                        'image/png', 
+                        'image/gif'
+                    ];
+                    break;
+            }
+            
+            // Déterminer le sous-dossier selon la catégorie
+            $destination = 'documents/' . $_POST['category'];
+            
+            // Télécharger le fichier
+            $filePath = uploadFile($_FILES['document'], $destination, $allowedTypes);
+            
+            if (!$filePath) {
+                setFlashMessage('error', "Erreur lors de l'upload du fichier. Vérifiez le format et la taille.");
+                if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
+                return;
+            }
+            
+            // Supprimer l'ancien fichier
+            deleteFile($document['file_path']);
+            
+            // Mettre à jour les informations du fichier
+            $documentData['file_path'] = $filePath;
+            $documentData['file_type'] = $_FILES['document']['type'];
+            $documentData['file_size'] = $_FILES['document']['size'];
+        }
+        
+        // Mettre à jour le document
+        $success = $this->documentModel->update($id, $documentData);
+        
+        if ($success) {
+            setFlashMessage('success', 'Document mis à jour avec succès');
+            
+            // Rediriger vers la page de détails
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
+        } else {
+            setFlashMessage('error', "Erreur lors de la mise à jour du document");
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/edit.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/edit.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/edit.php?id=' . $id);
+            }
+        }
+    }
+    
+    /**
+     * Traite la suppression d'un document
+     * @param int $id ID du document
+     */
+    public function delete($id) {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Vérifier le jeton CSRF
+        if (!verifyCsrfToken($_POST['csrf_token'])) {
+            setFlashMessage('error', 'Erreur de sécurité. Veuillez réessayer.');
+            redirect('/tutoring/documents/index.php');
+            return;
+        }
+        
+        // Récupérer le document
+        $document = $this->documentModel->getById($id);
+        
+        if (!$document) {
+            setFlashMessage('error', 'Document non trouvé');
+            redirect('/tutoring/documents/index.php');
+            return;
+        }
+        
+        // Vérifier si l'utilisateur peut supprimer ce document
+        if ($document['user_id'] !== $_SESSION['user_id'] && !hasRole(['admin', 'coordinator'])) {
+            setFlashMessage('error', "Vous n'êtes pas autorisé à supprimer ce document");
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
+            return;
+        }
+        
+        // Supprimer le fichier
+        deleteFile($document['file_path']);
+        
+        // Supprimer le document
+        $success = $this->documentModel->delete($id);
+        
+        if ($success) {
+            setFlashMessage('success', 'Document supprimé avec succès');
+        } else {
+            setFlashMessage('error', "Erreur lors de la suppression du document");
+        }
+        
+        // Rediriger selon le contexte
+        if (isset($document['related_id']) && !empty($document['related_id']) && 
+            isset($document['related_type']) && !empty($document['related_type'])) {
+            switch ($document['related_type']) {
+                case 'assignment':
+                    redirect('/tutoring/assignments/show.php?id=' . $document['related_id']);
+                    break;
+                case 'internship':
+                    redirect('/tutoring/internships/show.php?id=' . $document['related_id']);
+                    break;
+                case 'student':
+                    redirect('/tutoring/students/show.php?id=' . $document['related_id']);
+                    break;
+                case 'teacher':
+                    redirect('/tutoring/teachers/show.php?id=' . $document['related_id']);
+                    break;
+                default:
+                    redirect('/tutoring/documents/index.php');
+            }
+        } else {
+            // Rediriger vers la liste des documents
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/index.php');
+            } else {
+                redirect('/tutoring/documents/my-documents.php');
+            }
+        }
+    }
+    
+    /**
+     * Traite le téléchargement d'un document
+     * @param int $id ID du document
+     */
+    public function download($id) {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Récupérer le document
+        $document = $this->documentModel->getById($id);
+        
+        if (!$document) {
+            setFlashMessage('error', 'Document non trouvé');
+            redirect('/tutoring/documents/index.php');
+            return;
+        }
+        
+        // Vérifier les autorisations de visibilité
+        $visibility = isset($document['visibility']) ? $document['visibility'] : 'private';
+        $userId = isset($document['user_id']) ? $document['user_id'] : 0;
+        
+        if ($visibility === 'private' && $userId !== $_SESSION['user_id'] && !hasRole(['admin', 'coordinator'])) {
+            setFlashMessage('error', "Vous n'avez pas accès à ce document");
+            redirect('/tutoring/dashboard.php');
+            return;
+        }
+        
+        // Chemin complet du fichier
+        $filePath = ROOT_PATH . $document['file_path'];
+        
+        // Vérifier si le fichier existe
+        if (!file_exists($filePath)) {
+            setFlashMessage('error', 'Fichier non trouvé');
+            if (hasRole(['admin', 'coordinator'])) {
+                redirect('/tutoring/views/admin/documents/show.php?id=' . $id);
+            } elseif (hasRole('teacher')) {
+                redirect('/tutoring/views/tutor/documents/show.php?id=' . $id);
+            } else {
+                redirect('/tutoring/views/student/documents/show.php?id=' . $id);
+            }
+            return;
+        }
+        
+        // Déterminer le type MIME
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $filePath);
+        finfo_close($finfo);
+        
+        // Nom de fichier pour le téléchargement
+        $filename = basename($filePath);
+        
+        // En-têtes HTTP pour le téléchargement
+        header('Content-Type: ' . $mimeType);
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($filePath));
+        header('Cache-Control: private, max-age=0, must-revalidate');
+        header('Pragma: public');
+        
+        // Lire et envoyer le fichier
+        readfile($filePath);
+        exit;
+    }
+    
+    /**
+     * Affiche les documents de l'utilisateur courant
+     */
+    public function myDocuments() {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Récupérer les documents de l'utilisateur
+        $documents = $this->documentModel->getByUserId($_SESSION['user_id']);
+        
+        // Récupérer les statistiques
+        $stats = $this->documentModel->countByCategory();
+        
+        // Afficher la vue appropriée selon le rôle
+        if (hasRole(['admin', 'coordinator'])) {
+            include ROOT_PATH . '/views/admin/documents/my-documents.php';
+        } elseif (hasRole('teacher')) {
+            include ROOT_PATH . '/views/tutor/documents/my-documents.php';
+        } else {
+            include ROOT_PATH . '/views/student/documents/my-documents.php';
+        }
+    }
+    
+    /**
+     * Affiche les documents associés à une affectation
+     * @param int $assignmentId ID de l'affectation
+     */
+    public function assignmentDocuments($assignmentId) {
+        // Vérifier les permissions
+        requireLogin();
+        
+        // Récupérer l'affectation
+        $assignment = $this->assignmentModel->getById($assignmentId);
+        
+        if (!$assignment) {
+            setFlashMessage('error', 'Affectation non trouvée');
+            redirect('/tutoring/assignments/index.php');
+            return;
+        }
+        
+        // Vérifier les autorisations spécifiques
+        if (hasRole('student')) {
+            // Un étudiant ne peut voir que les documents de son affectation
+            $student = $this->studentModel->getByUserId($_SESSION['user_id']);
+            if (!$student || $student['id'] != $assignment['student_id']) {
+                setFlashMessage('error', "Vous n'êtes pas autorisé à voir ces documents");
+                redirect('/tutoring/dashboard.php');
+                return;
+            }
+        } elseif (hasRole('teacher')) {
+            // Un enseignant ne peut voir que les documents des affectations de ses étudiants
+            $teacher = $this->teacherModel->getByUserId($_SESSION['user_id']);
+            if (!$teacher || $teacher['id'] != $assignment['teacher_id']) {
+                setFlashMessage('error', "Vous n'êtes pas autorisé à voir ces documents");
+                redirect('/tutoring/dashboard.php');
+                return;
+            }
+        }
+        
+        // Récupérer les documents
+        $documents = $this->documentModel->getByAssignmentId($assignmentId);
+        
+        // Afficher la vue appropriée selon le rôle
+        if (hasRole(['admin', 'coordinator'])) {
+            include ROOT_PATH . '/views/admin/documents/assignment-documents.php';
+        } elseif (hasRole('teacher')) {
+            include ROOT_PATH . '/views/tutor/documents/assignment-documents.php';
+        } else {
+            include ROOT_PATH . '/views/student/documents/assignment-documents.php';
+        }
+    }
+    
+    /**
+     * Traite la recherche de documents
+     */
+    public function search() {
+        // Vérifier les permissions
+        requireLogin();
+        
+        $term = isset($_GET['term']) ? $_GET['term'] : '';
+        $category = isset($_GET['category']) ? $_GET['category'] : null;
+        
+        // Rechercher selon le rôle
+        if (hasRole(['admin', 'coordinator'])) {
+            // Les admins et coordinateurs peuvent voir tous les documents
+            $documents = $this->documentModel->search($term, $category);
+        } else {
+            // Les autres utilisateurs ne peuvent voir que leurs documents et les documents publics
+            $query = "SELECT d.*, u.first_name, u.last_name, u.role
+                      FROM documents d
+                      JOIN users u ON d.user_id = u.id
+                      WHERE (d.title LIKE :term 
+                      OR d.description LIKE :term 
+                      OR u.first_name LIKE :term 
+                      OR u.last_name LIKE :term)
+                      AND (d.user_id = :user_id OR d.visibility = 'public')";
+            
+            if ($category) {
+                $query .= " AND d.category = :category";
+            }
+            
+            $query .= " ORDER BY d.upload_date DESC";
+            
+            $stmt = $this->db->prepare($query);
+            $term = "%$term%";
+            $stmt->bindParam(':term', $term);
+            $stmt->bindParam(':user_id', $_SESSION['user_id']);
+            
+            if ($category) {
+                $stmt->bindParam(':category', $category);
+            }
+            
+            $stmt->execute();
+            $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        
+        // Afficher la vue appropriée selon le rôle
+        if (hasRole(['admin', 'coordinator'])) {
+            include ROOT_PATH . '/views/admin/documents/index.php';
+        } elseif (hasRole('teacher')) {
+            include ROOT_PATH . '/views/tutor/documents/index.php';
+        } else {
+            include ROOT_PATH . '/views/student/documents/index.php';
+        }
+    }
+}

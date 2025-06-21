@@ -296,21 +296,42 @@ class Internship {
             
             // Ajouter la recherche par terme si fourni
             if (!empty(trim($term))) {
-                $searchTerm = "%" . trim($term) . "%";
-                $conditions[] = "(i.title LIKE :term1 
-                               OR i.description LIKE :term2 
-                               OR i.requirements LIKE :term3
-                               OR i.domain LIKE :term4
-                               OR i.location LIKE :term5
-                               OR c.name LIKE :term6
-                               OR EXISTS (SELECT 1 FROM internship_skills is2 WHERE is2.internship_id = i.id AND is2.skill_name LIKE :term7))";
-                $params[':term1'] = $searchTerm;
-                $params[':term2'] = $searchTerm;
-                $params[':term3'] = $searchTerm;
-                $params[':term4'] = $searchTerm;
-                $params[':term5'] = $searchTerm;
-                $params[':term6'] = $searchTerm;
-                $params[':term7'] = $searchTerm;
+                $searchTerm = trim($term);
+                
+                // Priorité aux recherches par préfixe si le terme est court (1-2 caractères)
+                if (strlen($searchTerm) <= 2) {
+                    // Pour les recherches courtes, chercher uniquement par préfixe dans le titre
+                    $titleSearchTerm = $searchTerm . "%"; // Recherche par préfixe pour les titres
+                    
+                    $conditions[] = "i.title LIKE :title_term";
+                    $params[':title_term'] = $titleSearchTerm;
+                    
+                    // Log de la recherche par préfixe uniquement
+                    error_log("Recherche par titre avec préfixe uniquement: '$titleSearchTerm'");
+                } else {
+                    // Pour les recherches plus longues, recherche complète
+                    $titleSearchTerm = $searchTerm . "%"; // Recherche par préfixe pour les titres
+                    $generalSearchTerm = "%" . $searchTerm . "%"; // Recherche générale pour les autres champs
+                    
+                    $conditions[] = "(i.title LIKE :title_term 
+                                   OR i.description LIKE :term2 
+                                   OR i.requirements LIKE :term3
+                                   OR i.domain LIKE :term4
+                                   OR i.location LIKE :term5
+                                   OR c.name LIKE :term6
+                                   OR EXISTS (SELECT 1 FROM internship_skills is2 WHERE is2.internship_id = i.id AND is2.skill_name LIKE :term7))";
+                    
+                    $params[':title_term'] = $titleSearchTerm; // Recherche par préfixe pour les titres
+                    $params[':term2'] = $generalSearchTerm;
+                    $params[':term3'] = $generalSearchTerm;
+                    $params[':term4'] = $generalSearchTerm;
+                    $params[':term5'] = $generalSearchTerm;
+                    $params[':term6'] = $generalSearchTerm;
+                    $params[':term7'] = $generalSearchTerm;
+                    
+                    // Log de la recherche complète
+                    error_log("Recherche complète - titre: '$titleSearchTerm', générale: '$generalSearchTerm'");
+                }
             }
             
             // Traiter les filtres additionnels
@@ -386,8 +407,14 @@ class Internship {
                 $query .= " WHERE " . implode(" AND ", $conditions);
             }
             
-            // Tri par date de début
-            $query .= " ORDER BY i.start_date DESC";
+            // Tri des résultats
+            if (!empty(trim($term)) && strlen(trim($term)) <= 2) {
+                // Pour les recherches par préfixe, trier par titre pour obtenir un résultat plus intuitif
+                $query .= " ORDER BY i.title ASC";
+            } else {
+                // Sinon, tri par date de début
+                $query .= " ORDER BY i.start_date DESC";
+            }
             
             // Ajouter la limitation pour la pagination
             $query .= " LIMIT :limit OFFSET :offset";
@@ -537,21 +564,36 @@ class Internship {
             
             // Ajouter la recherche par terme si fourni
             if (!empty(trim($term))) {
-                $searchTerm = "%" . trim($term) . "%";
-                $conditions[] = "(i.title LIKE :term1 
-                               OR i.description LIKE :term2 
-                               OR i.requirements LIKE :term3
-                               OR i.domain LIKE :term4
-                               OR i.location LIKE :term5
-                               OR c.name LIKE :term6
-                               OR EXISTS (SELECT 1 FROM internship_skills is2 WHERE is2.internship_id = i.id AND is2.skill_name LIKE :term7))";
-                $params[':term1'] = $searchTerm;
-                $params[':term2'] = $searchTerm;
-                $params[':term3'] = $searchTerm;
-                $params[':term4'] = $searchTerm;
-                $params[':term5'] = $searchTerm;
-                $params[':term6'] = $searchTerm;
-                $params[':term7'] = $searchTerm;
+                $searchTerm = trim($term);
+                
+                // Priorité aux recherches par préfixe si le terme est court (1-2 caractères)
+                if (strlen($searchTerm) <= 2) {
+                    // Pour les recherches courtes, chercher uniquement par préfixe dans le titre
+                    $titleSearchTerm = $searchTerm . "%"; // Recherche par préfixe pour les titres
+                    
+                    $conditions[] = "i.title LIKE :title_term";
+                    $params[':title_term'] = $titleSearchTerm;
+                } else {
+                    // Pour les recherches plus longues, recherche complète
+                    $titleSearchTerm = $searchTerm . "%"; // Recherche par préfixe pour les titres
+                    $generalSearchTerm = "%" . $searchTerm . "%"; // Recherche générale pour les autres champs
+                    
+                    $conditions[] = "(i.title LIKE :title_term 
+                                   OR i.description LIKE :term2 
+                                   OR i.requirements LIKE :term3
+                                   OR i.domain LIKE :term4
+                                   OR i.location LIKE :term5
+                                   OR c.name LIKE :term6
+                                   OR EXISTS (SELECT 1 FROM internship_skills is2 WHERE is2.internship_id = i.id AND is2.skill_name LIKE :term7))";
+                    
+                    $params[':title_term'] = $titleSearchTerm;
+                    $params[':term2'] = $generalSearchTerm;
+                    $params[':term3'] = $generalSearchTerm;
+                    $params[':term4'] = $generalSearchTerm;
+                    $params[':term5'] = $generalSearchTerm;
+                    $params[':term6'] = $generalSearchTerm;
+                    $params[':term7'] = $generalSearchTerm;
+                }
             }
             
             // Traiter les filtres additionnels

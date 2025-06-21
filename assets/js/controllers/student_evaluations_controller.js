@@ -14,7 +14,8 @@ export default class extends Controller {
   
   static values = {
     internshipId: Number,
-    apiUrl: { type: String, default: "/tutoring/api/evaluations" }
+    apiUrl: { type: String, default: "/tutoring/api/evaluations" },
+    useDocuments: { type: Boolean, default: false }
   };
   
   connect() {
@@ -32,17 +33,33 @@ export default class extends Controller {
     
     try {
       // Fetch evaluations for the student
-      const response = await this.api.get('evaluations/student-evaluations.php');
+      console.log("Chargement des évaluations avec useDocuments:", this.useDocumentsValue);
       
-      // Display the evaluations
-      this.displayEvaluations(response.data || []);
+      const endpoint = 'evaluations/student-evaluations.php';
+      console.log("Endpoint utilisé:", endpoint);
+      
+      const response = await this.api.get(endpoint);
+      console.log("Réponse de l'API:", response);
+      
+      // Check if we have evaluations in the response
+      if (response && response.evaluations) {
+        console.log("Nombre d'évaluations reçues:", response.evaluations.length);
+        this.displayEvaluations(response.evaluations);
+      } else if (response && response.data) {
+        console.log("Format de réponse alternatif, utilisation de data:", response.data);
+        this.displayEvaluations(response.data);
+      } else {
+        console.warn("Format de réponse inattendu:", response);
+        this.displayEvaluations([]);
+      }
       
     } catch (error) {
       console.error("Error loading evaluations:", error);
       if (this.hasEvaluationsListTarget) {
         this.evaluationsListTarget.innerHTML = `
           <div class="alert alert-danger">
-            Erreur lors du chargement des évaluations. Veuillez rafraîchir la page.
+            Erreur lors du chargement des évaluations: ${error.message || 'Erreur inconnue'}
+            <br><small>Veuillez rafraîchir la page ou contacter l'administrateur.</small>
           </div>
         `;
       }

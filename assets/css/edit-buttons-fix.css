@@ -1,0 +1,71 @@
+/* Fix for edit page buttons */
+.card-body .mt-4.py-3 {
+    display: block !important;
+    margin-top: 1.5rem !important;
+    width: 100% !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 15px 0 !important;
+    border-top: 1px solid #dee2e6 !important;
+}
+
+.card-body .btn-lg {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 9999 !important;
+    position: relative !important;
+    width: 100% !important;
+    padding: 0.75rem 1.25rem !important;
+    font-size: 1.1rem !important;
+    border-radius: 0.375rem !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+    transition: all 0.3s ease !important;
+}
+
+.card-body .btn-primary {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: white !important;
+}
+
+.card-body .btn-primary:hover {
+    background-color: #0b5ed7 !important;
+    border-color: #0b5ed7 !important;
+}
+
+.card-body .btn-secondary {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: white !important;
+}
+
+.card-body .btn-secondary:hover {
+    background-color: #5c636a !important;
+    border-color: #5c636a !important;
+}
+
+/* Ensure the form is not prematurely closed */
+.card-body form {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+}
+
+/* Ensure the buttons container is visible */
+.row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    margin-right: -15px !important;
+    margin-left: -15px !important;
+}
+
+.col-6 {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+    padding-right: 15px !important;
+    padding-left: 15px !important;
+    position: relative !important;
+    width: 100% !important;
+}

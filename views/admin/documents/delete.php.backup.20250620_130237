@@ -1,0 +1,30 @@
+<?php
+/**
+ * Script de suppression de document
+ */
+
+// Inclure le fichier d'initialisation
+require_once __DIR__ . "/../../../includes/init.php";
+
+// Vérifier que l'utilisateur est connecté
+requireLogin();
+
+// Vérifier que le formulaire a été soumis
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    setFlashMessage('error', 'Méthode non autorisée');
+    redirect("/tutoring/views/admin/documents/index.php");
+    exit;
+}
+
+// Vérifier l'ID
+if (!isset($_POST['id']) || !is_numeric($_POST['id'])) {
+    setFlashMessage('error', 'ID de document invalide');
+    redirect("/tutoring/views/admin/documents/index.php");
+    exit;
+}
+
+// Instancier le contrôleur
+$documentController = new DocumentController($db);
+
+// Traiter la suppression
+$documentController->delete($_POST['id']);

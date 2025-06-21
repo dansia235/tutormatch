@@ -16,7 +16,7 @@ requireRole(['admin', 'coordinator']);
 // Vérifier l'ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     setFlashMessage('error', 'ID de document invalide');
-    redirect('/tutoring/views/admin/documents/index.php');
+    redirect('/tutoring/views/admin/documents.php');
 }
 
 // On s'assure d'avoir accès à la base de données
@@ -35,7 +35,7 @@ $document = $documentModel->getById($_GET['id']);
 
 if (!$document) {
     setFlashMessage('error', 'Document non trouvé');
-    redirect('/tutoring/views/admin/documents/index.php');
+    redirect('/tutoring/views/admin/documents.php');
     exit;
 }
 
@@ -95,7 +95,7 @@ if ($isDirectAccess) {
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/documents/index.php">Documents</a></li>
+                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/documents.php">Documents</a></li>
                     <li class="breadcrumb-item active" aria-current="page"><?php echo h($document['title']); ?></li>
                 </ol>
             </nav>
@@ -439,7 +439,7 @@ if (!function_exists('getBackUrl')) {
         }
         
         // Par défaut, retourner à la liste des documents
-        return '/tutoring/views/admin/documents/index.php';
+        return '/tutoring/views/admin/documents.php';
     }
 }
 ?>

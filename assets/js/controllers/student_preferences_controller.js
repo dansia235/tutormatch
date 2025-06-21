@@ -16,7 +16,7 @@ export default class extends Controller {
     studentId: Number,
     apiUrl: { type: String, default: "/tutoring/api/students" },
     maxPreferences: { type: Number, default: 5 },
-    searchDelay: { type: Number, default: 200 } // réduit à 200ms pour une recherche plus réactive
+    searchDelay: { type: Number, default: 100 } // réduit à 100ms pour une recherche encore plus réactive
   };
   
   connect() {
@@ -46,30 +46,69 @@ export default class extends Controller {
       console.log("Loading preferences for student ID:", studentId);
       
       let response;
-      if (studentId) {
-        // Fetch specific student preferences
-        response = await this.api.get(`students/${studentId}/preferences`);
-      } else {
-        // Fetch current student preferences
-        const studentData = await this.api.get('students/show.php');
-        if (studentData && studentData.data) {
-          const currentStudentId = studentData.data.id;
-          response = await this.api.get(`students/preferences.php?student_id=${currentStudentId}`);
+      try {
+        if (studentId) {
+          // Fetch specific student preferences
+          response = await this.api.get(`students/${studentId}/preferences`);
         } else {
-          throw new Error("Impossible de récupérer l'ID de l'étudiant courant");
+          // Fetch current student preferences
+          const studentData = await this.api.get('students/show.php');
+          if (studentData && studentData.data) {
+            const currentStudentId = studentData.data.id;
+            // Utiliser le endpoint direct avec fetch pour éviter les problèmes
+            const preferenceResponse = await fetch(`/tutoring/api/students/preferences.php?student_id=${currentStudentId}`);
+            if (!preferenceResponse.ok) {
+              throw new Error(`Error fetching preferences: ${preferenceResponse.status}`);
+            }
+            response = await preferenceResponse.json();
+            console.log("Raw preference response:", response);
+          } else {
+            throw new Error("Impossible de récupérer l'ID de l'étudiant courant");
+          }
         }
+      } catch (fetchError) {
+        console.error("Fetch error:", fetchError);
+        throw new Error(`Erreur lors de la récupération des préférences: ${fetchError.message}`);
       }
       
-      // Store and display preferences
-      this.preferences = response.data || [];
-      this.updatePreferencesList();
+      // Check if response is valid
+      if (response && typeof response === 'object') {
+        console.log("Preferences response:", response);
+        
+        // Map to correct format if needed
+        let preferences = [];
+        if (Array.isArray(response.data)) {
+          // Direct data array
+          preferences = response.data;
+        } else if (Array.isArray(response)) {
+          // Response is directly an array
+          preferences = response;
+        }
+        
+        // Normalize preferences data to ensure required fields
+        this.preferences = preferences.map(pref => {
+          return {
+            internship_id: pref.internship_id,
+            title: pref.title || pref.internship_title || "Stage sans titre",
+            company: pref.company_name || pref.company || "Entreprise non spécifiée",
+            rank: pref.rank || pref.preference_order || 1
+          };
+        });
+        
+        console.log("Normalized preferences:", this.preferences);
+        this.updatePreferencesList();
+      } else {
+        console.error("Invalid preferences response:", response);
+        throw new Error("Format de réponse invalide pour les préférences");
+      }
       
     } catch (error) {
       console.error("Error loading preferences:", error);
       if (this.hasSelectedPreferencesTarget) {
         this.selectedPreferencesTarget.innerHTML = `
           <div class="alert alert-danger">
-            Erreur lors du chargement des préférences. Veuillez rafraîchir la page.
+            <strong>Erreur lors du chargement des préférences:</strong> ${error.message}
+            <p class="small mt-2">Veuillez rafraîchir la page ou contacter le support.</p>
           </div>
         `;
       }
@@ -85,8 +124,12 @@ export default class extends Controller {
     
     const selectedPreferences = this.selectedPreferencesTarget;
     
+    // Debug log
+    console.log("Updating preferences list with", this.preferences.length, "items");
+    
     // Show empty state if no preferences
-    if (this.preferences.length === 0) {
+    if (!Array.isArray(this.preferences) || this.preferences.length === 0) {
+      console.log("No preferences found, showing empty state");
       selectedPreferences.innerHTML = '';
       if (this.hasEmptyStateTarget) {
         this.emptyStateTarget.classList.remove("hidden");
@@ -94,19 +137,38 @@ export default class extends Controller {
       return;
     }
     
-    // Hide empty state if there are preferences
+    // Check if preferences have required properties
+    let validPreferences = this.preferences.filter(p => 
+      p && typeof p === 'object' && p.internship_id && (p.title || p.internship_title)
+    );
+    
+    // If no valid preferences, show empty state
+    if (validPreferences.length === 0) {
+      console.log("No valid preferences found, showing empty state");
+      selectedPreferences.innerHTML = '';
+      if (this.hasEmptyStateTarget) {
+        this.emptyStateTarget.classList.remove("hidden");
+      }
+      return;
+    }
+    
+    // We have valid preferences, hide empty state
     if (this.hasEmptyStateTarget) {
       this.emptyStateTarget.classList.add("hidden");
     }
     
     // Sort preferences by rank
-    this.preferences.sort((a, b) => a.rank - b.rank);
+    validPreferences.sort((a, b) => {
+      const rankA = a.rank || a.preference_order || 1;
+      const rankB = b.rank || b.preference_order || 1;
+      return rankA - rankB;
+    });
     
     // Clear preferences list
     selectedPreferences.innerHTML = '';
     
     // Add each preference to the list
-    this.preferences.forEach((preference, index) => {
+    validPreferences.forEach((preference, index) => {
       const preferenceElement = this.createPreferenceElement(preference, index + 1);
       selectedPreferences.appendChild(preferenceElement);
     });
@@ -120,13 +182,19 @@ export default class extends Controller {
     element.className = "d-flex align-items-center p-3 border rounded mb-2 bg-white position-relative preference-item";
     element.dataset.preferenceId = preference.internship_id;
     
+    // Ensure valid preference properties
+    const title = preference.title || preference.internship_title || "Stage sans titre";
+    const company = preference.company || preference.company_name || "Entreprise non spécifiée";
+    const reason = preference.reason || "";
+    
     element.innerHTML = `
       <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle me-3" style="width: 32px; height: 32px;">
         ${rank}
       </div>
       <div class="flex-grow-1">
-        <h5 class="mb-0">${preference.title || preference.internship_title}</h5>
-        <p class="text-muted mb-0">${preference.company || preference.company_name}</p>
+        <h5 class="mb-0">${title}</h5>
+        <p class="text-muted mb-0">${company}</p>
+        ${reason ? `<p class="small text-muted mt-1"><em>Raison: ${reason}</em></p>` : ''}
       </div>
       <div class="preference-actions">
         ${rank > 1 ? `
@@ -139,6 +207,9 @@ export default class extends Controller {
           <i class="bi bi-arrow-down"></i>
         </button>
         ` : ''}
+        <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-action="student-preferences#editReason" data-index="${rank - 1}">
+          <i class="bi bi-pencil"></i>
+        </button>
         <button type="button" class="btn btn-sm btn-outline-danger" data-action="student-preferences#removePreference" data-index="${rank - 1}">
           <i class="bi bi-x"></i>
         </button>
@@ -226,56 +297,66 @@ export default class extends Controller {
     }
     
     // Toujours effectuer la recherche, même avec un seul caractère
+    // Réduire le délai pour une recherche plus réactive
+    const delay = query.length === 1 ? this.searchDelayValue : Math.max(50, this.searchDelayValue - 50);
+    
     this.searchTimeout = setTimeout(() => {
       this.performSearch(query);
-    }, this.searchDelayValue);
+    }, delay);
   }
   
   async performSearch(query) {
     if (this.isLoading) return;
     this.isLoading = true;
     
+    // Pour des recherches rapides, on utilise un loader plus discret si la recherche est courte
     if (this.hasSearchResultsTarget) {
-      this.searchResultsTarget.innerHTML = `
-        <div class="p-3 text-center">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Recherche en cours...</span>
+      if (query.length <= 2) {
+        // Mini loader pour les recherches courtes
+        this.searchResultsTarget.innerHTML = `
+          <div class="p-2 text-center">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Recherche en cours...</span>
+            </div>
+            <span class="ms-2 text-muted small">Recherche en cours...</span>
           </div>
-          <p class="mt-2 text-muted">Recherche en cours pour "${query}"...</p>
-        </div>
-      `;
+        `;
+      } else {
+        this.searchResultsTarget.innerHTML = `
+          <div class="p-3 text-center">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Recherche en cours...</span>
+            </div>
+            <p class="mt-2 text-muted">Recherche en cours pour "${query}"...</p>
+          </div>
+        `;
+      }
     }
     
     try {
       // Enregistrement détaillé pour le débogage
       console.log("Performing search with query:", query);
-      console.log("Search URL:", `/tutoring/api/internships/search.php?term=${encodeURIComponent(query)}`);
+      
+      // Ajouter un paramètre limit pour les recherches par préfixe
+      const limit = query.length < 3 ? 15 : 20; // Réduire le nombre de résultats pour les recherches courtes
+      console.log("Search URL:", `/tutoring/api/internships/search.php?term=${encodeURIComponent(query)}&limit=${limit}`);
       
       // Utilisation directe de fetch pour éviter les problèmes avec l'API client
-      const response = await fetch(`/tutoring/api/internships/search.php?term=${encodeURIComponent(query)}`);
+      const response = await fetch(`/tutoring/api/internships/search.php?term=${encodeURIComponent(query)}&limit=${limit}`);
       console.log("Search response status:", response.status);
-      console.log("Search response headers:", response.headers);
       
       if (!response.ok) {
         throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}`);
       }
       
-      // Afficher le texte de la réponse pour le débogage
-      const responseText = await response.text();
-      console.log("Raw response text:", responseText);
-      
-      // Essayer de parser en JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Error parsing JSON:", e);
-        throw new Error(`Erreur de format de réponse: ${e.message}`);
-      }
-      
-      console.log("Search response data:", data);
+      // Récupérer la réponse JSON directement
+      const data = await response.json();
+      console.log("Search found", data.count, "results");
       
       if (data.success) {
+        // Mettre à jour l'URL de la dernière recherche pour référence
+        this.lastSearchQuery = query;
+        
         // Display search results
         this.displaySearchResults(data.data || []);
       } else {
@@ -288,7 +369,6 @@ export default class extends Controller {
         this.searchResultsTarget.innerHTML = `
           <div class="alert alert-danger">
             <strong>Erreur lors de la recherche:</strong> ${error.message}
-            <div class="mt-2 small text-muted">Consultez la console du navigateur pour plus de détails (F12)</div>
           </div>
         `;
       }
@@ -305,12 +385,31 @@ export default class extends Controller {
     
     // No results
     if (internships.length === 0) {
-      searchResults.innerHTML = `
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle me-2"></i>Aucun stage trouvé.
-          <p class="small mt-2 mb-0">Essayez d'autres termes de recherche ou consultez tous les stages disponibles.</p>
-        </div>
-      `;
+      // Personnaliser le message en fonction de la requête
+      const query = this.lastSearchQuery || '';
+      
+      if (query.length === 1) {
+        searchResults.innerHTML = `
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>Aucun stage trouvé commençant par "${query}".
+            <p class="small mt-2 mb-0">Continuez à taper pour affiner votre recherche.</p>
+          </div>
+        `;
+      } else if (query.length > 1) {
+        searchResults.innerHTML = `
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>Aucun stage trouvé pour "${query}".
+            <p class="small mt-2 mb-0">Essayez d'autres termes de recherche ou consultez tous les stages disponibles.</p>
+          </div>
+        `;
+      } else {
+        searchResults.innerHTML = `
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>Aucun stage trouvé.
+            <p class="small mt-2 mb-0">Commencez à taper pour rechercher un stage.</p>
+          </div>
+        `;
+      }
       return;
     }
     
@@ -323,10 +422,23 @@ export default class extends Controller {
     // Add header to results
     const resultsHeader = document.createElement('div');
     resultsHeader.className = 'p-2 bg-light border-bottom';
+    
+    // Personnaliser le message d'en-tête en fonction de la requête
+    const query = this.lastSearchQuery || '';
+    let headerMessage = '';
+    
+    if (query.length === 0) {
+      headerMessage = 'Stages récents';
+    } else if (query.length === 1) {
+      headerMessage = `Stages commençant par "${query}"`;
+    } else {
+      headerMessage = `Résultats pour "${query}"`;
+    }
+    
     resultsHeader.innerHTML = `
       <div class="d-flex justify-content-between align-items-center">
-        <span><strong>${internships.length}</strong> stage(s) trouvé(s)</span>
-        <small class="text-muted">Cliquez sur un stage pour l'ajouter à vos préférences</small>
+        <span><strong>${internships.length}</strong> ${headerMessage}</span>
+        <small class="text-muted">Cliquez pour ajouter aux préférences</small>
       </div>
     `;
     searchResults.appendChild(resultsHeader);
@@ -350,10 +462,19 @@ export default class extends Controller {
         const location = internship.location || 'Non spécifié';
         const companyName = internship.company?.name || 'Entreprise non spécifiée';
         
+        // Mise en évidence du terme recherché dans le titre
+        let highlightedTitle = internship.title;
+        if (query && query.length > 0) {
+          // Échapper les caractères spéciaux pour éviter des problèmes avec RegExp
+          const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`^(${escapedQuery})`, 'i');
+          highlightedTitle = internship.title.replace(regex, '<span class="highlight-search">$1</span>');
+        }
+        
         element.innerHTML = `
           <div class="d-flex align-items-center">
             <div class="flex-grow-1">
-              <h5 class="mb-0">${internship.title}</h5>
+              <h5 class="mb-0">${highlightedTitle}</h5>
               <p class="text-muted mb-0">${companyName}</p>
               <div class="small text-muted mt-1">${domain} • ${location}</div>
             </div>
@@ -374,6 +495,18 @@ export default class extends Controller {
         console.error("Error displaying internship:", error, internship);
       }
     });
+    
+    // Ajouter du style pour la mise en évidence
+    const style = document.createElement('style');
+    style.textContent = `
+      .highlight-search {
+        background-color: rgba(255, 243, 205, 0.7);
+        font-weight: bold;
+        padding: 0 2px;
+        border-radius: 2px;
+      }
+    `;
+    searchResults.appendChild(style);
   }
   
   addPreference(event) {
@@ -401,7 +534,8 @@ export default class extends Controller {
       internship_id: internshipId,
       title: internshipTitle,
       company: internshipCompany,
-      rank: this.preferences.length + 1
+      rank: this.preferences.length + 1,
+      reason: null // Raison sera ajoutée plus tard
     });
     
     // Update UI
@@ -421,6 +555,26 @@ export default class extends Controller {
     
     // Enable save button if there are preferences
     this.saveButtonTarget.disabled = this.preferences.length === 0;
+  }
+  
+  editReason(event) {
+    const index = parseInt(event.currentTarget.dataset.index);
+    if (index < 0 || index >= this.preferences.length) return;
+    
+    const preference = this.preferences[index];
+    const currentReason = preference.reason || "";
+    
+    // Demander la raison à l'utilisateur
+    const reason = prompt("Pourquoi avez-vous choisi ce stage? (optionnel)", currentReason);
+    
+    // Si l'utilisateur annule, on ne fait rien
+    if (reason === null) return;
+    
+    // Mettre à jour la raison
+    preference.reason = reason;
+    
+    // Mettre à jour l'interface
+    this.updatePreferencesList();
   }
   
   async savePreferences() {
