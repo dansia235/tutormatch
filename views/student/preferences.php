@@ -134,6 +134,13 @@ if (isset($_GET['add']) && !empty($_GET['add'])) {
                 // Récupérer les préférences actuelles pour déterminer l'ordre
                 $currentPreferences = $studentModel->getPreferences($student['id']) ?? [];
                 
+                // Vérifier si l'étudiant a déjà atteint le maximum de 5 préférences
+                if (count($currentPreferences) >= 5) {
+                    setFlashMessage('warning', 'Vous avez atteint le nombre maximum de préférences (5). Veuillez supprimer une préférence avant d\'en ajouter une nouvelle.');
+                    redirect('/tutoring/views/student/preferences.php');
+                    exit;
+                }
+                
                 // Déterminer l'ordre de préférence (dernier + 1)
                 $preferenceOrder = 1; // Par défaut
                 
@@ -323,7 +330,7 @@ echo $customCSS;
                     <div data-student-preferences-target="selectedPreferences" class="hidden"></div>
                     
                     <!-- Maximum Preferences Alert -->
-                    <div data-student-preferences-target="maxPreferencesAlert" class="alert alert-warning hidden mb-4">
+                    <div data-student-preferences-target="maxPreferencesAlert" class="alert alert-warning d-none mb-4">
                         <i class="bi bi-exclamation-triangle me-2"></i>
                         Vous avez atteint le nombre maximum de préférences (5). Veuillez supprimer une préférence avant d'en ajouter une nouvelle.
                     </div>
@@ -629,6 +636,15 @@ document.addEventListener('DOMContentLoaded', function() {
     window.fallbackPreferencesData = fallbackPreferences;
     window.fallbackStatsData = fallbackStats;
     
+    // Vérifier si l'utilisateur a déjà 5 préférences pour afficher l'alerte
+    const preferences = <?= json_encode($currentStudentPreferences) ?>;
+    if (preferences && preferences.length >= 5) {
+        const maxPreferencesAlert = document.querySelector('[data-student-preferences-target="maxPreferencesAlert"]');
+        if (maxPreferencesAlert) {
+            maxPreferencesAlert.classList.remove('d-none');
+        }
+    }
+    
     // Fetch statistics 
     fetchPreferenceStats();
     
@@ -646,6 +662,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 console.log("Stats data:", data);
                 updateStats(data.stats || fallbackStats);
+                
+                // Afficher l'alerte si l'utilisateur a 5 préférences
+                if (data.stats && data.stats.preferences_count >= 5) {
+                    const maxPreferencesAlert = document.querySelector('[data-student-preferences-target="maxPreferencesAlert"]');
+                    if (maxPreferencesAlert) {
+                        maxPreferencesAlert.classList.remove('d-none');
+                    }
+                }
             })
             .catch(error => {
                 console.error('Erreur:', error);

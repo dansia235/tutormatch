@@ -66,7 +66,11 @@ if (isset($_GET['add']) && !empty($_GET['add']) && $student_id) {
     $internshipModel = new Internship($db);
     $internship = $internshipModel->getById($internshipId);
     
-    if ($internship && !isInPreferences($internshipId, $currentPreferences)) {
+    // Vérifier si l'étudiant a déjà atteint le maximum de 5 préférences
+    if (count($currentPreferences) >= 5) {
+        setFlashMessage('warning', 'Vous avez atteint le nombre maximum de préférences (5). Veuillez supprimer une préférence avant d\'en ajouter une nouvelle.');
+    }
+    else if ($internship && !isInPreferences($internshipId, $currentPreferences)) {
         // Déterminer l'ordre de préférence (dernier + 1)
         $preferenceOrder = 1;
         
@@ -202,6 +206,10 @@ include_once __DIR__ . '/../common/header.php';
                                                 <?php if ($isPreferred): ?>
                                                     <button class="btn btn-success btn-sm" disabled>
                                                         <i class="bi bi-check-circle me-1"></i>Dans vos préférences
+                                                    </button>
+                                                <?php elseif (count($currentPreferences) >= 5): ?>
+                                                    <button class="btn btn-secondary btn-sm" disabled>
+                                                        <i class="bi bi-exclamation-triangle me-1"></i>Maximum atteint (5)
                                                     </button>
                                                 <?php else: ?>
                                                     <a href="?term=<?= urlencode($searchTerm) ?>&add=<?= $internship['id'] ?><?= isset($_GET['show_all']) ? '&show_all=1' : '' ?>" class="btn btn-outline-primary btn-sm">

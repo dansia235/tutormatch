@@ -56,6 +56,15 @@ try {
         $preferences = $studentModel->getPreferences($student['id']) ?? [];
     }
     
+    // Vérifier si l'étudiant a déjà atteint le maximum de 5 préférences
+    if (count($preferences) >= 5) {
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Vous avez atteint le nombre maximum de préférences (5). Veuillez supprimer une préférence avant d\'en ajouter une nouvelle.'
+        ], 400);
+        exit;
+    }
+    
     // Déterminer l'ordre de préférence (dernier + 1)
     $preferenceOrder = 1; // Par défaut
     
