@@ -36,6 +36,8 @@ Thumbs.db
 .env.local
 .env.*.local
 
+.claude
+
 # Dossiers de fichiers téléchargés
 /uploads/*
 !/uploads/.gitkeep

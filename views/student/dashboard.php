@@ -242,44 +242,148 @@ if (!isset($student) || empty($student)) {
                         }
                     }
                     
-                    // Calculer les statistiques pour les évaluations
-                    $totalEvaluations = count($evaluations);
+                    // Calculer les statistiques en ne prenant en compte que les évaluations de type mid_term et final
+                    $totalEvaluations = 0; // On ne compte que les évaluations valides
                     $totalScore = 0;
                     $totalTechnical = 0;
                     $totalProfessional = 0;
                     $countTechnical = 0;
                     $countProfessional = 0;
+                    $validEvaluations = 0;
+                    
+                    // Définir des mappings spécifiques pour les critères communs
+                    $technicalMappings = [
+                        'compétences techniques' => true,
+                        'technical skills' => true,
+                        'maîtrise des technologies' => true,
+                        'quality of work' => true,
+                        'qualité du travail' => true,
+                        'problem solving' => true,
+                        'résolution de problèmes' => true,
+                        'documentation' => true
+                    ];
+                    
+                    $professionalMappings = [
+                        'comportement professionnel' => true, 
+                        'professional behavior' => true,
+                        'communication' => true,
+                        'initiative' => true,
+                        'initiative et autonomie' => true,
+                        'autonomie' => true,
+                        'autonomy' => true,
+                        'travail en équipe' => true,
+                        'teamwork' => true,
+                        'intégration dans l\'équipe' => true,
+                        'team integration' => true,
+                        'ponctualité' => true,
+                        'punctuality' => true,
+                        'respect des délais' => true,
+                        'deadline respect' => true
+                    ];
+                    
+                    // Mots clés pour la recherche
+                    $technicalCriteria = ['technique', 'technical', 'maîtrise', 'qualité', 'problème', 'documentation', 'quality', 'problem'];
+                    $professionalCriteria = ['professionnel', 'professional', 'intégration', 'integration', 'équipe', 'team', 'autonomie', 'autonomy', 'communication', 'ponctualité', 'punctuality'];
                     
                     foreach ($evaluations as $evaluation) {
-                        $totalScore += $evaluation['score'];
+                        // Ne prendre en compte que les évaluations de type mid_term et final pour la moyenne générale
+                        $isOfficialEval = isset($evaluation['type']) && in_array($evaluation['type'], ['mid_term', 'final']);
                         
-                        // Parcourir les critères
+                        if ($isOfficialEval) {
+                            $validEvaluations++; // Incrémenter le compteur d'évaluations officielles
+                            
+                            // S'assurer que le score est sur l'échelle 0-5
+                            $score = isset($evaluation['score']) ? $evaluation['score'] : 0;
+                            // Convertir le score si nécessaire (de 0-20 à 0-5)
+                            if ($score > 5) {
+                                $score = min(5, round($score / 4, 1));
+                            }
+                            $totalScore += $score;
+                        }
+                        
+                        // Parcourir les critères de TOUTES les évaluations (y compris les auto-évaluations)
                         if (isset($evaluation['criteria']) && is_array($evaluation['criteria'])) {
                             foreach ($evaluation['criteria'] as $criterion) {
                                 if (!isset($criterion['name']) || !isset($criterion['score'])) {
                                     continue;
                                 }
                                 
-                                if (stripos($criterion['name'], 'technique') !== false || stripos($criterion['name'], 'technical') !== false) {
-                                    $totalTechnical += $criterion['score'];
+                                $criterionName = strtolower($criterion['name']);
+                                
+                                // Vérifier que le score est dans la bonne échelle
+                                $criterionScore = $criterion['score'];
+                                if ($criterionScore > 5) {
+                                    $criterionScore = min(5, round($criterionScore / 4, 1));
+                                }
+                                
+                                // Vérifier d'abord dans les mappings spécifiques
+                                $isTechnical = isset($technicalMappings[$criterionName]);
+                                $isProfessional = !$isTechnical && isset($professionalMappings[$criterionName]);
+                                
+                                // Si pas trouvé dans les mappings spécifiques, rechercher par mots-clés
+                                if (!$isTechnical && !$isProfessional) {
+                                    // Vérifier si c'est un critère technique
+                                    foreach ($technicalCriteria as $keyword) {
+                                        if (stripos($criterionName, $keyword) !== false) {
+                                            $isTechnical = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // Vérifier si c'est un critère professionnel
+                                    if (!$isTechnical) { // Seulement si ce n'est pas déjà classé comme technique
+                                        foreach ($professionalCriteria as $keyword) {
+                                            if (stripos($criterionName, $keyword) !== false) {
+                                                $isProfessional = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Ajouter aux totaux appropriés
+                                if ($isTechnical) {
+                                    $totalTechnical += $criterionScore;
                                     $countTechnical++;
-                                } else if (stripos($criterion['name'], 'professionnel') !== false || 
-                                         stripos($criterion['name'], 'professional') !== false ||
-                                         stripos($criterion['name'], 'intégration') !== false ||
-                                         stripos($criterion['name'], 'integration') !== false ||
-                                         stripos($criterion['name'], 'équipe') !== false ||
-                                         stripos($criterion['name'], 'team') !== false) {
-                                    $totalProfessional += $criterion['score'];
+                                } else if ($isProfessional) {
+                                    $totalProfessional += $criterionScore;
                                     $countProfessional++;
                                 }
                             }
                         }
                     }
                     
-                    // Calculer les moyennes
+                    // Si aucun critère trouvé mais qu'il y a des évaluations, créer des catégories par défaut
+                    if ($countTechnical == 0 && $countProfessional == 0 && count($evaluations) > 0) {
+                        // Assigner des scores par défaut basés sur la moyenne globale
+                        $defaultScore = 0;
+                        $countEvals = 0;
+                        
+                        foreach ($evaluations as $evaluation) {
+                            if (isset($evaluation['score'])) {
+                                $score = $evaluation['score'];
+                                if ($score > 5) {
+                                    $score = min(5, round($score / 4, 1));
+                                }
+                                $defaultScore += $score;
+                                $countEvals++;
+                            }
+                        }
+                        
+                        if ($countEvals > 0) {
+                            $defaultScore = round($defaultScore / $countEvals, 1);
+                            // Créer des compétences artificielles pour afficher quelque chose
+                            $totalTechnical = $defaultScore;
+                            $countTechnical = 1;
+                            $totalProfessional = $defaultScore;
+                            $countProfessional = 1;
+                        }
+                    }
+                    
+                    // Calculer les moyennes en utilisant uniquement les évaluations mid_term et final
                     $stats = [
-                        'average' => $totalEvaluations > 0 ? round($totalScore / $totalEvaluations, 1) : 0,
-                        'completed' => $totalEvaluations,
+                        'average' => $validEvaluations > 0 ? round($totalScore / $validEvaluations, 1) : 0,
+                        'completed' => $validEvaluations,
                         'total_expected' => 5,
                         'technical' => $countTechnical > 0 ? round($totalTechnical / $countTechnical, 1) : 0,
                         'professional' => $countProfessional > 0 ? round($totalProfessional / $countProfessional, 1) : 0
@@ -327,32 +431,63 @@ include_once __DIR__ . '/../common/header.php';
         <div class="col-md-3 fade-in delay-1">
             <div class="card stat-card">
                 <?php
-                // Calculer la progression du stage
+                // Calculer la progression du stage basée sur les dates
                 $stageProgress = 0;
                 $stageStatus = 'Stage non commencé';
                 
                 if (isset($assignment) && $assignment) {
                     if ($assignment['status'] == 'active') {
-                        // Pour un stage actif, on peut calculer une progression basée sur différents critères
-                        // Par exemple, le nombre de documents soumis, de réunions tenues, etc.
-                        $docsWeight = 0.4; // 40% de la progression basée sur les documents
-                        $meetingsWeight = 0.3; // 30% de la progression basée sur les réunions
-                        $evalsWeight = 0.3; // 30% de la progression basée sur les évaluations
-                        
-                        $docsProgress = isset($documentCount) ? min(1, $documentCount / 10) : 0;
-                        $meetingsProgress = isset($meetings) && is_array($meetings) ? min(1, count($meetings) / 5) : 0;
-                        $evalsProgress = isset($evaluationsCount) ? min(1, $evaluationsCount / 4) : 0;
-                        
-                        $stageProgress = round(($docsProgress * $docsWeight + $meetingsProgress * $meetingsWeight + $evalsProgress * $evalsWeight) * 100);
-                        
-                        if ($stageProgress < 25) {
-                            $stageStatus = 'Début du stage';
-                        } else if ($stageProgress < 50) {
-                            $stageStatus = 'Stage en cours';
-                        } else if ($stageProgress < 75) {
-                            $stageStatus = 'Stage avancé';
-                        } else {
-                            $stageStatus = 'Fin de stage';
+                        // Pour un stage actif, calculer la progression basée sur les dates
+                        if (isset($assignment['internship_id'])) {
+                            $internship = $internshipModel->getById($assignment['internship_id']);
+                            
+                            if ($internship && isset($internship['start_date']) && isset($internship['end_date'])) {
+                                $startDate = new DateTime($internship['start_date']);
+                                $endDate = new DateTime($internship['end_date']);
+                                $today = new DateTime();
+                                
+                                // Vérifier si on est entre le début et la fin du stage
+                                if ($today >= $startDate && $today <= $endDate) {
+                                    // Calculer le pourcentage de temps écoulé
+                                    $totalDuration = $startDate->diff($endDate)->days;
+                                    $elapsedDuration = $startDate->diff($today)->days;
+                                    
+                                    if ($totalDuration > 0) {
+                                        $stageProgress = min(100, round(($elapsedDuration / $totalDuration) * 100));
+                                    }
+                                    
+                                    // Déterminer le statut en fonction de la progression
+                                    if ($stageProgress < 25) {
+                                        $stageStatus = 'Début du stage';
+                                    } else if ($stageProgress < 50) {
+                                        $stageStatus = 'Stage en cours';
+                                    } else if ($stageProgress < 75) {
+                                        $stageStatus = 'Stage avancé';
+                                    } else {
+                                        $stageStatus = 'Fin de stage';
+                                    }
+                                } elseif ($today > $endDate) {
+                                    // Le stage est terminé
+                                    $stageProgress = 100;
+                                    $stageStatus = 'Stage terminé';
+                                } elseif ($today < $startDate) {
+                                    // Le stage n'a pas encore commencé
+                                    $stageProgress = 0;
+                                    $stageStatus = 'Stage à venir';
+                                }
+                            } else {
+                                // Pas de dates de stage définies, utiliser une approche basée sur les activités
+                                $docsWeight = 0.4; // 40% de la progression basée sur les documents
+                                $meetingsWeight = 0.3; // 30% de la progression basée sur les réunions
+                                $evalsWeight = 0.3; // 30% de la progression basée sur les évaluations
+                                
+                                $docsProgress = isset($documentCount) ? min(1, $documentCount / 10) : 0;
+                                $meetingsProgress = isset($meetings) && is_array($meetings) ? min(1, count($meetings) / 5) : 0;
+                                $evalsProgress = isset($stats['completed']) ? min(1, $stats['completed'] / $stats['total_expected']) : 0;
+                                
+                                $stageProgress = round(($docsProgress * $docsWeight + $meetingsProgress * $meetingsWeight + $evalsProgress * $evalsWeight) * 100);
+                                $stageStatus = 'Stage en cours';
+                            }
                         }
                     } else if ($assignment['status'] == 'completed') {
                         $stageProgress = 100;

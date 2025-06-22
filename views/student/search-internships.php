@@ -32,7 +32,22 @@ if (!empty($searchTerm) || isset($_GET['show_all'])) {
     $filters = ['status' => 'available'];
     
     try {
-        $searchResults = $internshipModel->search($searchTerm, 'available', $filters, 20, 0);
+        if (isset($_GET['show_all'])) {
+            // Récupérer tous les stages disponibles sans limite
+            $searchResults = $internshipModel->getAvailable();
+            if (empty($searchResults)) {
+                // Si getAvailable() ne fonctionne pas, essayer avec getAvailableForStudent
+                if ($student_id) {
+                    $searchResults = $internshipModel->getAvailableForStudent($student_id);
+                } else {
+                    // Dernière tentative avec search mais sans limite
+                    $searchResults = $internshipModel->search('', 'available', $filters, 1000, 0);
+                }
+            }
+        } else {
+            // Recherche normale avec terme de recherche
+            $searchResults = $internshipModel->search($searchTerm, 'available', $filters, 20, 0);
+        }
         error_log("Search for '$searchTerm' found " . count($searchResults) . " results");
     } catch (Exception $e) {
         error_log("Search error: " . $e->getMessage());

@@ -334,26 +334,40 @@ if ($evaluationModel) {
     }
     
     // Calculer les statistiques
-    $stats['total_evaluations'] = count($assignments) * 2; // 2 évaluations par étudiant
+    $stats['total_evaluations'] = count($assignments) * 5; // 5 évaluations par étudiant
     $stats['completed_evaluations'] = count($allEvaluations);
     $stats['pending_evaluations'] = count($pendingEvaluations);
     
-    // Calculer la moyenne (convertir de 20 à 5 pour l'affichage)
-    if ($stats['completed_evaluations'] > 0) {
-        $totalScore = array_sum(array_column($allEvaluations, 'score'));
-        $stats['average_score'] = min(5, round(($totalScore / $stats['completed_evaluations']) / 4, 1));
+    // Calculer la moyenne en ne prenant en compte que les évaluations mid_term et final
+    $validScores = [];
+    $validEvaluations = 0;
+    foreach ($allEvaluations as $eval) {
+        if (in_array($eval['type'], ['mid_term', 'final']) && isset($eval['score'])) {
+            $score = $eval['score'];
+            // Convertir le score si nécessaire (de 0-20 à 0-5)
+            if ($score > 5) {
+                $score = min(5, round($score / 4, 1));
+            }
+            $validScores[] = $score;
+            $validEvaluations++;
+        }
     }
     
-    // Taux d'amélioration (exemple fictif)
-    $stats['improvement_rate'] = $stats['completed_evaluations'] > 0 ? 75 : 0;
+    if ($validEvaluations > 0) {
+        $stats['average_score'] = min(5, round(array_sum($validScores) / $validEvaluations, 1));
+    }
+    
+    // Taux d'amélioration (calculé en fonction du nombre d'évaluations complétées)
+    $stats['improvement_rate'] = $stats['total_evaluations'] > 0 ? 
+        round(($stats['completed_evaluations'] / $stats['total_evaluations']) * 100) : 0;
 } else {
     // Données fictives pour la démonstration
     $stats = [
-        'total_evaluations' => count($assignments) * 2,
-        'pending_evaluations' => count($assignments),
-        'completed_evaluations' => count($assignments),
+        'total_evaluations' => count($assignments) * 5,
+        'pending_evaluations' => count($assignments) * 3, // Simulation de 3 évaluations en attente par étudiant
+        'completed_evaluations' => count($assignments) * 2, // Simulation de 2 évaluations complétées par étudiant
         'average_score' => 4.2,
-        'improvement_rate' => 75
+        'improvement_rate' => 40 // 2/5 = 40% de progression
     ];
 }
 
@@ -598,30 +612,198 @@ include_once __DIR__ . '/../common/header.php';
                                 'autonomy_score' => 0
                             ];
                             
+                            // Définir des mappings spécifiques pour les critères communs
+                            $technicalMappings = [
+                                'compétences techniques' => true,
+                                'technical skills' => true,
+                                'maîtrise des technologies' => true,
+                                'quality of work' => true,
+                                'qualité du travail' => true,
+                                'problem solving' => true,
+                                'résolution de problèmes' => true,
+                                'documentation' => true,
+                                'technical mastery' => true,
+                                'work quality' => true
+                            ];
+                            
+                            $communicationMappings = [
+                                'communication' => true,
+                                'présentation' => true,
+                                'presentation' => true,
+                                'expression' => true,
+                                'clarté' => true,
+                                'clarity' => true
+                            ];
+                            
+                            $teamworkMappings = [
+                                'travail en équipe' => true,
+                                'teamwork' => true,
+                                'intégration dans l\'équipe' => true,
+                                'team integration' => true,
+                                'collaboration' => true,
+                                'esprit d\'équipe' => true,
+                                'team spirit' => true
+                            ];
+                            
+                            $autonomyMappings = [
+                                'autonomie' => true,
+                                'autonomy' => true,
+                                'initiative' => true,
+                                'initiative et autonomie' => true,
+                                'indépendance' => true,
+                                'independence' => true,
+                                'self-management' => true,
+                                'gestion autonome' => true
+                            ];
+                            
+                            // Mots clés pour la recherche
+                            $technicalKeywords = ['technique', 'technical', 'maîtrise', 'qualité', 'problème', 'documentation', 'quality', 'problem', 'tech', 'code', 'programming', 'développement', 'development'];
+                            $communicationKeywords = ['communication', 'expression', 'présentation', 'clarté', 'clarity', 'parler', 'speaking', 'écoute', 'listening', 'échange', 'exchange'];
+                            $teamworkKeywords = ['équipe', 'team', 'collaboration', 'collègues', 'colleagues', 'groupe', 'group', 'collectif', 'collective', 'coopération', 'cooperation'];
+                            $autonomyKeywords = ['autonomie', 'autonomy', 'initiative', 'indépendance', 'independence', 'self', 'responsabilité', 'responsibility', 'décision', 'decision'];
+                            
+                            // Compteurs pour chaque catégorie
+                            $categoryCounts = [
+                                'technical' => 0,
+                                'communication' => 0,
+                                'teamwork' => 0,
+                                'autonomy' => 0
+                            ];
+                            
+                            // Fonction utilitaire pour vérifier si une chaîne contient un des mots-clés
+                            function containsAnyKeyword($string, $keywords) {
+                                foreach ($keywords as $keyword) {
+                                    if (strpos($string, $keyword) !== false) {
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            }
+                            
+                            // Ne traiter que les évaluations de type mid_term et final (pas les auto-évaluations)
+                            $officialEvaluations = [];
                             foreach ($studentEvaluations as $eval) {
+                                if (isset($eval['type']) && in_array($eval['type'], ['mid_term', 'final'])) {
+                                    $officialEvaluations[] = $eval;
+                                }
+                            }
+                            
+                            // Traiter les critères dans toutes les évaluations
+                            foreach ($officialEvaluations as $eval) {
                                 if (isset($eval['criteria']) && is_array($eval['criteria'])) {
                                     foreach ($eval['criteria'] as $criterion) {
-                                        $name = strtolower($criterion['name']);
-                                        if (strpos($name, 'technique') !== false || strpos($name, 'technical') !== false) {
-                                            $studentStats['technical_score'] += $criterion['score'];
-                                        } elseif (strpos($name, 'communication') !== false) {
-                                            $studentStats['communication_score'] += $criterion['score'];
-                                        } elseif (strpos($name, 'équipe') !== false || strpos($name, 'team') !== false) {
-                                            $studentStats['teamwork_score'] += $criterion['score'];
-                                        } elseif (strpos($name, 'autonomie') !== false || strpos($name, 'autonomy') !== false) {
-                                            $studentStats['autonomy_score'] += $criterion['score'];
+                                        if (!isset($criterion['name']) || !isset($criterion['score'])) {
+                                            continue;
+                                        }
+                                        
+                                        $name = strtolower(trim($criterion['name']));
+                                        
+                                        // Valider et normaliser le score
+                                        $score = floatval($criterion['score']);
+                                        if ($score > 5) {
+                                            $score = min(5, round($score / 4, 1)); // Convertir de 0-20 à 0-5 si nécessaire
+                                        }
+                                        
+                                        // Vérifier d'abord dans les mappings spécifiques
+                                        $categoryFound = false;
+                                        
+                                        if (isset($technicalMappings[$name])) {
+                                            $studentStats['technical_score'] += $score;
+                                            $categoryCounts['technical']++;
+                                            $categoryFound = true;
+                                        } elseif (isset($communicationMappings[$name])) {
+                                            $studentStats['communication_score'] += $score;
+                                            $categoryCounts['communication']++;
+                                            $categoryFound = true;
+                                        } elseif (isset($teamworkMappings[$name])) {
+                                            $studentStats['teamwork_score'] += $score;
+                                            $categoryCounts['teamwork']++;
+                                            $categoryFound = true;
+                                        } elseif (isset($autonomyMappings[$name])) {
+                                            $studentStats['autonomy_score'] += $score;
+                                            $categoryCounts['autonomy']++;
+                                            $categoryFound = true;
+                                        }
+                                        
+                                        // Si pas trouvé dans les mappings spécifiques, rechercher par mots-clés
+                                        if (!$categoryFound) {
+                                            if (containsAnyKeyword($name, $technicalKeywords)) {
+                                                $studentStats['technical_score'] += $score;
+                                                $categoryCounts['technical']++;
+                                            } elseif (containsAnyKeyword($name, $communicationKeywords)) {
+                                                $studentStats['communication_score'] += $score;
+                                                $categoryCounts['communication']++;
+                                            } elseif (containsAnyKeyword($name, $teamworkKeywords)) {
+                                                $studentStats['teamwork_score'] += $score;
+                                                $categoryCounts['teamwork']++;
+                                            } elseif (containsAnyKeyword($name, $autonomyKeywords)) {
+                                                $studentStats['autonomy_score'] += $score;
+                                                $categoryCounts['autonomy']++;
+                                            } else {
+                                                // Si on ne peut pas classifier, on met dans la catégorie technique par défaut
+                                                $studentStats['technical_score'] += $score;
+                                                $categoryCounts['technical']++;
+                                            }
                                         }
                                     }
                                 }
                             }
                             
-                            // Calculer les moyennes
-                            if ($studentStats['evaluations_count'] > 0) {
-                                $studentStats['technical_score'] = round($studentStats['technical_score'] / $studentStats['evaluations_count'], 1);
-                                $studentStats['communication_score'] = round($studentStats['communication_score'] / $studentStats['evaluations_count'], 1);
-                                $studentStats['teamwork_score'] = round($studentStats['teamwork_score'] / $studentStats['evaluations_count'], 1);
-                                $studentStats['autonomy_score'] = round($studentStats['autonomy_score'] / $studentStats['evaluations_count'], 1);
+                            // Calculer les moyennes correctement en fonction du nombre de critères trouvés
+                            $studentStats['technical_score'] = $categoryCounts['technical'] > 0 ? 
+                                round($studentStats['technical_score'] / $categoryCounts['technical'], 1) : 0;
+                                
+                            $studentStats['communication_score'] = $categoryCounts['communication'] > 0 ? 
+                                round($studentStats['communication_score'] / $categoryCounts['communication'], 1) : 0;
+                                
+                            $studentStats['teamwork_score'] = $categoryCounts['teamwork'] > 0 ? 
+                                round($studentStats['teamwork_score'] / $categoryCounts['teamwork'], 1) : 0;
+                                
+                            $studentStats['autonomy_score'] = $categoryCounts['autonomy'] > 0 ? 
+                                round($studentStats['autonomy_score'] / $categoryCounts['autonomy'], 1) : 0;
+                                
+                            // Si aucune donnée n'a été trouvée mais qu'il y a des évaluations, utiliser un score par défaut
+                            if (count($officialEvaluations) > 0 && 
+                                $categoryCounts['technical'] == 0 && 
+                                $categoryCounts['communication'] == 0 && 
+                                $categoryCounts['teamwork'] == 0 && 
+                                $categoryCounts['autonomy'] == 0) {
+                                
+                                // Calculer un score moyen global pour toutes les évaluations
+                                $totalScore = 0;
+                                $totalCount = 0;
+                                
+                                foreach ($officialEvaluations as $eval) {
+                                    if (isset($eval['score'])) {
+                                        $score = $eval['score'];
+                                        if ($score > 5) {
+                                            $score = min(5, round($score / 4, 1));
+                                        }
+                                        $totalScore += $score;
+                                        $totalCount++;
+                                    }
+                                }
+                                
+                                $defaultScore = $totalCount > 0 ? round($totalScore / $totalCount, 1) : 3.0;
+                                
+                                // Utiliser ce score par défaut pour toutes les catégories
+                                $studentStats['technical_score'] = $defaultScore;
+                                $studentStats['communication_score'] = $defaultScore;
+                                $studentStats['teamwork_score'] = $defaultScore;
+                                $studentStats['autonomy_score'] = $defaultScore;
                             }
+                            
+                            // Assurer que tous les scores sont bien entre 0 et 5
+                            $studentStats['technical_score'] = max(0, min(5, $studentStats['technical_score']));
+                            $studentStats['communication_score'] = max(0, min(5, $studentStats['communication_score']));
+                            $studentStats['teamwork_score'] = max(0, min(5, $studentStats['teamwork_score']));
+                            $studentStats['autonomy_score'] = max(0, min(5, $studentStats['autonomy_score']));
+                            
+                            // Debug
+                            error_log("Statistiques étudiant: technical=" . $studentStats['technical_score'] . 
+                                     ", communication=" . $studentStats['communication_score'] . 
+                                     ", teamwork=" . $studentStats['teamwork_score'] . 
+                                     ", autonomy=" . $studentStats['autonomy_score']);
                             ?>
                             
                             <h5 class="mb-3">Compétences évaluées</h5>
@@ -738,17 +920,47 @@ include_once __DIR__ . '/../common/header.php';
                                         'final' => null
                                     ];
                                     
+                                    $studentEvalsByType = [
+                                        'mid_term' => null,
+                                        'final' => null
+                                    ];
+                                    
+                                    // Séparer les évaluations par type
                                     foreach ($evaluations as $eval) {
-                                        if (isset($evalByType[$eval['type']])) {
-                                            // Convertir le score de 20 à 5 pour l'affichage
-                                            $eval['display_score'] = min(5, round($eval['score'] / 4, 1));
-                                            $evalByType[$eval['type']] = $eval;
+                                        // Convertir le score de 0-20 à 0-5 si nécessaire
+                                        $score = isset($eval['score']) ? $eval['score'] : 0;
+                                        if ($score > 5) {
+                                            $score = min(5, round($score / 4, 1));
+                                        }
+                                        $eval['display_score'] = $score;
+                                        
+                                        // Gestion des évaluations selon leur type
+                                        if ($eval['type'] === 'mid_term') {
+                                            // Évaluation mi-parcours du tuteur
+                                            $evalByType['mid_term'] = $eval;
+                                        } else if ($eval['type'] === 'final') {
+                                            // Évaluation finale du tuteur
+                                            $evalByType['final'] = $eval;
+                                        } else if ($eval['type'] === 'student') {
+                                            // Auto-évaluation de l'étudiant - utiliser comme évaluation si celle du tuteur n'existe pas
+                                            // Nous la considérons comme une évaluation mi-parcours (plus commune)
+                                            $studentEvalsByType['mid_term'] = $eval;
                                         }
                                     }
                                     
-                                    // Calculer la moyenne
-                                    $scores = array_filter(array_column($evaluations, 'score'));
-                                    $average = !empty($scores) ? min(5, round((array_sum($scores) / count($scores)) / 4, 1)) : null;
+                                    // Calculer la moyenne en ne prenant en compte que les évaluations mid_term et final
+                                    $validScores = [];
+                                    foreach ($evaluations as $eval) {
+                                        if (in_array($eval['type'], ['mid_term', 'final']) && isset($eval['score'])) {
+                                            $score = $eval['score'];
+                                            // Convertir le score si nécessaire (de 0-20 à 0-5)
+                                            if ($score > 5) {
+                                                $score = min(5, round($score / 4, 1));
+                                            }
+                                            $validScores[] = $score;
+                                        }
+                                    }
+                                    $average = !empty($validScores) ? min(5, round(array_sum($validScores) / count($validScores), 1)) : null;
                                 ?>
                                 <tr>
                                     <td>
@@ -761,6 +973,8 @@ include_once __DIR__ . '/../common/header.php';
                                     <td>
                                         <?php if ($evalByType['mid_term']): ?>
                                             <span class="badge bg-success"><?php echo h($evalByType['mid_term']['display_score']); ?>/5</span>
+                                        <?php elseif ($studentEvalsByType['mid_term']): ?>
+                                            <span class="badge bg-info">Auto-éval. <?php echo h($studentEvalsByType['mid_term']['display_score']); ?>/5</span>
                                         <?php else: ?>
                                             <span class="badge bg-warning">En attente</span>
                                         <?php endif; ?>
@@ -768,6 +982,8 @@ include_once __DIR__ . '/../common/header.php';
                                     <td>
                                         <?php if ($evalByType['final']): ?>
                                             <span class="badge bg-success"><?php echo h($evalByType['final']['display_score']); ?>/5</span>
+                                        <?php elseif ($studentEvalsByType['final']): ?>
+                                            <span class="badge bg-info">Auto-éval. <?php echo h($studentEvalsByType['final']['display_score']); ?>/5</span>
                                         <?php else: ?>
                                             <span class="badge bg-warning">En attente</span>
                                         <?php endif; ?>
@@ -1210,39 +1426,133 @@ include_once __DIR__ . '/../common/header.php';
             professional: []
         };
         
-        // Organiser les données chronologiquement
-        const sortedEvals = [...evaluationData].sort((a, b) => new Date(a.date) - new Date(b.date));
+        // Références aux valeurs calculées dans le PHP
+        const technicalScore = <?php echo $studentStats['technical_score']; ?>;
+        const communicationScore = <?php echo $studentStats['communication_score']; ?>;
+        const teamworkScore = <?php echo $studentStats['teamwork_score']; ?>;
+        const autonomyScore = <?php echo $studentStats['autonomy_score']; ?>;
         
-        sortedEvals.forEach(eval => {
-            // Ajouter la date au format court
-            chartData.labels.push(new Date(eval.date).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'}));
-            
-            // Calculer les moyennes techniques et professionnelles
-            let techScore = 0;
-            let techCount = 0;
-            let profScore = 0;
-            let profCount = 0;
-            
-            if (eval.criteria && Array.isArray(eval.criteria)) {
-                eval.criteria.forEach(criterion => {
-                    const name = criterion.name.toLowerCase();
-                    if (name.includes('technique') || 
-                        name.includes('technical') ||
-                        name.includes('maîtrise') ||
-                        name.includes('qualité') ||
-                        name.includes('problème') ||
-                        name.includes('documentation')) {
-                        techScore += criterion.score;
-                        techCount++;
+        // Calculer le score professionnel moyen (communication, teamwork, autonomie)
+        const professionalScore = (communicationScore + teamworkScore + autonomyScore) / 3;
+        
+        // Organiser les données chronologiquement
+        const sortedEvals = [...evaluationData].filter(eval => eval && typeof eval === 'object' && 
+                                                     (!eval.type || eval.type === 'mid_term' || eval.type === 'final'))
+                                            .sort((a, b) => {
+                                                const dateA = a.date ? new Date(a.date) : new Date(0);
+                                                const dateB = b.date ? new Date(b.date) : new Date(0);
+                                                return dateA - dateB;
+                                            });
+        
+        // Vérifier si nous avons des données valides
+        if (sortedEvals.length > 0) {
+            sortedEvals.forEach(eval => {
+                try {
+                    // Ajouter la date au format court avec gestion des erreurs
+                    const evalDate = new Date(eval.date);
+                    if (isNaN(evalDate.getTime())) {
+                        chartData.labels.push('Date inconnue');
                     } else {
-                        profScore += criterion.score;
-                        profCount++;
+                        chartData.labels.push(evalDate.toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'}));
                     }
-                });
-            }
-            
-            chartData.technical.push(techCount > 0 ? techScore / techCount : 0);
-            chartData.professional.push(profCount > 0 ? profScore / profCount : 0);
+                } catch (e) {
+                    chartData.labels.push('Date inconnue');
+                }
+                
+                // Calculer les moyennes techniques et professionnelles
+                let techScore = 0;
+                let techCount = 0;
+                let profScore = 0;
+                let profCount = 0;
+                
+                // Mappings pour identifier les critères avec plus de précision
+                const technicalMappings = {
+                    'compétences techniques': true,
+                    'technical skills': true,
+                    'maîtrise des technologies': true,
+                    'quality of work': true,
+                    'qualité du travail': true,
+                    'problem solving': true,
+                    'résolution de problèmes': true,
+                    'documentation': true,
+                    'technical mastery': true,
+                    'work quality': true
+                };
+                
+                const professionalMappings = {
+                    'communication': true,
+                    'teamwork': true, 
+                    'travail en équipe': true,
+                    'autonomie': true,
+                    'autonomy': true,
+                    'initiative': true,
+                    'comportement professionnel': true,
+                    'professional behavior': true,
+                    'intégration dans l\'équipe': true,
+                    'team integration': true
+                };
+                
+                if (eval.criteria && Array.isArray(eval.criteria)) {
+                    eval.criteria.forEach(criterion => {
+                        // Vérifier que le critère est valide
+                        if (!criterion || typeof criterion !== 'object' || 
+                            !('name' in criterion) || !('score' in criterion)) {
+                            return; // Ignorer les critères invalides
+                        }
+                        
+                        // Valider et normaliser le score
+                        let score = parseFloat(criterion.score);
+                        if (isNaN(score)) return; // Ignorer les scores non numériques
+                        
+                        // Convertir de 0-20 à 0-5 si nécessaire
+                        if (score > 5) {
+                            score = Math.min(5, Math.round(score / 4 * 10) / 10);
+                        }
+                        
+                        const name = String(criterion.name).toLowerCase();
+                        
+                        // Vérifier d'abord dans les mappings spécifiques
+                        if (technicalMappings[name]) {
+                            techScore += score;
+                            techCount++;
+                        } else if (professionalMappings[name]) {
+                            profScore += score;
+                            profCount++;
+                        } else {
+                            // Si pas dans les mappings, essayer par recherche de mots-clés
+                            if (name.includes('technique') || 
+                                name.includes('technical') ||
+                                name.includes('maîtrise') ||
+                                name.includes('qualité') ||
+                                name.includes('problème') ||
+                                name.includes('documentation')) {
+                                techScore += score;
+                                techCount++;
+                            } else {
+                                // Par défaut, considérer comme professionnel
+                                profScore += score;
+                                profCount++;
+                            }
+                        }
+                    });
+                }
+                
+                // Si aucun critère trouvé, utiliser les valeurs précalculées
+                if (techCount === 0 && profCount === 0) {
+                    chartData.technical.push(technicalScore);
+                    chartData.professional.push(professionalScore);
+                } else {
+                    // Ajouter les moyennes calculées
+                    chartData.technical.push(techCount > 0 ? Math.round((techScore / techCount) * 10) / 10 : technicalScore);
+                    chartData.professional.push(profCount > 0 ? Math.round((profScore / profCount) * 10) / 10 : professionalScore);
+                }
+            });
+        } else {
+            // Si aucune évaluation, ajouter une valeur par défaut
+            chartData.labels.push('Aujourd\'hui');
+            chartData.technical.push(technicalScore);
+            chartData.professional.push(professionalScore);
+        }
         });
         
         // Créer le graphique si des données sont disponibles
