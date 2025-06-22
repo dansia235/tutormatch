@@ -81,21 +81,25 @@ if ($studentFilter) {
             }
         }
         
-        // Récupérer les évaluations de cet étudiant
+        // Récupérer les évaluations de cet étudiant - Approche en deux étapes
+        $studentEvaluations = [];
+        
+        // ÉTAPE 1 : Récupération via le modèle Evaluation si disponible
         if ($evaluationModel) {
-            $studentEvaluations = $evaluationModel->getByAssignmentId($selectedAssignment['id']);
+            $evaluationsFromDb = $evaluationModel->getByAssignmentId($selectedAssignment['id']);
             
-            // Adapter le format des données si nécessaire
-            foreach ($studentEvaluations as &$eval) {
-                // Convertir le score de 20 à 5
-                if (isset($eval['score']) && $eval['score'] > 5) {
-                    $eval['score'] = round($eval['score'] / 4, 1);
+            // Transformer les données au format attendu
+            foreach ($evaluationsFromDb as $eval) {
+                // Convertir le score de 20 à 5 si nécessaire
+                $score = isset($eval['score']) ? $eval['score'] : 0;
+                if ($score > 5) {
+                    $score = min(5, round($score / 4, 1));
                 }
                 
                 // Décoder les critères si stockés en JSON
+                $criteria = [];
                 if (isset($eval['criteria_scores']) && is_string($eval['criteria_scores'])) {
                     $criteriaScores = json_decode($eval['criteria_scores'], true);
-                    $eval['criteria'] = [];
                     
                     $criteriaLabels = [
                         'technical_skills' => 'Compétences techniques',
@@ -106,25 +110,35 @@ if ($studentFilter) {
                         'punctuality' => 'Ponctualité et assiduité'
                     ];
                     
-                    foreach ($criteriaScores as $key => $score) {
-                        $eval['criteria'][] = [
+                    foreach ($criteriaScores as $key => $criterionScore) {
+                        $criteria[] = [
                             'name' => $criteriaLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)),
-                            'score' => round($score / 4, 1) // Convertir de 20 à 5
+                            'score' => min(5, round($criterionScore / 4, 1)) // Convertir de 0-20 à 0-5 avec limite à 5
                         ];
                     }
                 }
                 
-                // Ajouter les autres champs si manquants
-                $eval['evaluator_name'] = $user['first_name'] . ' ' . $user['last_name'];
-                $eval['date'] = $eval['created_at'] ?? date('Y-m-d');
+                // Déterminer le nom de l'évaluateur
+                if ($eval['type'] === 'student') {
+                    $evaluatorName = 'Auto-évaluation';
+                } else {
+                    // Récupérer le nom du tuteur depuis ses informations
+                    $evaluatorName = $user['first_name'] . ' ' . $user['last_name'];
+                }
                 
-                // Parser les champs texte si nécessaire
-                if (!empty($eval['improvements'])) {
-                    $eval['areas_for_improvement'] = explode("\n", $eval['improvements']);
-                }
-                if (!empty($eval['recommendations']) && !is_array($eval['recommendations'])) {
-                    $eval['recommendations'] = explode("\n", $eval['recommendations']);
-                }
+                // Créer l'entrée d'évaluation formatée
+                $studentEvaluations[] = [
+                    'id' => $eval['id'],
+                    'assignment_id' => $selectedAssignment['id'],
+                    'type' => $eval['type'],
+                    'date' => $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d'),
+                    'evaluator_name' => $evaluatorName,
+                    'score' => $score,
+                    'comments' => $eval['feedback'] ?? '',
+                    'criteria' => $criteria,
+                    'areas_for_improvement' => !empty($eval['areas_to_improve']) ? explode("\n", $eval['areas_to_improve']) : [],
+                    'recommendations' => !empty($eval['next_steps']) ? explode("\n", $eval['next_steps']) : []
+                ];
             }
             
             // Filtrer par type si nécessaire
@@ -134,37 +148,39 @@ if ($studentFilter) {
                 });
             }
         } else {
-            // Données fictives pour la démonstration
-            if ($typeFilter === 'all' || $typeFilter === 'mid_term') {
-                $studentEvaluations[] = [
-                    'id' => 1,
-                    'assignment_id' => $selectedAssignment['id'],
-                    'date' => date('Y-m-d', strtotime('-30 days')),
-                    'type' => 'mid_term',
-                    'evaluator_id' => $teacher['id'],
-                    'evaluator_type' => 'tutor',
-                    'evaluator_name' => $user['first_name'] . ' ' . $user['last_name'],
-                    'score' => 4.2,
-                    'comments' => "L'étudiant montre une bonne progression technique. Il a su s'adapter rapidement aux outils de développement et méthodologies de l'entreprise. Points à améliorer: documentation du code et communication proactive des difficultés rencontrées.",
-                    'criteria' => [
-                        ['name' => 'Compétences techniques', 'score' => 4.5],
-                        ['name' => 'Autonomie', 'score' => 4.0],
-                        ['name' => 'Communication', 'score' => 3.5],
-                        ['name' => 'Intégration dans l\'équipe', 'score' => 4.5],
-                        ['name' => 'Qualité du travail', 'score' => 4.0],
-                        ['name' => 'Respect des délais', 'score' => 4.5]
-                    ],
-                    'areas_for_improvement' => [
-                        'Documentation du code',
-                        'Communication proactive des problèmes',
-                        'Participation aux réunions'
-                    ],
-                    'recommendations' => [
-                        'Prévoir des points réguliers sur l\'avancement',
-                        'Mettre en place un système de documentation',
-                        'Participer plus activement aux stand-up meetings'
-                    ]
-                ];
+            // ÉTAPE 2 : Ajouter des données fictives uniquement si nécessaire (aucune évaluation trouvée)
+            if (empty($studentEvaluations)) {
+                if ($typeFilter === 'all' || $typeFilter === 'mid_term') {
+                    $studentEvaluations[] = [
+                        'id' => 1,
+                        'assignment_id' => $selectedAssignment['id'],
+                        'date' => date('Y-m-d', strtotime('-30 days')),
+                        'type' => 'mid_term',
+                        'evaluator_id' => $teacher['id'],
+                        'evaluator_type' => 'tutor',
+                        'evaluator_name' => $user['first_name'] . ' ' . $user['last_name'],
+                        'score' => 4.2,
+                        'comments' => "L'étudiant montre une bonne progression technique. Il a su s'adapter rapidement aux outils de développement et méthodologies de l'entreprise. Points à améliorer: documentation du code et communication proactive des difficultés rencontrées.",
+                        'criteria' => [
+                            ['name' => 'Compétences techniques', 'score' => 4.5],
+                            ['name' => 'Autonomie', 'score' => 4.0],
+                            ['name' => 'Communication', 'score' => 3.5],
+                            ['name' => 'Intégration dans l\'équipe', 'score' => 4.5],
+                            ['name' => 'Qualité du travail', 'score' => 4.0],
+                            ['name' => 'Respect des délais', 'score' => 4.5]
+                        ],
+                        'areas_for_improvement' => [
+                            'Documentation du code',
+                            'Communication proactive des problèmes',
+                            'Participation aux réunions'
+                        ],
+                        'recommendations' => [
+                            'Prévoir des points réguliers sur l\'avancement',
+                            'Mettre en place un système de documentation',
+                            'Participer plus activement aux stand-up meetings'
+                        ]
+                    ];
+                }
             }
         }
     }
@@ -325,7 +341,7 @@ if ($evaluationModel) {
     // Calculer la moyenne (convertir de 20 à 5 pour l'affichage)
     if ($stats['completed_evaluations'] > 0) {
         $totalScore = array_sum(array_column($allEvaluations, 'score'));
-        $stats['average_score'] = round(($totalScore / $stats['completed_evaluations']) / 4, 1);
+        $stats['average_score'] = min(5, round(($totalScore / $stats['completed_evaluations']) / 4, 1));
     }
     
     // Taux d'amélioration (exemple fictif)
@@ -725,14 +741,14 @@ include_once __DIR__ . '/../common/header.php';
                                     foreach ($evaluations as $eval) {
                                         if (isset($evalByType[$eval['type']])) {
                                             // Convertir le score de 20 à 5 pour l'affichage
-                                            $eval['display_score'] = round($eval['score'] / 4, 1);
+                                            $eval['display_score'] = min(5, round($eval['score'] / 4, 1));
                                             $evalByType[$eval['type']] = $eval;
                                         }
                                     }
                                     
                                     // Calculer la moyenne
                                     $scores = array_filter(array_column($evaluations, 'score'));
-                                    $average = !empty($scores) ? round((array_sum($scores) / count($scores)) / 4, 1) : null;
+                                    $average = !empty($scores) ? min(5, round((array_sum($scores) / count($scores)) / 4, 1)) : null;
                                 ?>
                                 <tr>
                                     <td>
