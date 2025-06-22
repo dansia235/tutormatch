@@ -142,6 +142,29 @@ function sendError($message, $statusCode = 400) {
 }
 
 /**
+ * Alias de sendError pour compatibilité
+ * 
+ * @param string $message Message d'erreur
+ * @param int $statusCode Code HTTP d'erreur
+ */
+function sendJsonError($message, $statusCode = 400) {
+    sendError($message, $statusCode);
+}
+
+/**
+ * Vérifie si l'utilisateur est connecté via session
+ * 
+ * @return boolean Vrai si l'utilisateur est connecté
+ */
+function requireApiAuth() {
+    if (!isset($_SESSION['user_id'])) {
+        sendJsonError('Non autorisé - Utilisateur non connecté', 401);
+        exit;
+    }
+    return true;
+}
+
+/**
  * Valide les données d'entrée pour une API
  * 
  * @param array $data Données à valider

@@ -5,20 +5,38 @@
  * Méthode: POST
  */
 
+require_once __DIR__ . '/../../includes/init.php';
 require_once __DIR__ . '/../utils.php';
 
 // Vérifier que l'utilisateur est connecté
-requireApiAuth();
+if (!isset($_SESSION['user_id'])) {
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Non autorisé - Utilisateur non connecté'
+    ], 401);
+    exit;
+}
 
 // Vérifier que la méthode est POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    sendJsonError('Méthode non autorisée', 405);
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Méthode non autorisée'
+    ], 405);
+    exit;
 }
 
 // Vérifier que l'utilisateur est un étudiant
 if ($_SESSION['user_role'] !== 'student') {
-    sendJsonError('Accès non autorisé', 403);
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Accès non autorisé'
+    ], 403);
+    exit;
 }
+
+// Ajouter des logs pour le débogage
+error_log("remove-preference.php - POST data: " . json_encode($_POST));
 
 try {
     // Récupérer les données POST
@@ -30,25 +48,39 @@ try {
         $requestData = json_decode(file_get_contents('php://input'), true);
         
         if (!$requestData || !isset($requestData['internship_id'])) {
-            sendJsonError('ID de stage requis', 400);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'ID de stage requis'
+            ], 400);
+            exit;
         }
         
         $internshipId = (int)$requestData['internship_id'];
     }
+    
+    error_log("remove-preference.php - Internship ID: " . $internshipId);
     
     // Récupérer l'ID de l'étudiant
     $studentModel = new Student($db);
     $student = $studentModel->getByUserId($_SESSION['user_id']);
     
     if (!$student) {
-        sendJsonError('Profil étudiant non trouvé', 404);
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Profil étudiant non trouvé'
+        ], 404);
+        exit;
     }
+    
+    error_log("remove-preference.php - Student ID: " . $student['id']);
     
     // Supprimer la préférence
     $success = false;
     if (method_exists($studentModel, 'removePreference')) {
         $success = $studentModel->removePreference($student['id'], $internshipId);
+        error_log("remove-preference.php - removePreference result: " . ($success ? 'true' : 'false'));
     } else {
+        error_log("remove-preference.php - removePreference method not found!");
         // Pour la démonstration, simuler un succès
         $success = true;
     }
@@ -59,9 +91,18 @@ try {
             'message' => 'Préférence supprimée avec succès'
         ]);
     } else {
-        sendJsonError('Erreur lors de la suppression de la préférence', 500);
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Erreur lors de la suppression de la préférence'
+        ], 500);
+        exit;
     }
 } catch (Exception $e) {
-    sendJsonError('Erreur lors de la suppression de la préférence: ' . $e->getMessage(), 500);
+    error_log("remove-preference.php - Exception: " . $e->getMessage());
+    sendJsonResponse([
+        'success' => false,
+        'message' => 'Erreur lors de la suppression de la préférence: ' . $e->getMessage()
+    ], 500);
+    exit;
 }
 ?>

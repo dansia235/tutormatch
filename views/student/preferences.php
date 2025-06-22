@@ -537,26 +537,50 @@ function removePreference(internshipId) {
     // Demander confirmation
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette préférence?")) return;
     
+    console.log("Removing preference with ID:", internshipId);
+    
     // Ajouter les paramètres au formulaire
     const formData = new FormData();
     formData.append('internship_id', internshipId);
+    
+    // Afficher un indicateur de chargement
+    showNotification("Suppression de la préférence...", "info");
+    
+    // Log formData pour vérifier
+    console.log("FormData entries for removal:");
+    for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+    }
     
     // Envoyer la requête
     fetch('/tutoring/api/students/remove-preference.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log("Remove preference response status:", response.status);
+        // Si la réponse n'est pas OK, log le texte brut de la réponse
+        if (!response.ok) {
+            response.text().then(text => {
+                console.error("Raw response:", text);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log("Remove preference response data:", data);
         if (data.success) {
-            // Recharger la page pour refléter la suppression
-            window.location.reload();
+            showNotification("Préférence supprimée avec succès", "success");
+            // Recharger la page après un court délai
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } else {
             showNotification(data.message || "Erreur lors de la suppression de la préférence", "error");
         }
     })
     .catch(error => {
-        console.error("Erreur:", error);
+        console.error("Erreur lors de la suppression:", error);
         showNotification("Erreur lors de la suppression de la préférence", "error");
     });
 }
