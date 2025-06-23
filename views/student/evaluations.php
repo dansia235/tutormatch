@@ -126,7 +126,7 @@ try {
             $evaluation = [
                 'id' => 'doc_' . $doc['id'], // Préfixer pour éviter les conflits d'ID
                 'student_id' => $doc['user_id'],
-                'type' => $doc['type'] === 'self_evaluation' ? 'self' : 'teacher',
+                'type' => $doc['type'], // Conserver le type exact du document (mid_term, final, self_evaluation)
                 'date' => $doc['upload_date'] ?? date('Y-m-d H:i:s'),
                 'evaluator_name' => isset($doc['metadata']['evaluator_name']) ? $doc['metadata']['evaluator_name'] : 'Système',
                 'score' => isset($doc['metadata']['score']) ? $doc['metadata']['score'] : 0,
@@ -159,6 +159,20 @@ try {
                 $evaluations[] = $evaluation;
             }
         }
+        
+        // Débogage - log des types d'évaluations
+        foreach ($evaluations as $eval) {
+            error_log("Évaluation de type: " . $eval['type']);
+        }
+        
+        // Organiser les évaluations par type pour éviter les doublons
+        $evaluationsByType = [];
+        foreach ($evaluations as $eval) {
+            $evaluationsByType[$eval['type']] = $eval;
+        }
+        
+        // Reconvertir en tableau indexé pour l'affichage
+        $evaluations = array_values($evaluationsByType);
         
         // Calculer les statistiques
         $totalEvaluations = count($evaluations);
@@ -335,8 +349,26 @@ include_once __DIR__ . '/../common/header.php';
                         <?php foreach ($evaluations as $index => $evaluation): ?>
                             <div class="card mb-4 fade-in">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <span>Évaluation <?php echo h($evaluation['type'] === 'self' ? 'Auto-évaluation' : 'Tuteur'); ?></span>
-                                    <span class="badge bg-primary"><?php echo date('d/m/Y', strtotime($evaluation['date'])); ?></span>
+                                    <span>Évaluation <?php 
+                                        $evalTypeLabel = 'Tuteur';
+                                        if ($evaluation['type'] === 'self' || $evaluation['type'] === 'self_evaluation') {
+                                            $evalTypeLabel = 'Auto-évaluation';
+                                        } elseif ($evaluation['type'] === 'mid_term') {
+                                            $evalTypeLabel = 'Mi-parcours';
+                                        } elseif ($evaluation['type'] === 'final') {
+                                            $evalTypeLabel = 'Finale';
+                                        } elseif ($evaluation['type'] === 'company' || $evaluation['type'] === 'enterprise') {
+                                            $evalTypeLabel = 'Entreprise';
+                                        }
+                                        echo h($evalTypeLabel); 
+                                    ?></span>
+                                    <span class="badge bg-primary"><?php 
+                                        // Utiliser submission_date si disponible, sinon created_at, sinon date actuelle
+                                        $dateToUse = !empty($evaluation['submission_date']) ? $evaluation['submission_date'] : 
+                                                    (!empty($evaluation['created_at']) ? $evaluation['created_at'] : 
+                                                    (!empty($evaluation['date']) ? $evaluation['date'] : date('Y-m-d H:i:s')));
+                                        echo date('d/m/Y', strtotime($dateToUse)); 
+                                    ?></span>
                                 </div>
                                 <div class="card-body">
                                     <div class="mb-4">
@@ -773,9 +805,14 @@ include_once __DIR__ . '/../common/header.php';
                 // Organiser les données chronologiquement
                 const sortedEvals = [...evaluationData].filter(eval => eval && typeof eval === 'object')
                     .sort((a, b) => {
-                        // Protection contre les dates invalides
-                        const dateA = a.date ? new Date(a.date) : new Date(0);
-                        const dateB = b.date ? new Date(b.date) : new Date(0);
+                        // Protection contre les dates invalides - utiliser submission_date, created_at ou date
+                        const dateA = a.submission_date ? new Date(a.submission_date) : 
+                                    (a.created_at ? new Date(a.created_at) : 
+                                    (a.date ? new Date(a.date) : new Date(0)));
+                                    
+                        const dateB = b.submission_date ? new Date(b.submission_date) : 
+                                    (b.created_at ? new Date(b.created_at) : 
+                                    (b.date ? new Date(b.date) : new Date(0)));
                         
                         if (isNaN(dateA.getTime())) return 1;
                         if (isNaN(dateB.getTime())) return -1;
@@ -991,6 +1028,16 @@ include_once __DIR__ . '/../common/header.php';
                     case 'entreprise':
                         evaluationType = 'Évaluation entreprise';
                         break;
+                    case 'teacher':
+                    case 'tutor':
+                        evaluationType = 'Évaluation tuteur';
+                        break;
+                    case 'student':
+                        evaluationType = 'Évaluation étudiant';
+                        break;
+                    case 'entreprise':
+                        evaluationType = 'Évaluation entreprise';
+                        break;
                     default:
                         evaluationType = 'Évaluation ' + evaluation.type;
                 }
@@ -1167,7 +1214,7 @@ include_once __DIR__ . '/../common/header.php';
                     <h1>${evaluationType}</h1>
                     
                     <div class="meta-info">
-                        <p><strong>Date:</strong> ${new Date(evaluation.date).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                        <p><strong>Date:</strong> ${new Date(evaluation.submission_date || evaluation.created_at || evaluation.date || new Date()).toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
                         <p><strong>Évaluateur:</strong> ${evaluation.evaluator_name || 'Non spécifié'}</p>
                         <div class="score">
                             Note globale: ${score}/5
@@ -1241,6 +1288,16 @@ include_once __DIR__ . '/../common/header.php';
                         break;
                     case 'company':
                     case 'enterprise':
+                    case 'entreprise':
+                        evaluationType = 'Évaluation entreprise';
+                        break;
+                    case 'teacher':
+                    case 'tutor':
+                        evaluationType = 'Évaluation tuteur';
+                        break;
+                    case 'student':
+                        evaluationType = 'Évaluation étudiant';
+                        break;
                     case 'entreprise':
                         evaluationType = 'Évaluation entreprise';
                         break;

@@ -9,10 +9,10 @@ return [
     'host' => 'localhost',
     
     // Nom d'utilisateur de la base de données
-    'username' => 'root',
+    'username' => 'dansia',
     
     // Mot de passe de la base de données (souvent vide pour les installations XAMPP locales)
-    'password' => '',
+    'password' => 'dansia',
     
     // Nom de la base de données
     'database' => 'tutoring_system',

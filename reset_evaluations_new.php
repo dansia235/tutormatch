@@ -268,11 +268,20 @@ if (!isset($_GET['confirm']) || $_GET['confirm'] !== 'yes') {
     exit;
 }
 
+// Fonction pour vérifier si une colonne existe dans une table
+function columnExists($db, $table, $column) {
+    $stmt = $db->query("SHOW COLUMNS FROM $table LIKE '$column'");
+    return $stmt->rowCount() > 0;
+}
+
 // Commencer la régénération des évaluations
 try {
     if (!isset($db) || !($db instanceof PDO)) {
         die("Erreur: Base de données non disponible. Vérifiez la connexion.");
     }
+    
+    // Récupérer la structure de la table pour savoir quelles colonnes sont disponibles
+    $columns = $db->query("SHOW COLUMNS FROM evaluations")->fetchAll(PDO::FETCH_COLUMN);
     
     // Début de transaction
     $db->beginTransaction();
@@ -378,37 +387,108 @@ try {
             
             $submissionDate = $midTermDate->format('Y-m-d H:i:s');
             
-            $stmt = $db->prepare("
-                INSERT INTO evaluations (
-                    assignment_id, evaluator_id, evaluatee_id, type, status,
-                    score, technical_avg, professional_avg, criteria_scores, 
-                    comments, strengths, areas_for_improvement, next_steps,
-                    submission_date, updated_at
-                ) VALUES (
-                    :assignment_id, :evaluator_id, :evaluatee_id, :type, :status,
-                    :score, :technical_avg, :professional_avg, :criteria_scores,
-                    :comments, :strengths, :areas_for_improvement, :next_steps,
-                    :submission_date, :updated_at
-                )
-            ");
+            // Préparer les colonnes à insérer en fonction de la structure réelle de la table
+            $fields = [];
+            $placeholders = [];
+            $params = [];
             
-            $stmt->execute([
-                'assignment_id' => $assignmentId,
-                'evaluator_id' => $teacherUserId,
-                'evaluatee_id' => $studentUserId,
-                'type' => 'mid_term',
-                'status' => 'submitted',
-                'score' => $averages['overall_avg'],
-                'technical_avg' => $averages['technical_avg'],
-                'professional_avg' => $averages['professional_avg'],
-                'criteria_scores' => json_encode($midTermCriteria),
-                'comments' => $midTermFeedback,
-                'strengths' => $midTermStrengths,
-                'areas_for_improvement' => $midTermAreasToImprove,
-                'next_steps' => $midTermNextSteps,
-                'submission_date' => $submissionDate,
-                'updated_at' => $submissionDate
-            ]);
+            // Colonnes obligatoires
+            $fields[] = 'assignment_id';
+            $placeholders[] = ':assignment_id';
+            $params['assignment_id'] = $assignmentId;
+            
+            $fields[] = 'evaluator_id';
+            $placeholders[] = ':evaluator_id';
+            $params['evaluator_id'] = $teacherUserId;
+            
+            $fields[] = 'evaluatee_id';
+            $placeholders[] = ':evaluatee_id';
+            $params['evaluatee_id'] = $studentUserId;
+            
+            $fields[] = 'type';
+            $placeholders[] = ':type';
+            $params['type'] = 'mid_term';
+            
+            // Colonnes facultatives
+            if (in_array('score', $columns)) {
+                $fields[] = 'score';
+                $placeholders[] = ':score';
+                $params['score'] = $averages['overall_avg'];
+            }
+            
+            if (in_array('technical_avg', $columns)) {
+                $fields[] = 'technical_avg';
+                $placeholders[] = ':technical_avg';
+                $params['technical_avg'] = $averages['technical_avg'];
+            }
+            
+            if (in_array('professional_avg', $columns)) {
+                $fields[] = 'professional_avg';
+                $placeholders[] = ':professional_avg';
+                $params['professional_avg'] = $averages['professional_avg'];
+            }
+            
+            if (in_array('criteria_scores', $columns)) {
+                $fields[] = 'criteria_scores';
+                $placeholders[] = ':criteria_scores';
+                $params['criteria_scores'] = json_encode($midTermCriteria);
+            }
+            
+            // Gestion des champs de commentaires (plusieurs noms possibles)
+            if (in_array('comments', $columns)) {
+                $fields[] = 'comments';
+                $placeholders[] = ':comments';
+                $params['comments'] = $midTermFeedback;
+            } else if (in_array('feedback', $columns)) {
+                $fields[] = 'feedback';
+                $placeholders[] = ':feedback';
+                $params['feedback'] = $midTermFeedback;
+            }
+            
+            if (in_array('strengths', $columns)) {
+                $fields[] = 'strengths';
+                $placeholders[] = ':strengths';
+                $params['strengths'] = $midTermStrengths;
+            }
+            
+            if (in_array('areas_for_improvement', $columns)) {
+                $fields[] = 'areas_for_improvement';
+                $placeholders[] = ':areas_for_improvement';
+                $params['areas_for_improvement'] = $midTermAreasToImprove;
+            } else if (in_array('areas_to_improve', $columns)) {
+                $fields[] = 'areas_to_improve';
+                $placeholders[] = ':areas_to_improve';
+                $params['areas_to_improve'] = $midTermAreasToImprove;
+            }
+            
+            if (in_array('next_steps', $columns)) {
+                $fields[] = 'next_steps';
+                $placeholders[] = ':next_steps';
+                $params['next_steps'] = $midTermNextSteps;
+            }
+            
+            if (in_array('status', $columns)) {
+                $fields[] = 'status';
+                $placeholders[] = ':status';
+                $params['status'] = 'submitted';
+            }
+            
+            if (in_array('submission_date', $columns)) {
+                $fields[] = 'submission_date';
+                $placeholders[] = ':submission_date';
+                $params['submission_date'] = $submissionDate;
+            }
+            
+            if (in_array('updated_at', $columns)) {
+                $fields[] = 'updated_at';
+                $placeholders[] = ':updated_at';
+                $params['updated_at'] = $submissionDate;
+            }
+            
+            // Construire et exécuter la requête
+            $sql = "INSERT INTO evaluations (" . implode(", ", $fields) . ") VALUES (" . implode(", ", $placeholders) . ")";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
             
             $evaluationsCreated++;
         }
@@ -434,37 +514,108 @@ try {
             
             $selfSubmissionDate = (clone $midTermDate)->add(new DateInterval('P3D'))->format('Y-m-d H:i:s');
             
-            $stmt = $db->prepare("
-                INSERT INTO evaluations (
-                    assignment_id, evaluator_id, evaluatee_id, type, status,
-                    score, technical_avg, professional_avg, criteria_scores, 
-                    comments, strengths, areas_for_improvement, next_steps,
-                    submission_date, updated_at
-                ) VALUES (
-                    :assignment_id, :evaluator_id, :evaluatee_id, :type, :status,
-                    :score, :technical_avg, :professional_avg, :criteria_scores,
-                    :comments, :strengths, :areas_for_improvement, :next_steps,
-                    :submission_date, :updated_at
-                )
-            ");
+            // Préparer les colonnes à insérer
+            $fields = [];
+            $placeholders = [];
+            $params = [];
             
-            $stmt->execute([
-                'assignment_id' => $assignmentId,
-                'evaluator_id' => $studentUserId,
-                'evaluatee_id' => $studentUserId,
-                'type' => 'student',
-                'status' => 'submitted',
-                'score' => $selfAverages['overall_avg'],
-                'technical_avg' => $selfAverages['technical_avg'],
-                'professional_avg' => $selfAverages['professional_avg'],
-                'criteria_scores' => json_encode($selfMidTermCriteria),
-                'comments' => $selfFeedback,
-                'strengths' => $selfStrengths,
-                'areas_for_improvement' => $selfAreasToImprove,
-                'next_steps' => $selfNextSteps,
-                'submission_date' => $selfSubmissionDate,
-                'updated_at' => $selfSubmissionDate
-            ]);
+            // Colonnes obligatoires
+            $fields[] = 'assignment_id';
+            $placeholders[] = ':assignment_id';
+            $params['assignment_id'] = $assignmentId;
+            
+            $fields[] = 'evaluator_id';
+            $placeholders[] = ':evaluator_id';
+            $params['evaluator_id'] = $studentUserId;
+            
+            $fields[] = 'evaluatee_id';
+            $placeholders[] = ':evaluatee_id';
+            $params['evaluatee_id'] = $studentUserId;
+            
+            $fields[] = 'type';
+            $placeholders[] = ':type';
+            $params['type'] = 'student';
+            
+            // Colonnes facultatives
+            if (in_array('score', $columns)) {
+                $fields[] = 'score';
+                $placeholders[] = ':score';
+                $params['score'] = $selfAverages['overall_avg'];
+            }
+            
+            if (in_array('technical_avg', $columns)) {
+                $fields[] = 'technical_avg';
+                $placeholders[] = ':technical_avg';
+                $params['technical_avg'] = $selfAverages['technical_avg'];
+            }
+            
+            if (in_array('professional_avg', $columns)) {
+                $fields[] = 'professional_avg';
+                $placeholders[] = ':professional_avg';
+                $params['professional_avg'] = $selfAverages['professional_avg'];
+            }
+            
+            if (in_array('criteria_scores', $columns)) {
+                $fields[] = 'criteria_scores';
+                $placeholders[] = ':criteria_scores';
+                $params['criteria_scores'] = json_encode($selfMidTermCriteria);
+            }
+            
+            // Gestion des champs de commentaires
+            if (in_array('comments', $columns)) {
+                $fields[] = 'comments';
+                $placeholders[] = ':comments';
+                $params['comments'] = $selfFeedback;
+            } else if (in_array('feedback', $columns)) {
+                $fields[] = 'feedback';
+                $placeholders[] = ':feedback';
+                $params['feedback'] = $selfFeedback;
+            }
+            
+            if (in_array('strengths', $columns)) {
+                $fields[] = 'strengths';
+                $placeholders[] = ':strengths';
+                $params['strengths'] = $selfStrengths;
+            }
+            
+            if (in_array('areas_for_improvement', $columns)) {
+                $fields[] = 'areas_for_improvement';
+                $placeholders[] = ':areas_for_improvement';
+                $params['areas_for_improvement'] = $selfAreasToImprove;
+            } else if (in_array('areas_to_improve', $columns)) {
+                $fields[] = 'areas_to_improve';
+                $placeholders[] = ':areas_to_improve';
+                $params['areas_to_improve'] = $selfAreasToImprove;
+            }
+            
+            if (in_array('next_steps', $columns)) {
+                $fields[] = 'next_steps';
+                $placeholders[] = ':next_steps';
+                $params['next_steps'] = $selfNextSteps;
+            }
+            
+            if (in_array('status', $columns)) {
+                $fields[] = 'status';
+                $placeholders[] = ':status';
+                $params['status'] = 'submitted';
+            }
+            
+            if (in_array('submission_date', $columns)) {
+                $fields[] = 'submission_date';
+                $placeholders[] = ':submission_date';
+                $params['submission_date'] = $selfSubmissionDate;
+            }
+            
+            if (in_array('updated_at', $columns)) {
+                $fields[] = 'updated_at';
+                $placeholders[] = ':updated_at';
+                $params['updated_at'] = $selfSubmissionDate;
+            }
+            
+            // Construire et exécuter la requête
+            $sql = "INSERT INTO evaluations (" . implode(", ", $fields) . ") VALUES (" . implode(", ", $placeholders) . ")";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
             
             $evaluationsCreated++;
         }
@@ -491,37 +642,108 @@ try {
             $finalDate = (clone $endDate)->sub(new DateInterval('P5D'));
             $finalSubmissionDate = $finalDate->format('Y-m-d H:i:s');
             
-            $stmt = $db->prepare("
-                INSERT INTO evaluations (
-                    assignment_id, evaluator_id, evaluatee_id, type, status,
-                    score, technical_avg, professional_avg, criteria_scores, 
-                    comments, strengths, areas_for_improvement, next_steps,
-                    submission_date, updated_at
-                ) VALUES (
-                    :assignment_id, :evaluator_id, :evaluatee_id, :type, :status,
-                    :score, :technical_avg, :professional_avg, :criteria_scores,
-                    :comments, :strengths, :areas_for_improvement, :next_steps,
-                    :submission_date, :updated_at
-                )
-            ");
+            // Préparer les colonnes à insérer
+            $fields = [];
+            $placeholders = [];
+            $params = [];
             
-            $stmt->execute([
-                'assignment_id' => $assignmentId,
-                'evaluator_id' => $teacherUserId,
-                'evaluatee_id' => $studentUserId,
-                'type' => 'final',
-                'status' => 'submitted',
-                'score' => $finalAverages['overall_avg'],
-                'technical_avg' => $finalAverages['technical_avg'],
-                'professional_avg' => $finalAverages['professional_avg'],
-                'criteria_scores' => json_encode($finalCriteria),
-                'comments' => $finalFeedback,
-                'strengths' => $finalStrengths,
-                'areas_for_improvement' => $finalAreasToImprove,
-                'next_steps' => $finalNextSteps,
-                'submission_date' => $finalSubmissionDate,
-                'updated_at' => $finalSubmissionDate
-            ]);
+            // Colonnes obligatoires
+            $fields[] = 'assignment_id';
+            $placeholders[] = ':assignment_id';
+            $params['assignment_id'] = $assignmentId;
+            
+            $fields[] = 'evaluator_id';
+            $placeholders[] = ':evaluator_id';
+            $params['evaluator_id'] = $teacherUserId;
+            
+            $fields[] = 'evaluatee_id';
+            $placeholders[] = ':evaluatee_id';
+            $params['evaluatee_id'] = $studentUserId;
+            
+            $fields[] = 'type';
+            $placeholders[] = ':type';
+            $params['type'] = 'final';
+            
+            // Colonnes facultatives
+            if (in_array('score', $columns)) {
+                $fields[] = 'score';
+                $placeholders[] = ':score';
+                $params['score'] = $finalAverages['overall_avg'];
+            }
+            
+            if (in_array('technical_avg', $columns)) {
+                $fields[] = 'technical_avg';
+                $placeholders[] = ':technical_avg';
+                $params['technical_avg'] = $finalAverages['technical_avg'];
+            }
+            
+            if (in_array('professional_avg', $columns)) {
+                $fields[] = 'professional_avg';
+                $placeholders[] = ':professional_avg';
+                $params['professional_avg'] = $finalAverages['professional_avg'];
+            }
+            
+            if (in_array('criteria_scores', $columns)) {
+                $fields[] = 'criteria_scores';
+                $placeholders[] = ':criteria_scores';
+                $params['criteria_scores'] = json_encode($finalCriteria);
+            }
+            
+            // Gestion des champs de commentaires
+            if (in_array('comments', $columns)) {
+                $fields[] = 'comments';
+                $placeholders[] = ':comments';
+                $params['comments'] = $finalFeedback;
+            } else if (in_array('feedback', $columns)) {
+                $fields[] = 'feedback';
+                $placeholders[] = ':feedback';
+                $params['feedback'] = $finalFeedback;
+            }
+            
+            if (in_array('strengths', $columns)) {
+                $fields[] = 'strengths';
+                $placeholders[] = ':strengths';
+                $params['strengths'] = $finalStrengths;
+            }
+            
+            if (in_array('areas_for_improvement', $columns)) {
+                $fields[] = 'areas_for_improvement';
+                $placeholders[] = ':areas_for_improvement';
+                $params['areas_for_improvement'] = $finalAreasToImprove;
+            } else if (in_array('areas_to_improve', $columns)) {
+                $fields[] = 'areas_to_improve';
+                $placeholders[] = ':areas_to_improve';
+                $params['areas_to_improve'] = $finalAreasToImprove;
+            }
+            
+            if (in_array('next_steps', $columns)) {
+                $fields[] = 'next_steps';
+                $placeholders[] = ':next_steps';
+                $params['next_steps'] = $finalNextSteps;
+            }
+            
+            if (in_array('status', $columns)) {
+                $fields[] = 'status';
+                $placeholders[] = ':status';
+                $params['status'] = 'submitted';
+            }
+            
+            if (in_array('submission_date', $columns)) {
+                $fields[] = 'submission_date';
+                $placeholders[] = ':submission_date';
+                $params['submission_date'] = $finalSubmissionDate;
+            }
+            
+            if (in_array('updated_at', $columns)) {
+                $fields[] = 'updated_at';
+                $placeholders[] = ':updated_at';
+                $params['updated_at'] = $finalSubmissionDate;
+            }
+            
+            // Construire et exécuter la requête
+            $sql = "INSERT INTO evaluations (" . implode(", ", $fields) . ") VALUES (" . implode(", ", $placeholders) . ")";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
             
             $evaluationsCreated++;
         }

@@ -47,157 +47,466 @@ include_once __DIR__ . '/../common/header.php';
         </div>
     </div>
     
-    <!-- Stats Cards -->
-    <div class="row g-0 mx-0 px-4 mb-4">
-        <div class="col-md-3 fade-in delay-1 pe-3">
-            <div class="card stat-card">
-                <div class="value" id="total-evaluations">-</div>
-                <div class="label">Total</div>
-                <div class="progress mt-2">
-                    <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                <small class="text-muted">Évaluations prévues</small>
-            </div>
+    <!-- Chargement -->
+    <div v-if="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
         </div>
-        <div class="col-md-3 fade-in delay-2 pe-3">
-            <div class="card stat-card">
-                <div class="value" id="completed-evaluations">-</div>
-                <div class="label">Complétées</div>
-                <div class="progress mt-2">
-                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="completed-progress"></div>
-                </div>
-                <small class="text-muted">Évaluations terminées</small>
-            </div>
-        </div>
-        <div class="col-md-3 fade-in delay-3 pe-3">
-            <div class="card stat-card">
-                <div class="value" id="average-score">-</div>
-                <div class="label">Moyenne</div>
-                <div class="progress mt-2">
-                    <div class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="average-progress"></div>
-                </div>
-                <small class="text-muted">Note moyenne /5</small>
-            </div>
-        </div>
-        <div class="col-md-3 fade-in delay-4">
-            <div class="card stat-card">
-                <div class="value" id="improvement-rate">-%</div>
-                <div class="label">Progression</div>
-                <div class="progress mt-2">
-                    <div class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="improvement-progress"></div>
-                </div>
-                <small class="text-muted">Taux d'amélioration</small>
-            </div>
-        </div>
+        <p class="mt-3">Chargement des données...</p>
     </div>
     
-    <!-- Filters and Search -->
-    <div class="row g-0 mx-0 px-4 mb-4">
-        <div class="col-12">
-            <div class="row g-0">
-                <div class="col-lg-8 pe-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <form method="get" class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="student_id" class="form-label">Étudiant</label>
-                                    <select class="form-select" id="student_id" name="student_id" onchange="this.form.submit()">
-                                        <option value="" disabled selected>Choisir un étudiant...</option>
-                                        <!-- Liste des étudiants à charger via API -->
-                                    </select>
+    <!-- Erreur -->
+    <div v-if="error" class="alert alert-danger mx-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ errorMessage }}
+    </div>
+    
+    <!-- Contenu principal -->
+    <div v-if="!loading && !error">
+        <!-- Stats Cards -->
+        <div class="row g-0 mx-0 px-4 mb-4">
+            <div class="col-md-3 fade-in delay-1 pe-3">
+                <div class="card stat-card">
+                    <div class="value">{{ stats.total_evaluations || 0 }}</div>
+                    <div class="label">Total</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">Évaluations prévues</small>
+                </div>
+            </div>
+            <div class="col-md-3 fade-in delay-2 pe-3">
+                <div class="card stat-card">
+                    <div class="value">{{ stats.completed_evaluations || 0 }}</div>
+                    <div class="label">Complétées</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             :style="{ width: (stats.completed_percent || 0) + '%' }" 
+                             :aria-valuenow="stats.completed_percent" 
+                             aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">Évaluations terminées</small>
+                </div>
+            </div>
+            <div class="col-md-3 fade-in delay-3 pe-3">
+                <div class="card stat-card">
+                    <div class="value">{{ stats.average_score ? stats.average_score.toFixed(1) : '-' }}</div>
+                    <div class="label">Moyenne</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-info" role="progressbar" 
+                             :style="{ width: (stats.average_percent || 0) + '%' }" 
+                             :aria-valuenow="stats.average_percent" 
+                             aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">Note moyenne /5</small>
+                </div>
+            </div>
+            <div class="col-md-3 fade-in delay-4">
+                <div class="card stat-card">
+                    <div class="value">{{ stats.improvement_rate || 0 }}%</div>
+                    <div class="label">Progression</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar bg-warning" role="progressbar" 
+                             :style="{ width: (stats.improvement_rate || 0) + '%' }" 
+                             :aria-valuenow="stats.improvement_rate" 
+                             aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">Taux d'amélioration</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtres et recherche -->
+        <div class="row g-0 mx-0 px-4 mb-4">
+            <div class="col-12">
+                <div class="row g-0">
+                    <div class="col-lg-8 pe-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="student_id" class="form-label">Étudiant</label>
+                                        <select class="form-select" id="student_id" v-model="selectedStudentId" @change="onStudentChange">
+                                            <option value="" disabled selected>Choisir un étudiant...</option>
+                                            <option v-for="student in students" :key="student.id" :value="student.id">
+                                                {{ student.first_name + ' ' + student.last_name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6" v-if="selectedStudentId">
+                                        <label for="type" class="form-label">Type d'évaluation</label>
+                                        <select class="form-select" id="type" v-model="selectedType" @change="filterEvaluations">
+                                            <option value="all">Toutes les évaluations</option>
+                                            <option value="mid_term">Mi-parcours</option>
+                                            <option value="final">Finale</option>
+                                            <option value="student">Auto-évaluation</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                
-                                <div class="col-md-6" id="type-filter-container" style="display: none;">
-                                    <label for="type" class="form-label">Type d'évaluation</label>
-                                    <select class="form-select" id="type" name="type" onchange="this.form.submit()">
-                                        <option value="all">Toutes les évaluations</option>
-                                        <option value="mid_term">Mi-parcours</option>
-                                        <option value="final">Finale</option>
-                                        <option value="company">Entreprise</option>
-                                    </select>
-                                </div>
-                            </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                Actions rapides
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-primary w-100 mb-2" @click="showNewEvaluationModal" :disabled="!selectedStudentId">
+                                    <i class="bi bi-plus-lg me-2"></i>Nouvelle évaluation
+                                </button>
+                                <a href="/tutoring/views/tutor/students.php" class="btn btn-outline-primary w-100 mb-2">
+                                    <i class="bi bi-mortarboard me-2"></i>Mes étudiants
+                                </a>
+                                <a href="/tutoring/views/tutor/meetings.php" class="btn btn-outline-primary w-100 mb-2">
+                                    <i class="bi bi-calendar-event me-2"></i>Réunions
+                                </a>
+                                <a href="/tutoring/views/tutor/documents.php" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-folder me-2"></i>Documents
+                                </a>
+                                <hr>
+                                <h6 class="mb-2">Guide d'évaluation</h6>
+                                <p class="small mb-2"><strong>Mi-parcours:</strong> Évaluation de la progression et identification des axes d'amélioration.</p>
+                                <p class="small mb-0"><strong>Finale:</strong> Bilan global des compétences acquises et recommandations futures.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            Actions rapides
+            </div>
+        </div>
+        
+        <!-- Évaluations en attente -->
+        <div class="row g-0 mx-0 px-4 mb-4" v-if="pendingEvaluations.length > 0">
+            <div class="col-12">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Évaluations en attente</h5>
+                    <p>Vous avez {{ pendingEvaluations.length }} évaluation(s) à compléter :</p>
+                    <ul class="mb-0">
+                        <li v-for="pending in pendingEvaluations" :key="pending.id">
+                            {{ pending.student_name }} - {{ getEvaluationTypeName(pending.type) }}
+                            <button class="btn btn-sm btn-outline-primary ms-2" @click="startEvaluation(pending)">
+                                Évaluer
+                            </button>
+                        </li>
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informations de l'étudiant si sélectionné -->
+        <div class="row g-0 mx-0 px-4 mb-4" v-if="selectedStudent">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <div class="d-flex align-items-center">
+                                    <img :src="getStudentAvatar(selectedStudent)" alt="Student" class="rounded-circle me-3" width="80" height="80">
+                                    <div>
+                                        <h4 class="mb-1">{{ selectedStudent.first_name }} {{ selectedStudent.last_name }}</h4>
+                                        <p class="text-muted mb-0">{{ selectedStudent.program || 'N/A' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <h6 class="text-muted mb-1">Stage</h6>
+                                <p class="mb-1"><strong>{{ selectedStudent.internship ? selectedStudent.internship.title : 'N/A' }}</strong></p>
+                                <p class="mb-0">{{ selectedStudent.company ? selectedStudent.company.name : 'N/A' }}</p>
+                                <p class="small text-muted mb-0" v-if="selectedStudent.internship">
+                                    {{ formatDateRange(selectedStudent.internship.start_date, selectedStudent.internship.end_date) }}
+                                </p>
+                            </div>
+                            <div class="col-md-2">
+                                <h6 class="text-muted mb-1">Progression</h6>
+                                <div class="progress mb-2" style="height: 10px;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         :style="{ width: internshipProgress + '%' }" 
+                                         :aria-valuenow="internshipProgress" 
+                                         aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <p class="small text-muted mb-0">{{ internshipProgress }}% complété</p>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <a :href="'/tutoring/views/tutor/documents.php?student_id=' + selectedStudentId" class="btn btn-outline-primary btn-sm mb-1 d-block">
+                                    <i class="bi bi-folder me-1"></i>Documents
+                                </a>
+                                <a :href="'/tutoring/views/tutor/meetings.php?student_id=' + selectedStudentId" class="btn btn-outline-primary btn-sm d-block">
+                                    <i class="bi bi-calendar-event me-1"></i>Réunions
+                                </a>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <button class="btn btn-primary w-100 mb-2" id="new-evaluation-btn" disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistiques de l'étudiant -->
+        <div class="row g-0 mx-0 px-4 mb-4" v-if="selectedStudent && studentEvaluations.length > 0">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span>Statistiques de l'étudiant</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="chart-container">
+                                    <canvas id="studentProgressChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <h5 class="mb-3">Compétences évaluées</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Technique</span>
+                                                <span>{{ studentStats.technical_avg ? studentStats.technical_avg.toFixed(1) : '-' }}/5</span>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-primary" role="progressbar" 
+                                                     :style="{ width: (studentStats.technical_avg / 5 * 100) + '%' }" 
+                                                     :aria-valuenow="studentStats.technical_avg" 
+                                                     aria-valuemin="0" aria-valuemax="5"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Communication</span>
+                                                <span>{{ studentStats.communication_score ? studentStats.communication_score.toFixed(1) : '-' }}/5</span>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     :style="{ width: (studentStats.communication_score / 5 * 100) + '%' }" 
+                                                     :aria-valuenow="studentStats.communication_score" 
+                                                     aria-valuemin="0" aria-valuemax="5"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Travail d'équipe</span>
+                                                <span>{{ studentStats.teamwork_score ? studentStats.teamwork_score.toFixed(1) : '-' }}/5</span>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-info" role="progressbar" 
+                                                     :style="{ width: (studentStats.teamwork_score / 5 * 100) + '%' }" 
+                                                     :aria-valuenow="studentStats.teamwork_score" 
+                                                     aria-valuemin="0" aria-valuemax="5"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Autonomie</span>
+                                                <span>{{ studentStats.autonomy_score ? studentStats.autonomy_score.toFixed(1) : '-' }}/5</span>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-warning" role="progressbar" 
+                                                     :style="{ width: (studentStats.autonomy_score / 5 * 100) + '%' }" 
+                                                     :aria-valuenow="studentStats.autonomy_score" 
+                                                     aria-valuemin="0" aria-valuemax="5"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contenu principal -->
+        <div class="row g-0 mx-0">
+            <div class="col-12 px-4">
+                <!-- Message lorsqu'aucun étudiant n'est sélectionné -->
+                <div v-if="!selectedStudentId" class="card mb-4">
+                    <div class="card-body">
+                        <div class="text-center py-5">
+                            <i class="bi bi-clipboard-check display-1 text-muted mb-3"></i>
+                            <h4>Sélectionnez un étudiant pour commencer</h4>
+                            <p class="text-muted">Choisissez un étudiant dans la liste pour consulter ou créer des évaluations.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Vue d'ensemble de tous les étudiants -->
+                <div v-if="!selectedStudentId" class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Vue d'ensemble des évaluations</span>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-download"></i> Exporter
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                <li><a class="dropdown-item" href="#" @click.prevent="exportData('csv')">CSV</a></li>
+                                <li><a class="dropdown-item" href="#" @click.prevent="exportData('pdf')">PDF</a></li>
+                                <li><a class="dropdown-item" href="#" @click.prevent="exportData('excel')">Excel</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Étudiant</th>
+                                        <th>Formation</th>
+                                        <th>Entreprise</th>
+                                        <th>Mi-parcours</th>
+                                        <th>Finale</th>
+                                        <th>Moyenne</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-if="students.length === 0">
+                                        <td colspan="7" class="text-center">Aucun étudiant assigné</td>
+                                    </tr>
+                                    <tr v-for="student in students" :key="student.id">
+                                        <td>
+                                            <a :href="'/tutoring/views/tutor/evaluations-api.php?student_id=' + student.id">
+                                                {{ student.first_name }} {{ student.last_name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ student.program || 'N/A' }}</td>
+                                        <td>{{ student.company_name || 'N/A' }}</td>
+                                        <td>
+                                            <span v-if="student.midterm_score" class="badge bg-success">{{ student.midterm_score }}/5</span>
+                                            <span v-else class="badge bg-warning">En attente</span>
+                                        </td>
+                                        <td>
+                                            <span v-if="student.final_score" class="badge bg-success">{{ student.final_score }}/5</span>
+                                            <span v-else class="badge bg-warning">En attente</span>
+                                        </td>
+                                        <td>
+                                            <strong v-if="student.average_score">{{ student.average_score }}/5</strong>
+                                            <span v-else class="text-muted">-</span>
+                                        </td>
+                                        <td>
+                                            <a :href="'/tutoring/views/tutor/evaluations-api.php?student_id=' + student.id" class="btn btn-sm btn-outline-primary" title="Voir le détail">
+                                                <i class="bi bi-eye"></i> Détails
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- En-tête des évaluations d'un étudiant -->
+                <div v-if="selectedStudentId" class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Évaluations de {{ selectedStudent ? selectedStudent.first_name + ' ' + selectedStudent.last_name : '' }}</h5>
+                            <button class="btn btn-primary" @click="showNewEvaluationModal">
                                 <i class="bi bi-plus-lg me-2"></i>Nouvelle évaluation
                             </button>
-                            <a href="/tutoring/views/tutor/students.php" class="btn btn-outline-primary w-100 mb-2">
-                                <i class="bi bi-mortarboard me-2"></i>Mes étudiants
-                            </a>
-                            <a href="/tutoring/views/tutor/meetings.php" class="btn btn-outline-primary w-100 mb-2">
-                                <i class="bi bi-calendar-event me-2"></i>Réunions
-                            </a>
-                            <a href="/tutoring/views/tutor/documents.php" class="btn btn-outline-primary w-100">
-                                <i class="bi bi-folder me-2"></i>Documents
-                            </a>
-                            <hr>
-                            <h6 class="mb-2">Guide d'évaluation</h6>
-                            <p class="small mb-2"><strong>Mi-parcours:</strong> Évaluation de la progression et identification des axes d'amélioration.</p>
-                            <p class="small mb-0"><strong>Finale:</strong> Bilan global des compétences acquises et recommandations futures.</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Pending Evaluations Alert -->
-    <div class="row g-0 mx-0 px-4 mb-4" id="pending-evaluations-alert" style="display: none;">
-        <div class="col-12">
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Évaluations en attente</h5>
-                <p>Vous avez <span id="pending-count">0</span> évaluation(s) à compléter :</p>
-                <ul class="mb-0" id="pending-list">
-                    <!-- Liste des évaluations en attente à charger via API -->
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Student Information Card (if selected) -->
-    <div class="row g-0 mx-0 px-4 mb-4" id="student-info-card" style="display: none;">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <div class="d-flex align-items-center">
-                                <img id="student-avatar" src="" alt="Student" class="rounded-circle me-3" width="80" height="80">
+                
+                <!-- Message si aucune évaluation -->
+                <div v-if="selectedStudentId && filteredEvaluations.length === 0" class="card mb-4">
+                    <div class="card-body">
+                        <div class="alert alert-info" role="alert">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="bi bi-info-circle-fill fs-4"></i>
+                                </div>
                                 <div>
-                                    <h4 class="mb-1" id="student-name"></h4>
-                                    <p class="text-muted mb-0" id="student-program"></p>
+                                    <h5 class="alert-heading">Aucune évaluation disponible</h5>
+                                    <p class="mb-0">Vous n'avez pas encore créé d'évaluation pour cet étudiant. Utilisez le bouton "Nouvelle évaluation" pour commencer.</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-5">
-                            <h6 class="text-muted mb-1">Stage</h6>
-                            <p class="mb-1"><strong id="internship-title"></strong></p>
-                            <p class="mb-0" id="company-name"></p>
-                            <p class="small text-muted mb-0" id="internship-dates"></p>
+                    </div>
+                </div>
+                
+                <!-- Liste des évaluations -->
+                <div v-if="selectedStudentId && filteredEvaluations.length > 0">
+                    <div v-for="evaluation in filteredEvaluations" :key="evaluation.id" class="card mb-4 fade-in">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>{{ getEvaluationTypeName(evaluation.type) }}</span>
+                            <span class="badge bg-primary">{{ formatDate(evaluation.submission_date) }}</span>
                         </div>
-                        <div class="col-md-2">
-                            <h6 class="text-muted mb-1">Progression</h6>
-                            <div class="progress mb-2" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="internship-progress"></div>
+                        <div class="card-body">
+                            <!-- Note globale -->
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <div class="rating-stars">
+                                            <i v-for="i in 5" :key="i" 
+                                               :class="i <= Math.round(evaluation.score) ? 'bi bi-star-fill' : 'bi bi-star'" 
+                                               class="text-warning"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0">Note globale: {{ evaluation.score }}/5</h5>
+                                        <small class="text-muted">Évaluateur: {{ evaluation.evaluator_name || 'N/A' }}</small>
+                                    </div>
+                                </div>
+                                
+                                <h6>Commentaires</h6>
+                                <p v-html="formatText(evaluation.comments)"></p>
                             </div>
-                            <p class="small text-muted mb-0"><span id="progress-percent">0</span>% complété</p>
-                        </div>
-                        <div class="col-md-2 text-end">
-                            <a href="#" class="btn btn-outline-primary btn-sm mb-1 d-block" id="student-documents-link">
-                                <i class="bi bi-folder me-1"></i>Documents
-                            </a>
-                            <a href="#" class="btn btn-outline-primary btn-sm d-block" id="student-meetings-link">
-                                <i class="bi bi-calendar-event me-1"></i>Réunions
-                            </a>
+                            
+                            <!-- Critères et recommandations -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h6>Critères d'évaluation</h6>
+                                    <div v-if="evaluation.criteria_scores && Object.keys(evaluation.criteria_scores).length > 0">
+                                        <div v-for="(criterion, key) in evaluation.criteria_scores" :key="key" class="mb-2">
+                                            <div class="d-flex justify-content-between">
+                                                <span>{{ getCriterionName(key) }}</span>
+                                                <span>{{ criterion.score }}/5</span>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     :style="{ width: (criterion.score / 5 * 100) + '%' }" 
+                                                     :aria-valuenow="criterion.score" 
+                                                     aria-valuemin="0" aria-valuemax="5"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div v-if="evaluation.areas_for_improvement">
+                                        <h6>Points à améliorer</h6>
+                                        <ul class="list-group list-group-flush mb-3">
+                                            <li v-for="(area, areaIndex) in formatList(evaluation.areas_for_improvement)" 
+                                                :key="'area-' + areaIndex"
+                                                class="list-group-item px-0">{{ area }}</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div v-if="evaluation.next_steps">
+                                        <h6>Prochaines étapes</h6>
+                                        <ul class="list-group list-group-flush">
+                                            <li v-for="(step, stepIndex) in formatList(evaluation.next_steps)" 
+                                                :key="'step-' + stepIndex"
+                                                class="list-group-item px-0">{{ step }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary" @click="printEvaluation(evaluation)">
+                                    <i class="bi bi-printer me-1"></i>Imprimer
+                                </button>
+                                <button class="btn btn-outline-secondary" @click="exportPDF(evaluation)">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>Exporter PDF
+                                </button>
+                                <button v-if="canEditEvaluation(evaluation)" class="btn btn-outline-warning" @click="editEvaluation(evaluation)">
+                                    <i class="bi bi-pencil me-1"></i>Modifier
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -205,160 +514,145 @@ include_once __DIR__ . '/../common/header.php';
         </div>
     </div>
     
-    <!-- Student Statistics -->
-    <div class="row g-0 mx-0 px-4 mb-4" id="student-stats-card" style="display: none;">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <span>Statistiques de l'étudiant</span>
+    <!-- Modal pour créer/modifier une évaluation -->
+    <div class="modal fade" id="evaluationModal" tabindex="-1" aria-labelledby="evaluationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="evaluationModalLabel">{{ isEditMode ? 'Modifier l\'évaluation' : 'Nouvelle évaluation' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="chart-container">
-                                <canvas id="studentProgressChart"></canvas>
+                <form @submit.prevent="submitEvaluation">
+                    <div class="modal-body">
+                        <!-- Chargement des critères -->
+                        <div v-if="criteriaLoading" class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Chargement...</span>
                             </div>
+                            <p>Chargement des critères d'évaluation...</p>
                         </div>
-                        <div class="col-md-8">
-                            <h5 class="mb-3">Compétences évaluées</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between">
-                                            <span>Technique</span>
-                                            <span id="technical-score">-/5</span>
-                                        </div>
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="5" id="technical-progress"></div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between">
-                                            <span>Communication</span>
-                                            <span id="communication-score">-/5</span>
-                                        </div>
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="5" id="communication-progress"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between">
-                                            <span>Travail d'équipe</span>
-                                            <span id="teamwork-score">-/5</span>
-                                        </div>
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="5" id="teamwork-progress"></div>
+                        
+                        <!-- Erreur de chargement des critères -->
+                        <div v-if="criteriaError" class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            {{ criteriaErrorMessage }}
+                        </div>
+                        
+                        <!-- Formulaire d'évaluation -->
+                        <div v-if="!criteriaLoading && !criteriaError">
+                            <div class="mb-4">
+                                <h5>Informations générales</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="evaluation_type" class="form-label">Type d'évaluation</label>
+                                            <select class="form-select" id="evaluation_type" v-model="evaluationForm.type" required>
+                                                <option value="mid_term">Mi-parcours</option>
+                                                <option value="final">Finale</option>
+                                            </select>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between">
-                                            <span>Autonomie</span>
-                                            <span id="autonomy-score">-/5</span>
-                                        </div>
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="5" id="autonomy-progress"></div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="evaluation_date" class="form-label">Date d'évaluation</label>
+                                            <input type="date" class="form-control" id="evaluation_date" v-model="evaluationForm.date" required>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Main Content -->
-    <div class="row g-0 mx-0">
-        <div class="col-12 px-4">
-            <div id="no-student-selected" class="card mb-4">
-                <div class="card-body">
-                    <div class="text-center py-5">
-                        <i class="bi bi-clipboard-check display-1 text-muted mb-3"></i>
-                        <h4>Sélectionnez un étudiant pour commencer</h4>
-                        <p class="text-muted">Choisissez un étudiant dans la liste pour consulter ou créer des évaluations.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Vue d'ensemble de tous les étudiants -->
-            <div id="evaluations-overview" class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Vue d'ensemble des évaluations</span>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-download"></i> Exporter
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                            <li><a class="dropdown-item" href="#" id="export-csv">CSV</a></li>
-                            <li><a class="dropdown-item" href="#" id="export-pdf">PDF</a></li>
-                            <li><a class="dropdown-item" href="#" id="export-excel">Excel</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Étudiant</th>
-                                    <th>Formation</th>
-                                    <th>Entreprise</th>
-                                    <th>Mi-parcours</th>
-                                    <th>Finale</th>
-                                    <th>Moyenne</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="evaluations-table-body">
-                                <!-- Liste des évaluations à charger via API -->
-                                <tr>
-                                    <td colspan="7" class="text-center">
-                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                            <span class="visually-hidden">Chargement...</span>
+                            
+                            <!-- Critères techniques -->
+                            <div class="mb-4" v-if="formStructure.technical">
+                                <h5>Compétences techniques</h5>
+                                <div class="row">
+                                    <div v-for="(criterion, criterionKey) in formStructure.technical.criteria" 
+                                         :key="criterionKey"
+                                         class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">{{ criterion.name }}</label>
+                                            <select class="form-select" v-model="evaluationForm.criteria[criterionKey]" required>
+                                                <option value="" disabled selected>Sélectionnez une note</option>
+                                                <option value="1">1 - Insuffisant</option>
+                                                <option value="2">2 - Passable</option>
+                                                <option value="3">3 - Satisfaisant</option>
+                                                <option value="4">4 - Très bien</option>
+                                                <option value="5">5 - Excellent</option>
+                                            </select>
                                         </div>
-                                        <span class="ms-2">Chargement des données...</span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Create Evaluation Button -->
-            <div id="student-evaluations-header" class="card mb-4" style="display: none;">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Évaluations de <span id="student-name-header"></span></h5>
-                        <button class="btn btn-primary" id="create-evaluation-btn">
-                            <i class="bi bi-plus-lg me-2"></i>Nouvelle évaluation
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- List of Evaluations -->
-            <div id="no-evaluations-message" class="card mb-4" style="display: none;">
-                <div class="card-body">
-                    <div class="alert alert-info" role="alert">
-                        <div class="d-flex">
-                            <div class="me-3">
-                                <i class="bi bi-info-circle-fill fs-4"></i>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <h5 class="alert-heading">Aucune évaluation disponible</h5>
-                                <p class="mb-0">Vous n'avez pas encore créé d'évaluation pour cet étudiant. Utilisez le bouton "Nouvelle évaluation" pour commencer.</p>
+                            
+                            <!-- Critères professionnels -->
+                            <div class="mb-4" v-if="formStructure.professional">
+                                <h5>Compétences professionnelles</h5>
+                                <div class="row">
+                                    <div v-for="(criterion, criterionKey) in formStructure.professional.criteria" 
+                                         :key="criterionKey"
+                                         class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">{{ criterion.name }}</label>
+                                            <select class="form-select" v-model="evaluationForm.criteria[criterionKey]" required>
+                                                <option value="" disabled selected>Sélectionnez une note</option>
+                                                <option value="1">1 - Insuffisant</option>
+                                                <option value="2">2 - Passable</option>
+                                                <option value="3">3 - Satisfaisant</option>
+                                                <option value="4">4 - Très bien</option>
+                                                <option value="5">5 - Excellent</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Commentaires et recommandations -->
+                            <div class="mb-4">
+                                <h5>Commentaires et recommandations</h5>
+                                <div class="mb-3">
+                                    <label for="comments" class="form-label">Commentaires généraux</label>
+                                    <textarea class="form-control" id="comments" v-model="evaluationForm.comments" rows="4" placeholder="Points forts, progression, observations générales..." required></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Points à améliorer</label>
+                                    <div>
+                                        <div v-for="(area, index) in evaluationForm.areas" :key="index" class="input-group mb-2">
+                                            <input type="text" class="form-control" v-model="evaluationForm.areas[index]" placeholder="Point à améliorer...">
+                                            <button class="btn btn-outline-secondary" type="button" v-if="index === evaluationForm.areas.length - 1" @click="addImprovementArea">
+                                                <i class="bi bi-plus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" type="button" v-else @click="removeImprovementArea(index)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Prochaines étapes</label>
+                                    <div>
+                                        <div v-for="(step, index) in evaluationForm.steps" :key="index" class="input-group mb-2">
+                                            <input type="text" class="form-control" v-model="evaluationForm.steps[index]" placeholder="Prochaine étape...">
+                                            <button class="btn btn-outline-secondary" type="button" v-if="index === evaluationForm.steps.length - 1" @click="addNextStep">
+                                                <i class="bi bi-plus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" type="button" v-else @click="removeNextStep(index)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <div id="evaluations-list">
-                <!-- Les évaluations seront chargées ici via JavaScript -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary" :disabled="submitting">
+                            <span v-if="submitting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            {{ submitting ? 'Envoi en cours...' : (isEditMode ? 'Enregistrer les modifications' : 'Enregistrer l\'évaluation') }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -410,6 +704,18 @@ include_once __DIR__ . '/../common/header.php';
     height: 100%;
 }
 
+.stat-card .value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.stat-card .label {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #7f8c8d;
+}
+
 /* Correction pour les éléments flex */
 .d-flex {
     flex-wrap: nowrap;
@@ -418,6 +724,31 @@ include_once __DIR__ . '/../common/header.php';
 /* Correction pour les éléments en ligne */
 .inline-items {
     white-space: nowrap;
+}
+
+/* Animations de chargement */
+.fade-in {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* Étoiles d'évaluation */
+.rating-stars .bi-star-fill {
+    color: #ffc107;
+}
+
+/* Conteneur de graphique */
+.chart-container {
+    height: 200px;
 }
 
 /* Ajustement pour les petits écrans */
@@ -434,1042 +765,841 @@ include_once __DIR__ . '/../common/header.php';
 }
 </style>
 
-<!-- Create Evaluation Modal -->
-<div class="modal fade" id="createEvaluationModal" tabindex="-1" aria-labelledby="createEvaluationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createEvaluationModalLabel">Nouvelle évaluation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="evaluation-form">
-                <div class="modal-body">
-                    <input type="hidden" id="assignment_id" name="assignment_id" value="">
-                    <input type="hidden" id="selected_student_id" name="student_id" value="">
-                    
-                    <div class="mb-4">
-                        <h5>Informations générales</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="evaluation_type" class="form-label">Type d'évaluation</label>
-                                    <select class="form-select" id="evaluation_type" name="evaluation_type" required>
-                                        <option value="mid_term">Mi-parcours</option>
-                                        <option value="final">Finale</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="evaluation_date" class="form-label">Date d'évaluation</label>
-                                    <input type="date" class="form-control" id="evaluation_date" name="evaluation_date" value="<?php echo date('Y-m-d'); ?>" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <h5>Compétences techniques</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Maîtrise des technologies</label>
-                                    <select class="form-select" name="criteria[technical_mastery]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Qualité du travail</label>
-                                    <select class="form-select" name="criteria[work_quality]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Résolution de problèmes</label>
-                                    <select class="form-select" name="criteria[problem_solving]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Documentation</label>
-                                    <select class="form-select" name="criteria[documentation]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <h5>Compétences professionnelles</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Autonomie</label>
-                                    <select class="form-select" name="criteria[autonomy]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Communication</label>
-                                    <select class="form-select" name="criteria[communication]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Intégration dans l'équipe</label>
-                                    <select class="form-select" name="criteria[team_integration]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Respect des délais</label>
-                                    <select class="form-select" name="criteria[deadline_respect]" required>
-                                        <option value="" disabled selected>Sélectionnez une note</option>
-                                        <option value="1">1 - Insuffisant</option>
-                                        <option value="2">2 - Passable</option>
-                                        <option value="3">3 - Satisfaisant</option>
-                                        <option value="4">4 - Très bien</option>
-                                        <option value="5">5 - Excellent</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <h5>Commentaires et recommandations</h5>
-                        <div class="mb-3">
-                            <label for="comments" class="form-label">Commentaires généraux</label>
-                            <textarea class="form-control" id="comments" name="comments" rows="4" placeholder="Points forts, progression, observations générales..." required></textarea>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Points à améliorer</label>
-                            <div id="improvement-areas-container">
-                                <div class="input-group mb-2">
-                                    <input type="text" class="form-control" name="areas_for_improvement[]" placeholder="Point à améliorer...">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="addImprovementArea()"><i class="bi bi-plus"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Recommandations</label>
-                            <div id="recommendations-container">
-                                <div class="input-group mb-2">
-                                    <input type="text" class="form-control" name="recommendations[]" placeholder="Recommandation...">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="addRecommendation()"><i class="bi bi-plus"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Enregistrer l'évaluation</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-    // Variables globales
-    let selectedStudent = null;
-    let selectedAssignment = null;
-    let studentEvaluations = [];
-    let studentChart = null;
-    let assignments = [];
-    const evaluationTypes = {
-        'mid_term': 'Mi-parcours', 
-        'final': 'Finale', 
-        'company': 'Entreprise'
-    };
-    
-    // Au chargement du document
     document.addEventListener('DOMContentLoaded', function() {
-        // Récupérer les statistiques globales
-        fetchTeacherStats();
-        
-        // Récupérer les affectations du tuteur
-        fetchAssignments();
-        
-        // Gérer le changement d'étudiant
-        document.getElementById('student_id').addEventListener('change', function() {
-            const studentId = this.value;
-            if (studentId) {
-                window.location.href = `/tutoring/views/tutor/evaluations-api.php?student_id=${studentId}`;
-            }
-        });
-        
-        // Gérer le changement de type d'évaluation
-        document.getElementById('type').addEventListener('change', function() {
-            const studentId = document.getElementById('student_id').value;
-            const type = this.value;
-            if (studentId) {
-                window.location.href = `/tutoring/views/tutor/evaluations-api.php?student_id=${studentId}&type=${type}`;
-            }
-        });
-        
-        // Gérer le bouton de nouvelle évaluation
-        document.getElementById('new-evaluation-btn').addEventListener('click', function() {
-            if (selectedStudent) {
-                showEvaluationModal();
-            }
-        });
-        
-        document.getElementById('create-evaluation-btn').addEventListener('click', function() {
-            showEvaluationModal();
-        });
-        
-        // Gérer la soumission du formulaire d'évaluation
-        document.getElementById('evaluation-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitEvaluation();
-        });
-        
-        // Vérifier s'il y a un étudiant sélectionné dans l'URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const studentId = urlParams.get('student_id');
-        const type = urlParams.get('type') || 'all';
-        
-        if (studentId) {
-            // Mettre à jour la valeur du select
-            document.getElementById('student_id').value = studentId;
-            document.getElementById('type').value = type;
-            
-            // Afficher le filtre de type
-            document.getElementById('type-filter-container').style.display = 'block';
-            
-            // Charger les détails de l'étudiant et ses évaluations
-            fetchStudentDetails(studentId);
-            fetchStudentEvaluations(studentId, type);
-        } else {
-            // Afficher la vue d'ensemble
-            fetchEvaluationsOverview();
-        }
-        
-        // Gestionnaires d'événements pour l'export
-        document.getElementById('export-csv').addEventListener('click', function() {
-            exportData('csv');
-        });
-        
-        document.getElementById('export-pdf').addEventListener('click', function() {
-            exportData('pdf');
-        });
-        
-        document.getElementById('export-excel').addEventListener('click', function() {
-            exportData('excel');
-        });
-    });
-    
-    // Fonction pour récupérer les statistiques du tuteur
-    function fetchTeacherStats() {
-        fetch('/tutoring/api/evaluations/teacher-stats.php')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur lors de la récupération des statistiques');
+        const app = new Vue({
+            el: '#evaluations-app',
+            data: {
+                // ID du tuteur
+                teacherId: document.getElementById('evaluations-app').dataset.teacherId,
+                
+                // Données des étudiants
+                students: [],
+                selectedStudentId: '',
+                selectedStudent: null,
+                
+                // Données des évaluations
+                studentEvaluations: [],
+                filteredEvaluations: [],
+                selectedType: 'all',
+                pendingEvaluations: [],
+                
+                // Statistiques
+                stats: {
+                    total_evaluations: 0,
+                    completed_evaluations: 0,
+                    completed_percent: 0,
+                    average_score: 0,
+                    average_percent: 0,
+                    improvement_rate: 0
+                },
+                studentStats: {
+                    average_score: 0,
+                    technical_avg: 0,
+                    professional_avg: 0,
+                    autonomy_score: 0,
+                    communication_score: 0,
+                    teamwork_score: 0
+                },
+                internshipProgress: 0,
+                
+                // État de l'interface
+                loading: true,
+                error: false,
+                errorMessage: '',
+                
+                // Données pour le formulaire d'évaluation
+                isEditMode: false,
+                editingEvaluationId: null,
+                evaluationForm: this.initEvaluationForm(),
+                criteriaLoading: false,
+                criteriaError: false,
+                criteriaErrorMessage: '',
+                criteriaStructure: {},
+                formStructure: {},
+                submitting: false,
+                
+                // Référence au graphique
+                chart: null,
+                
+                // Types d'évaluation
+                evaluationTypes: {
+                    'mid_term': 'Mi-parcours',
+                    'final': 'Finale',
+                    'student': 'Auto-évaluation',
+                    'company': 'Entreprise'
                 }
-                return response.json();
-            })
-            .then(data => {
-                // Mettre à jour les statistiques
-                document.getElementById('total-evaluations').textContent = data.total_evaluations;
-                document.getElementById('completed-evaluations').textContent = data.completed_evaluations;
-                document.getElementById('average-score').textContent = data.average_score;
-                document.getElementById('improvement-rate').textContent = data.improvement_rate + '%';
-                
-                // Mettre à jour les barres de progression
-                const completedPercent = data.total_evaluations > 0 ? (data.completed_evaluations / data.total_evaluations) * 100 : 0;
-                const averagePercent = (data.average_score / 5) * 100;
-                
-                document.getElementById('completed-progress').style.width = completedPercent + '%';
-                document.getElementById('completed-progress').setAttribute('aria-valuenow', completedPercent);
-                
-                document.getElementById('average-progress').style.width = averagePercent + '%';
-                document.getElementById('average-progress').setAttribute('aria-valuenow', averagePercent);
-                
-                document.getElementById('improvement-progress').style.width = data.improvement_rate + '%';
-                document.getElementById('improvement-progress').setAttribute('aria-valuenow', data.improvement_rate);
-                
-                // Afficher les évaluations en attente s'il y en a
-                if (data.pending_list && data.pending_list.length > 0 && data.pending_list.length <= 5) {
-                    const pendingList = document.getElementById('pending-list');
-                    pendingList.innerHTML = '';
-                    
-                    data.pending_list.forEach(pending => {
-                        const li = document.createElement('li');
-                        li.textContent = `${pending.student_name} - ${evaluationTypes[pending.type] || pending.type}`;
-                        pendingList.appendChild(li);
-                    });
-                    
-                    document.getElementById('pending-count').textContent = data.pending_list.length;
-                    document.getElementById('pending-evaluations-alert').style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-            });
-    }
-    
-    // Fonction pour récupérer les affectations du tuteur
-    function fetchAssignments() {
-        const teacherId = document.getElementById('evaluations-app').dataset.teacherId;
-        
-        fetch(`/tutoring/api/teachers/${teacherId}/assignments.php`)
-            .then(response => {
-                if (!response.ok) {
-                    return []; // Retourner un tableau vide en cas d'erreur
-                }
-                return response.json();
-            })
-            .then(data => {
-                assignments = data.assignments || [];
-                
-                // Remplir le select d'étudiants
-                const studentSelect = document.getElementById('student_id');
-                studentSelect.innerHTML = '<option value="" disabled selected>Choisir un étudiant...</option>';
-                
-                assignments.forEach(assignment => {
-                    const option = document.createElement('option');
-                    option.value = assignment.student_id;
-                    option.textContent = `${assignment.student_first_name} ${assignment.student_last_name}`;
-                    option.dataset.assignmentId = assignment.id;
-                    studentSelect.appendChild(option);
-                });
-                
-                // Si aucun étudiant, désactiver le bouton de nouvelle évaluation
-                if (assignments.length === 0) {
-                    document.getElementById('new-evaluation-btn').disabled = true;
-                } else {
-                    document.getElementById('new-evaluation-btn').disabled = false;
-                }
-                
-                // Vérifier si un étudiant est déjà sélectionné
+            },
+            mounted() {
+                // Récupérer l'étudiant sélectionné dans l'URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const studentId = urlParams.get('student_id');
+                const type = urlParams.get('type') || 'all';
                 
-                if (studentId) {
-                    studentSelect.value = studentId;
-                    
-                    // Trouver l'assignment correspondant
-                    for (const assignment of assignments) {
-                        if (assignment.student_id == studentId) {
-                            selectedAssignment = assignment;
-                            break;
-                        }
+                this.selectedType = type;
+                
+                // Charger les données
+                this.loadTeacherStats();
+                this.loadStudents().then(() => {
+                    if (studentId) {
+                        this.selectedStudentId = studentId;
+                        this.onStudentChange();
+                    } else {
+                        this.loading = false;
                     }
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-            });
-    }
-    
-    // Fonction pour récupérer les détails d'un étudiant
-    function fetchStudentDetails(studentId) {
-        fetch(`/tutoring/api/students/${studentId}.php`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur lors de la récupération des détails de l\'étudiant');
-                }
-                return response.json();
-            })
-            .then(data => {
-                selectedStudent = data.student;
+                });
+            },
+            methods: {
+                // Initialiser le formulaire d'évaluation
+                initEvaluationForm() {
+                    return {
+                        id: null,
+                        type: 'mid_term',
+                        date: new Date().toISOString().split('T')[0],
+                        criteria: {},
+                        comments: '',
+                        areas: [''],
+                        steps: ['']
+                    };
+                },
                 
-                // Mettre à jour la carte d'information de l'étudiant
-                document.getElementById('student-name').textContent = `${selectedStudent.first_name} ${selectedStudent.last_name}`;
-                document.getElementById('student-name-header').textContent = `${selectedStudent.first_name} ${selectedStudent.last_name}`;
-                document.getElementById('student-program').textContent = selectedStudent.program || 'N/A';
+                // Charger les statistiques du tuteur
+                loadTeacherStats() {
+                    axios.get('/tutoring/api/evaluations/teacher-stats.php')
+                        .then(response => {
+                            if (response.data.success) {
+                                this.stats = response.data;
+                                
+                                // Calculer les pourcentages
+                                if (this.stats.total_evaluations > 0) {
+                                    this.stats.completed_percent = (this.stats.completed_evaluations / this.stats.total_evaluations) * 100;
+                                }
+                                
+                                if (this.stats.average_score) {
+                                    this.stats.average_percent = (this.stats.average_score / 5) * 100;
+                                }
+                                
+                                // Récupérer les évaluations en attente
+                                if (response.data.pending_list && response.data.pending_list.length > 0) {
+                                    this.pendingEvaluations = response.data.pending_list;
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors du chargement des statistiques:', error);
+                        });
+                },
                 
-                // Générer l'avatar avec les initiales
-                const initials = selectedStudent.first_name.charAt(0) + selectedStudent.last_name.charAt(0);
-                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=3498db&color=fff`;
-                document.getElementById('student-avatar').src = avatarUrl;
+                // Charger la liste des étudiants assignés
+                loadStudents() {
+                    return axios.get(`/tutoring/api/teachers/${this.teacherId}/students.php`)
+                        .then(response => {
+                            if (response.data.success && response.data.students) {
+                                this.students = response.data.students;
+                                
+                                // Charger les données d'évaluation pour chaque étudiant
+                                const promises = this.students.map(student => {
+                                    return axios.get(`/tutoring/api/evaluations/list.php?student_id=${student.id}`)
+                                        .then(evalResponse => {
+                                            if (evalResponse.data.success && evalResponse.data.evaluations) {
+                                                const evaluations = evalResponse.data.evaluations;
+                                                let midterm = evaluations.find(e => e.type === 'mid_term');
+                                                let final = evaluations.find(e => e.type === 'final');
+                                                
+                                                // Calculer la moyenne
+                                                let total = 0;
+                                                evaluations.forEach(e => total += parseFloat(e.score));
+                                                let average = evaluations.length > 0 ? (total / evaluations.length).toFixed(1) : null;
+                                                
+                                                // Ajouter les scores à l'étudiant
+                                                student.midterm_score = midterm ? midterm.score : null;
+                                                student.final_score = final ? final.score : null;
+                                                student.average_score = average;
+                                            }
+                                            return student;
+                                        })
+                                        .catch(error => {
+                                            console.error(`Erreur lors du chargement des évaluations pour l'étudiant ${student.id}:`, error);
+                                            return student;
+                                        });
+                                });
+                                
+                                return Promise.all(promises).then(updatedStudents => {
+                                    this.students = updatedStudents;
+                                    return this.students;
+                                });
+                            }
+                            return [];
+                        })
+                        .catch(error => {
+                            this.error = true;
+                            this.errorMessage = 'Erreur lors du chargement des étudiants';
+                            console.error('Erreur lors du chargement des étudiants:', error);
+                            return [];
+                        });
+                },
                 
-                // Mettre à jour les informations du stage
-                if (selectedStudent.internship) {
-                    document.getElementById('internship-title').textContent = selectedStudent.internship.title || 'N/A';
-                    document.getElementById('company-name').textContent = selectedStudent.company ? selectedStudent.company.name : 'N/A';
-                    
-                    if (selectedStudent.internship.start_date && selectedStudent.internship.end_date) {
-                        const startDate = new Date(selectedStudent.internship.start_date);
-                        const endDate = new Date(selectedStudent.internship.end_date);
-                        
-                        document.getElementById('internship-dates').textContent = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-                        
-                        // Calculer la progression
-                        const today = new Date();
-                        let progress = 0;
-                        
-                        if (today >= startDate && today <= endDate) {
-                            const totalDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
-                            const daysElapsed = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
-                            progress = Math.min(100, Math.round((daysElapsed / totalDays) * 100));
-                        } else if (today > endDate) {
-                            progress = 100;
-                        }
-                        
-                        document.getElementById('internship-progress').style.width = progress + '%';
-                        document.getElementById('internship-progress').setAttribute('aria-valuenow', progress);
-                        document.getElementById('progress-percent').textContent = progress;
+                // Charger les détails d'un étudiant
+                loadStudentDetails(studentId) {
+                    return axios.get(`/tutoring/api/students/${studentId}.php`)
+                        .then(response => {
+                            if (response.data.success && response.data.student) {
+                                this.selectedStudent = response.data.student;
+                                
+                                // Calculer la progression du stage
+                                if (this.selectedStudent.internship) {
+                                    const startDate = new Date(this.selectedStudent.internship.start_date);
+                                    const endDate = new Date(this.selectedStudent.internship.end_date);
+                                    const today = new Date();
+                                    
+                                    if (today >= startDate && today <= endDate) {
+                                        const totalDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+                                        const daysElapsed = Math.round((today - startDate) / (1000 * 60 * 60 * 24));
+                                        this.internshipProgress = Math.min(100, Math.round((daysElapsed / totalDays) * 100));
+                                    } else if (today > endDate) {
+                                        this.internshipProgress = 100;
+                                    } else {
+                                        this.internshipProgress = 0;
+                                    }
+                                }
+                                
+                                return this.selectedStudent;
+                            }
+                            return null;
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors du chargement des détails de l\'étudiant:', error);
+                            return null;
+                        });
+                },
+                
+                // Charger les évaluations d'un étudiant
+                loadStudentEvaluations(studentId) {
+                    return axios.get(`/tutoring/api/evaluations/list.php?student_id=${studentId}`)
+                        .then(response => {
+                            if (response.data.success && response.data.evaluations) {
+                                this.studentEvaluations = response.data.evaluations;
+                                this.filterEvaluations();
+                                
+                                // Calculer les statistiques de l'étudiant
+                                this.calculateStudentStats();
+                                
+                                // Initialiser le graphique de progression
+                                this.$nextTick(() => {
+                                    this.initProgressChart();
+                                });
+                                
+                                return this.studentEvaluations;
+                            }
+                            return [];
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors du chargement des évaluations:', error);
+                            return [];
+                        });
+                },
+                
+                // Filtrer les évaluations par type
+                filterEvaluations() {
+                    if (this.selectedType === 'all') {
+                        this.filteredEvaluations = [...this.studentEvaluations];
+                    } else {
+                        this.filteredEvaluations = this.studentEvaluations.filter(e => e.type === this.selectedType);
                     }
-                } else {
-                    document.getElementById('internship-title').textContent = 'N/A';
-                    document.getElementById('company-name').textContent = 'N/A';
-                    document.getElementById('internship-dates').textContent = '';
-                }
-                
-                // Mettre à jour les liens
-                document.getElementById('student-documents-link').href = `/tutoring/views/tutor/documents.php?student_id=${studentId}`;
-                document.getElementById('student-meetings-link').href = `/tutoring/views/tutor/meetings.php?student_id=${studentId}`;
-                
-                // Afficher la carte d'informations
-                document.getElementById('student-info-card').style.display = 'block';
-                document.getElementById('student-evaluations-header').style.display = 'block';
-                document.getElementById('no-student-selected').style.display = 'none';
-                document.getElementById('evaluations-overview').style.display = 'none';
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-            });
-    }
-    
-    // Fonction pour récupérer les évaluations d'un étudiant
-    function fetchStudentEvaluations(studentId, type = 'all') {
-        fetch(`/tutoring/api/evaluations/list.php?student_id=${studentId}&type=${type}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur lors de la récupération des évaluations');
-                }
-                return response.json();
-            })
-            .then(data => {
-                studentEvaluations = data.evaluations || [];
-                
-                // Afficher ou masquer le message si aucune évaluation
-                if (studentEvaluations.length === 0) {
-                    document.getElementById('no-evaluations-message').style.display = 'block';
-                    document.getElementById('student-stats-card').style.display = 'none';
-                } else {
-                    document.getElementById('no-evaluations-message').style.display = 'none';
-                    document.getElementById('student-stats-card').style.display = 'block';
                     
-                    // Afficher les évaluations
-                    displayStudentEvaluations();
+                    // Trier par date
+                    this.filteredEvaluations.sort((a, b) => {
+                        return new Date(b.submission_date) - new Date(a.submission_date);
+                    });
+                },
+                
+                // Calculer les statistiques de l'étudiant
+                calculateStudentStats() {
+                    // Réinitialiser les statistiques
+                    this.studentStats = {
+                        average_score: 0,
+                        technical_avg: 0,
+                        professional_avg: 0,
+                        autonomy_score: 0,
+                        communication_score: 0,
+                        teamwork_score: 0
+                    };
                     
-                    // Mettre à jour les statistiques de l'étudiant
-                    updateStudentStats();
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-            });
-    }
-    
-    // Fonction pour afficher les évaluations d'un étudiant
-    function displayStudentEvaluations() {
-        const evaluationsList = document.getElementById('evaluations-list');
-        evaluationsList.innerHTML = '';
-        
-        studentEvaluations.forEach((evaluation, index) => {
-            const card = document.createElement('div');
-            card.className = 'card mb-4 fade-in';
-            
-            // En-tête de la carte
-            const header = document.createElement('div');
-            header.className = 'd-flex justify-content-between align-items-center card-header';
-            header.innerHTML = `
-                <span>Évaluation ${evaluationTypes[evaluation.type] || evaluation.type}</span>
-                <span class="badge bg-primary">${new Date(evaluation.date).toLocaleDateString()}</span>
-            `;
-            
-            // Corps de la carte
-            const body = document.createElement('div');
-            body.className = 'card-body';
-            
-            // Note globale
-            let ratingStars = '';
-            for (let i = 1; i <= 5; i++) {
-                ratingStars += `<i class="bi ${i <= evaluation.score ? 'bi-star-fill' : 'bi-star'} text-warning"></i>`;
-            }
-            
-            const scoreSection = document.createElement('div');
-            scoreSection.className = 'mb-4';
-            scoreSection.innerHTML = `
-                <div class="d-flex align-items-center mb-3">
-                    <div class="me-3">
-                        <div class="rating-stars">${ratingStars}</div>
-                    </div>
-                    <div>
-                        <h5 class="mb-0">Note globale: ${evaluation.score}/5</h5>
-                    </div>
-                </div>
-                
-                <h6>Commentaires</h6>
-                <p>${evaluation.comments ? evaluation.comments.replace(/\n/g, '<br>') : ''}</p>
-            `;
-            
-            // Critères d'évaluation et recommandations
-            const detailsSection = document.createElement('div');
-            detailsSection.className = 'row mb-4';
-            
-            // Critères
-            let criteriaHtml = '<h6>Critères d\'évaluation</h6>';
-            if (evaluation.criteria && evaluation.criteria.length > 0) {
-                evaluation.criteria.forEach(criterion => {
-                    const percent = (criterion.score / 5) * 100;
-                    criteriaHtml += `
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between">
-                                <span>${criterion.name}</span>
-                                <span>${criterion.score}/5</span>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar" role="progressbar" style="width: ${percent}%;" aria-valuenow="${criterion.score}" aria-valuemin="0" aria-valuemax="5"></div>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-            
-            // Points à améliorer et recommandations
-            let improvementsHtml = '';
-            if (evaluation.areas_for_improvement && evaluation.areas_for_improvement.length > 0) {
-                improvementsHtml += '<h6>Points à améliorer</h6>';
-                improvementsHtml += '<ul class="list-group list-group-flush mb-3">';
-                evaluation.areas_for_improvement.forEach(area => {
-                    improvementsHtml += `<li class="list-group-item px-0">${area}</li>`;
-                });
-                improvementsHtml += '</ul>';
-            }
-            
-            let recommendationsHtml = '';
-            if (evaluation.recommendations && evaluation.recommendations.length > 0) {
-                recommendationsHtml += '<h6>Recommandations</h6>';
-                recommendationsHtml += '<ul class="list-group list-group-flush">';
-                evaluation.recommendations.forEach(recommendation => {
-                    recommendationsHtml += `<li class="list-group-item px-0">${recommendation}</li>`;
-                });
-                recommendationsHtml += '</ul>';
-            }
-            
-            detailsSection.innerHTML = `
-                <div class="col-md-6">${criteriaHtml}</div>
-                <div class="col-md-6">${improvementsHtml}${recommendationsHtml}</div>
-            `;
-            
-            // Actions
-            const actionsSection = document.createElement('div');
-            actionsSection.className = 'd-flex gap-2';
-            actionsSection.innerHTML = `
-                <button class="btn btn-outline-primary" onclick="printEvaluation(${index})">
-                    <i class="bi bi-printer me-1"></i>Imprimer
-                </button>
-                <button class="btn btn-outline-secondary" onclick="exportPDF(${index})">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>Exporter PDF
-                </button>
-                <button class="btn btn-outline-info" onclick="shareEvaluation(${index})">
-                    <i class="bi bi-share me-1"></i>Partager
-                </button>
-            `;
-            
-            // Ajouter les sections au corps de la carte
-            body.appendChild(scoreSection);
-            body.appendChild(detailsSection);
-            body.appendChild(actionsSection);
-            
-            // Ajouter l'en-tête et le corps à la carte
-            card.appendChild(header);
-            card.appendChild(body);
-            
-            // Ajouter la carte à la liste
-            evaluationsList.appendChild(card);
-        });
-    }
-    
-    // Fonction pour mettre à jour les statistiques de l'étudiant
-    function updateStudentStats() {
-        // Calculer les statistiques
-        const studentStats = {
-            technical_score: 0,
-            communication_score: 0,
-            teamwork_score: 0,
-            autonomy_score: 0,
-            count: 0
-        };
-        
-        // Données pour le graphique
-        const chartData = {
-            labels: [],
-            technical: [],
-            professional: []
-        };
-        
-        // Trier les évaluations par date
-        const sortedEvals = [...studentEvaluations].sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        sortedEvals.forEach(evaluation => {
-            if (!evaluation.criteria || !Array.isArray(evaluation.criteria)) {
-                return;
-            }
-            
-            // Ajouter la date au format court pour le graphique
-            chartData.labels.push(new Date(evaluation.date).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'}));
-            
-            // Variables pour les moyennes techniques et professionnelles
-            let techScore = 0;
-            let techCount = 0;
-            let profScore = 0;
-            let profCount = 0;
-            
-            // Parcourir les critères
-            evaluation.criteria.forEach(criterion => {
-                const name = criterion.name.toLowerCase();
-                
-                if (name.includes('technique') || 
-                    name.includes('technical') ||
-                    name.includes('maîtrise') ||
-                    name.includes('qualité') ||
-                    name.includes('problème') ||
-                    name.includes('documentation')) {
-                    studentStats.technical_score += criterion.score;
-                    techScore += criterion.score;
-                    techCount++;
-                } else if (name.includes('communication')) {
-                    studentStats.communication_score += criterion.score;
-                    profScore += criterion.score;
-                    profCount++;
-                } else if (name.includes('équipe') || name.includes('team')) {
-                    studentStats.teamwork_score += criterion.score;
-                    profScore += criterion.score;
-                    profCount++;
-                } else if (name.includes('autonomie') || name.includes('autonomy')) {
-                    studentStats.autonomy_score += criterion.score;
-                    profScore += criterion.score;
-                    profCount++;
-                } else {
-                    // Par défaut, considérer comme compétence professionnelle
-                    profScore += criterion.score;
-                    profCount++;
-                }
-            });
-            
-            // Ajouter les scores au graphique
-            chartData.technical.push(techCount > 0 ? techScore / techCount : 0);
-            chartData.professional.push(profCount > 0 ? profScore / profCount : 0);
-            
-            studentStats.count++;
-        });
-        
-        // Calculer les moyennes
-        if (studentStats.count > 0) {
-            studentStats.technical_score = (studentStats.technical_score / studentStats.count).toFixed(1);
-            studentStats.communication_score = (studentStats.communication_score / studentStats.count).toFixed(1);
-            studentStats.teamwork_score = (studentStats.teamwork_score / studentStats.count).toFixed(1);
-            studentStats.autonomy_score = (studentStats.autonomy_score / studentStats.count).toFixed(1);
-        }
-        
-        // Mettre à jour l'affichage des statistiques
-        document.getElementById('technical-score').textContent = studentStats.technical_score + '/5';
-        document.getElementById('communication-score').textContent = studentStats.communication_score + '/5';
-        document.getElementById('teamwork-score').textContent = studentStats.teamwork_score + '/5';
-        document.getElementById('autonomy-score').textContent = studentStats.autonomy_score + '/5';
-        
-        // Mettre à jour les barres de progression
-        document.getElementById('technical-progress').style.width = (studentStats.technical_score / 5) * 100 + '%';
-        document.getElementById('communication-progress').style.width = (studentStats.communication_score / 5) * 100 + '%';
-        document.getElementById('teamwork-progress').style.width = (studentStats.teamwork_score / 5) * 100 + '%';
-        document.getElementById('autonomy-progress').style.width = (studentStats.autonomy_score / 5) * 100 + '%';
-        
-        // Créer le graphique si des données sont disponibles
-        if (chartData.labels.length > 0) {
-            const ctx = document.getElementById('studentProgressChart');
-            if (ctx) {
-                // Détruire le graphique précédent s'il existe
-                if (studentChart) {
-                    studentChart.destroy();
-                }
-                
-                studentChart = new Chart(ctx.getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: chartData.labels,
-                        datasets: [
-                            {
-                                label: 'Technique',
-                                data: chartData.technical,
-                                borderColor: '#3498db',
-                                backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                                tension: 0.3,
-                                fill: true
-                            },
-                            {
-                                label: 'Professionnel',
-                                data: chartData.professional,
-                                borderColor: '#2ecc71',
-                                backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                                tension: 0.3,
-                                fill: true
+                    if (this.studentEvaluations.length === 0) {
+                        return;
+                    }
+                    
+                    // Calculer les moyennes
+                    let totalScore = 0;
+                    let technicalTotal = 0;
+                    let professionalTotal = 0;
+                    let autonomyTotal = 0;
+                    let communicationTotal = 0;
+                    let teamworkTotal = 0;
+                    let autonomyCount = 0;
+                    let communicationCount = 0;
+                    let teamworkCount = 0;
+                    
+                    this.studentEvaluations.forEach(evaluation => {
+                        totalScore += parseFloat(evaluation.score);
+                        technicalTotal += parseFloat(evaluation.technical_avg);
+                        professionalTotal += parseFloat(evaluation.professional_avg);
+                        
+                        // Compter les critères spécifiques
+                        if (evaluation.criteria_scores) {
+                            if (evaluation.criteria_scores.autonomy) {
+                                autonomyTotal += parseFloat(evaluation.criteria_scores.autonomy.score);
+                                autonomyCount++;
                             }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'bottom'
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false
+                            if (evaluation.criteria_scores.communication) {
+                                communicationTotal += parseFloat(evaluation.criteria_scores.communication.score);
+                                communicationCount++;
                             }
+                            if (evaluation.criteria_scores.team_integration) {
+                                teamworkTotal += parseFloat(evaluation.criteria_scores.team_integration.score);
+                                teamworkCount++;
+                            }
+                        }
+                    });
+                    
+                    // Calculer les moyennes
+                    this.studentStats.average_score = totalScore / this.studentEvaluations.length;
+                    this.studentStats.technical_avg = technicalTotal / this.studentEvaluations.length;
+                    this.studentStats.professional_avg = professionalTotal / this.studentEvaluations.length;
+                    this.studentStats.autonomy_score = autonomyCount > 0 ? autonomyTotal / autonomyCount : 0;
+                    this.studentStats.communication_score = communicationCount > 0 ? communicationTotal / communicationCount : 0;
+                    this.studentStats.teamwork_score = teamworkCount > 0 ? teamworkTotal / teamworkCount : 0;
+                },
+                
+                // Initialiser le graphique de progression
+                initProgressChart() {
+                    const progressChartElement = document.getElementById('studentProgressChart');
+                    if (!progressChartElement) return;
+                    
+                    // Détruire le graphique existant s'il y en a un
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+                    
+                    // Trier les évaluations par date
+                    const sortedEvals = [...this.studentEvaluations].sort((a, b) => {
+                        return new Date(a.submission_date) - new Date(b.submission_date);
+                    });
+                    
+                    if (sortedEvals.length === 0) {
+                        return;
+                    }
+                    
+                    // Préparer les données du graphique
+                    const labels = sortedEvals.map(eval => this.formatDate(eval.submission_date));
+                    const technicalData = sortedEvals.map(eval => eval.technical_avg);
+                    const professionalData = sortedEvals.map(eval => eval.professional_avg);
+                    
+                    // Créer le graphique
+                    this.chart = new Chart(progressChartElement, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Technique',
+                                    data: technicalData,
+                                    borderColor: '#3498db',
+                                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
+                                },
+                                {
+                                    label: 'Professionnel',
+                                    data: professionalData,
+                                    borderColor: '#2ecc71',
+                                    backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
+                                }
+                            ]
                         },
-                        scales: {
-                            y: {
-                                min: 0,
-                                max: 5,
-                                ticks: {
-                                    stepSize: 1
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom'
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    min: 0,
+                                    max: 5,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
                                 }
                             }
                         }
-                    }
-                });
-            }
-        }
-    }
-    
-    // Fonction pour récupérer la vue d'ensemble des évaluations
-    function fetchEvaluationsOverview() {
-        // Masquer les sections spécifiques à un étudiant
-        document.getElementById('student-info-card').style.display = 'none';
-        document.getElementById('student-stats-card').style.display = 'none';
-        document.getElementById('student-evaluations-header').style.display = 'none';
-        document.getElementById('no-evaluations-message').style.display = 'none';
-        document.getElementById('evaluations-list').innerHTML = '';
-        
-        // Afficher les sections de vue d'ensemble
-        document.getElementById('no-student-selected').style.display = 'block';
-        document.getElementById('evaluations-overview').style.display = 'block';
-        
-        // Récupérer les données pour le tableau
-        const tbody = document.getElementById('evaluations-table-body');
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="ms-2">Chargement des données...</span></td></tr>';
-        
-        // Si les assignments sont déjà chargés, on peut construire le tableau
-        if (assignments.length > 0) {
-            buildOverviewTable();
-        } else {
-            // Sinon, on attend que les assignments soient chargés
-            // La fonction fetchAssignments a déjà été appelée au chargement
-        }
-    }
-    
-    // Fonction pour construire le tableau de vue d'ensemble
-    function buildOverviewTable() {
-        const tbody = document.getElementById('evaluations-table-body');
-        tbody.innerHTML = '';
-        
-        // Si aucune affectation, afficher un message
-        if (assignments.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Aucun étudiant assigné</td></tr>';
-            return;
-        }
-        
-        // Pour chaque affectation, ajouter une ligne au tableau
-        assignments.forEach(assignment => {
-            const row = document.createElement('tr');
-            
-            // Récupérer les évaluations pour cet étudiant
-            fetch(`/tutoring/api/evaluations/list.php?student_id=${assignment.student_id}`)
-                .then(response => response.json())
-                .then(data => {
-                    const evaluations = data.evaluations || [];
-                    
-                    // Identifier les évaluations mi-parcours et finale
-                    let midTermEval = null;
-                    let finalEval = null;
-                    let average = null;
-                    
-                    evaluations.forEach(eval => {
-                        if (eval.type === 'mid_term') {
-                            midTermEval = eval;
-                        } else if (eval.type === 'final') {
-                            finalEval = eval;
-                        }
                     });
-                    
-                    // Calculer la moyenne s'il y a des évaluations
-                    if (evaluations.length > 0) {
-                        const sum = evaluations.reduce((acc, eval) => acc + eval.score, 0);
-                        average = (sum / evaluations.length).toFixed(1);
+                },
+                
+                // Gérer le changement d'étudiant
+                onStudentChange() {
+                    if (!this.selectedStudentId) {
+                        return;
                     }
                     
-                    // Construire la ligne du tableau
-                    row.innerHTML = `
-                        <td>
-                            <a href="/tutoring/views/tutor/evaluations-api.php?student_id=${assignment.student_id}">
-                                ${assignment.student_first_name} ${assignment.student_last_name}
-                            </a>
-                        </td>
-                        <td>${assignment.student_program || 'N/A'}</td>
-                        <td>${assignment.company_name || '<span class="text-muted">N/A</span>'}</td>
-                        <td>
-                            ${midTermEval ? 
-                                `<span class="badge bg-success">${midTermEval.score}/5</span>` : 
-                                '<span class="badge bg-warning">En attente</span>'}
-                        </td>
-                        <td>
-                            ${finalEval ? 
-                                `<span class="badge bg-success">${finalEval.score}/5</span>` : 
-                                '<span class="badge bg-warning">En attente</span>'}
-                        </td>
-                        <td>
-                            ${average ? 
-                                `<strong>${average}/5</strong>` : 
-                                '<span class="text-muted">-</span>'}
-                        </td>
-                        <td>
-                            <a href="/tutoring/views/tutor/evaluations-api.php?student_id=${assignment.student_id}" class="btn btn-sm btn-outline-primary" title="Voir le détail">
-                                <i class="bi bi-eye"></i> Détails
-                            </a>
-                        </td>
-                    `;
+                    // Afficher l'URL dans la barre d'adresse
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('student_id', this.selectedStudentId);
+                    url.searchParams.set('type', this.selectedType);
+                    window.history.pushState({}, '', url);
                     
-                    tbody.appendChild(row);
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    row.innerHTML = `
-                        <td>
-                            <a href="/tutoring/views/tutor/evaluations-api.php?student_id=${assignment.student_id}">
-                                ${assignment.student_first_name} ${assignment.student_last_name}
-                            </a>
-                        </td>
-                        <td>${assignment.student_program || 'N/A'}</td>
-                        <td>${assignment.company_name || '<span class="text-muted">N/A</span>'}</td>
-                        <td colspan="4" class="text-center text-danger">Erreur lors du chargement des données</td>
-                    `;
-                    tbody.appendChild(row);
-                });
+                    this.loading = true;
+                    
+                    // Charger les détails de l'étudiant et ses évaluations
+                    Promise.all([
+                        this.loadStudentDetails(this.selectedStudentId),
+                        this.loadStudentEvaluations(this.selectedStudentId)
+                    ])
+                    .finally(() => {
+                        this.loading = false;
+                    });
+                },
+                
+                // Afficher le modal pour créer une nouvelle évaluation
+                showNewEvaluationModal() {
+                    this.isEditMode = false;
+                    this.editingEvaluationId = null;
+                    this.evaluationForm = this.initEvaluationForm();
+                    this.loadCriteriaStructure().then(() => {
+                        const modal = new bootstrap.Modal(document.getElementById('evaluationModal'));
+                        modal.show();
+                    });
+                },
+                
+                // Afficher le modal pour modifier une évaluation
+                editEvaluation(evaluation) {
+                    this.isEditMode = true;
+                    this.editingEvaluationId = evaluation.id;
+                    
+                    // Charger les critères
+                    this.loadCriteriaStructure().then(() => {
+                        // Remplir le formulaire avec les données de l'évaluation
+                        this.evaluationForm = {
+                            id: evaluation.id,
+                            type: evaluation.type,
+                            date: evaluation.submission_date ? new Date(evaluation.submission_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                            criteria: {},
+                            comments: evaluation.comments || '',
+                            areas: evaluation.areas_for_improvement ? this.formatList(evaluation.areas_for_improvement) : [''],
+                            steps: evaluation.next_steps ? this.formatList(evaluation.next_steps) : ['']
+                        };
+                        
+                        // Transformer les critères pour le formulaire
+                        if (evaluation.criteria_scores) {
+                            for (const key in evaluation.criteria_scores) {
+                                this.evaluationForm.criteria[key] = evaluation.criteria_scores[key].score;
+                            }
+                        }
+                        
+                        // Afficher le modal
+                        const modal = new bootstrap.Modal(document.getElementById('evaluationModal'));
+                        modal.show();
+                    });
+                },
+                
+                // Vérifier si une évaluation peut être modifiée
+                canEditEvaluation(evaluation) {
+                    // Seules les évaluations créées par le tuteur peuvent être modifiées
+                    // Les auto-évaluations des étudiants ne peuvent pas être modifiées
+                    return evaluation.type !== 'student';
+                },
+                
+                // Charger la structure des critères
+                loadCriteriaStructure() {
+                    this.criteriaLoading = true;
+                    this.criteriaError = false;
+                    
+                    return axios.get('/tutoring/api/evaluations/get-criteria-structure.php')
+                        .then(response => {
+                            if (response.data.success) {
+                                this.criteriaStructure = response.data.criteria_structure;
+                                this.formStructure = response.data.form_structure;
+                                
+                                // Initialiser les critères vides si on est en mode création
+                                if (!this.isEditMode) {
+                                    const emptyCriteria = {};
+                                    for (const category in this.formStructure) {
+                                        for (const key in this.formStructure[category].criteria) {
+                                            emptyCriteria[key] = '';
+                                        }
+                                    }
+                                    this.evaluationForm.criteria = emptyCriteria;
+                                }
+                                
+                                return this.criteriaStructure;
+                            } else {
+                                this.criteriaError = true;
+                                this.criteriaErrorMessage = response.data.message || 'Erreur lors du chargement des critères';
+                                throw new Error(this.criteriaErrorMessage);
+                            }
+                        })
+                        .catch(error => {
+                            this.criteriaError = true;
+                            this.criteriaErrorMessage = error.response?.data?.message || 'Erreur de connexion au serveur';
+                            console.error('Erreur lors du chargement des critères:', error);
+                            throw error;
+                        })
+                        .finally(() => {
+                            this.criteriaLoading = false;
+                        });
+                },
+                
+                // Soumettre le formulaire d'évaluation
+                submitEvaluation() {
+                    this.submitting = true;
+                    
+                    // Préparer les données
+                    const data = {
+                        type: this.evaluationForm.type,
+                        comments: this.evaluationForm.comments,
+                        criteria: this.evaluationForm.criteria,
+                        areas_for_improvement: this.evaluationForm.areas.filter(a => a.trim()).join('\n'),
+                        next_steps: this.evaluationForm.steps.filter(s => s.trim()).join('\n'),
+                        submission_date: this.evaluationForm.date
+                    };
+                    
+                    // Ajouter l'ID de l'affectation ou de l'évaluation
+                    if (this.isEditMode) {
+                        data.id = this.editingEvaluationId;
+                    } else {
+                        // Trouver l'ID de l'affectation pour cet étudiant
+                        const student = this.students.find(s => s.id === this.selectedStudentId);
+                        data.assignment_id = student ? student.assignment_id : null;
+                        
+                        if (!data.assignment_id) {
+                            alert('Erreur: Impossible de trouver l\'affectation pour cet étudiant.');
+                            this.submitting = false;
+                            return;
+                        }
+                    }
+                    
+                    // Envoyer les données
+                    axios.post('/tutoring/api/evaluations/save-evaluation.php', data)
+                        .then(response => {
+                            if (response.data.success) {
+                                // Fermer le modal
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('evaluationModal'));
+                                modal.hide();
+                                
+                                // Afficher un message de succès
+                                alert(this.isEditMode ? 'Évaluation mise à jour avec succès' : 'Évaluation créée avec succès');
+                                
+                                // Recharger les évaluations
+                                this.loadStudentEvaluations(this.selectedStudentId);
+                                
+                                // Recharger les statistiques
+                                this.loadTeacherStats();
+                            } else {
+                                alert('Erreur: ' + (response.data.message || 'Une erreur est survenue'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors de la soumission de l\'évaluation:', error);
+                            alert('Erreur: ' + (error.response?.data?.message || 'Une erreur est survenue'));
+                        })
+                        .finally(() => {
+                            this.submitting = false;
+                        });
+                },
+                
+                // Démarrer une évaluation à partir de la liste des évaluations en attente
+                startEvaluation(pending) {
+                    // Récupérer l'ID de l'étudiant
+                    this.selectedStudentId = pending.student_id;
+                    
+                    // Charger les détails de l'étudiant
+                    this.loadStudentDetails(this.selectedStudentId).then(() => {
+                        this.loadStudentEvaluations(this.selectedStudentId).then(() => {
+                            // Initialiser le formulaire
+                            this.isEditMode = false;
+                            this.editingEvaluationId = null;
+                            this.evaluationForm = this.initEvaluationForm();
+                            this.evaluationForm.type = pending.type;
+                            
+                            // Afficher le modal
+                            this.loadCriteriaStructure().then(() => {
+                                const modal = new bootstrap.Modal(document.getElementById('evaluationModal'));
+                                modal.show();
+                            });
+                        });
+                    });
+                },
+                
+                // Ajouter un point à améliorer
+                addImprovementArea() {
+                    this.evaluationForm.areas.push('');
+                },
+                
+                // Supprimer un point à améliorer
+                removeImprovementArea(index) {
+                    this.evaluationForm.areas.splice(index, 1);
+                },
+                
+                // Ajouter une étape
+                addNextStep() {
+                    this.evaluationForm.steps.push('');
+                },
+                
+                // Supprimer une étape
+                removeNextStep(index) {
+                    this.evaluationForm.steps.splice(index, 1);
+                },
+                
+                // Exporter les données
+                exportData(format) {
+                    window.location.href = `/tutoring/views/tutor/export_evaluations.php?format=${format}`;
+                },
+                
+                // Imprimer une évaluation
+                printEvaluation(evaluation) {
+                    // Créer une fenêtre d'impression
+                    const printWindow = window.open('', '_blank');
+                    if (!printWindow) {
+                        alert('Veuillez autoriser les fenêtres popup pour imprimer l\'évaluation.');
+                        return;
+                    }
+                    
+                    // Déterminer le type d'évaluation
+                    const evaluationType = this.getEvaluationTypeName(evaluation.type);
+                    
+                    // Préparer les critères
+                    let criteriaHtml = '';
+                    if (evaluation.criteria_scores && Object.keys(evaluation.criteria_scores).length > 0) {
+                        criteriaHtml = '<h4>Critères d\'évaluation</h4><table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">';
+                        criteriaHtml += '<tr><th style="text-align:left; padding: 8px; border-bottom: 1px solid #ddd;">Critère</th><th style="text-align:right; padding: 8px; border-bottom: 1px solid #ddd;">Score</th></tr>';
+                        
+                        for (const key in evaluation.criteria_scores) {
+                            const criterion = evaluation.criteria_scores[key];
+                            criteriaHtml += `<tr>
+                                <td style="text-align:left; padding: 8px; border-bottom: 1px solid #eee;">${this.getCriterionName(key)}</td>
+                                <td style="text-align:right; padding: 8px; border-bottom: 1px solid #eee;">${criterion.score}/5</td>
+                            </tr>`;
+                        }
+                        
+                        criteriaHtml += '</table>';
+                    }
+                    
+                    // Préparer les points à améliorer
+                    let improvementsHtml = '';
+                    if (evaluation.areas_for_improvement) {
+                        improvementsHtml = '<h4>Points à améliorer</h4><ul style="margin-bottom: 20px;">';
+                        
+                        this.formatList(evaluation.areas_for_improvement).forEach(area => {
+                            improvementsHtml += `<li>${area}</li>`;
+                        });
+                        
+                        improvementsHtml += '</ul>';
+                    }
+                    
+                    // Préparer les prochaines étapes
+                    let nextStepsHtml = '';
+                    if (evaluation.next_steps) {
+                        nextStepsHtml = '<h4>Prochaines étapes</h4><ul style="margin-bottom: 20px;">';
+                        
+                        this.formatList(evaluation.next_steps).forEach(step => {
+                            nextStepsHtml += `<li>${step}</li>`;
+                        });
+                        
+                        nextStepsHtml += '</ul>';
+                    }
+                    
+                    // Créer le contenu HTML
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html lang="fr">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>${evaluationType} - ${this.formatDate(evaluation.submission_date)}</title>
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    line-height: 1.6;
+                                    color: #333;
+                                    padding: 20px;
+                                    max-width: 800px;
+                                    margin: 0 auto;
+                                }
+                                h1 {
+                                    color: #2c3e50;
+                                    margin-bottom: 20px;
+                                    border-bottom: 2px solid #3498db;
+                                    padding-bottom: 10px;
+                                }
+                                h2 {
+                                    color: #2c3e50;
+                                    margin-top: 30px;
+                                    margin-bottom: 15px;
+                                }
+                                h4 {
+                                    margin-top: 25px;
+                                    margin-bottom: 10px;
+                                    color: #2c3e50;
+                                    border-bottom: 1px solid #eee;
+                                    padding-bottom: 5px;
+                                }
+                                p {
+                                    margin-bottom: 15px;
+                                }
+                                .meta-info {
+                                    background-color: #f8f9fa;
+                                    padding: 15px;
+                                    border-radius: 5px;
+                                    margin-bottom: 20px;
+                                    border-left: 4px solid #3498db;
+                                }
+                                .score {
+                                    font-size: 24px;
+                                    font-weight: bold;
+                                    color: #3498db;
+                                    margin-bottom: 10px;
+                                }
+                                .comments {
+                                    background-color: #f8f9fa;
+                                    padding: 15px;
+                                    border-radius: 5px;
+                                    margin: 20px 0;
+                                    white-space: pre-line;
+                                }
+                                .footer {
+                                    margin-top: 40px;
+                                    padding-top: 20px;
+                                    border-top: 1px solid #eee;
+                                    font-size: 0.8em;
+                                    color: #7f8c8d;
+                                    text-align: center;
+                                }
+                                @media print {
+                                    body {
+                                        padding: 0;
+                                    }
+                                    .no-print {
+                                        display: none;
+                                    }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+                                <button onclick="window.print()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Imprimer
+                                </button>
+                            </div>
+                            
+                            <h1>${evaluationType}</h1>
+                            
+                            <div class="meta-info">
+                                <p><strong>Étudiant:</strong> ${this.selectedStudent ? this.selectedStudent.first_name + ' ' + this.selectedStudent.last_name : 'N/A'}</p>
+                                <p><strong>Date:</strong> ${this.formatDate(evaluation.submission_date)}</p>
+                                <p><strong>Évaluateur:</strong> ${evaluation.evaluator_name || 'Non spécifié'}</p>
+                                <div class="score">
+                                    Note globale: ${evaluation.score}/5
+                                    <span class="stars">
+                                        ${'★'.repeat(Math.round(evaluation.score))}${'☆'.repeat(5 - Math.round(evaluation.score))}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <h2>Commentaires</h2>
+                            <div class="comments">
+                                ${evaluation.comments || 'Aucun commentaire fourni.'}
+                            </div>
+                            
+                            ${criteriaHtml}
+                            ${improvementsHtml}
+                            ${nextStepsHtml}
+                            
+                            <div class="footer">
+                                Document généré le ${new Date().toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'})} à ${new Date().toLocaleTimeString('fr-FR')}
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    
+                    printWindow.document.close();
+                    
+                    // Imprimer après chargement
+                    setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                    }, 1000);
+                },
+                
+                // Exporter une évaluation au format PDF
+                exportPDF(evaluation) {
+                    window.location.href = `/tutoring/views/tutor/export_evaluation.php?id=${evaluation.id}&format=pdf`;
+                },
+                
+                // Obtenir l'avatar d'un étudiant
+                getStudentAvatar(student) {
+                    if (!student) return '';
+                    const initials = student.first_name.charAt(0) + student.last_name.charAt(0);
+                    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=3498db&color=fff&size=80`;
+                },
+                
+                // Obtenir le nom d'un type d'évaluation
+                getEvaluationTypeName(type) {
+                    return this.evaluationTypes[type] || type;
+                },
+                
+                // Obtenir le nom d'un critère
+                getCriterionName(key) {
+                    // Chercher dans la structure des critères
+                    for (const category in this.criteriaStructure) {
+                        if (this.criteriaStructure[category][key]) {
+                            return this.criteriaStructure[category][key].name;
+                        }
+                    }
+                    
+                    // Si non trouvé, formater le nom
+                    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                // Formater une date
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                },
+                
+                // Formater une plage de dates
+                formatDateRange(startDate, endDate) {
+                    if (!startDate || !endDate) return '';
+                    return `${this.formatDate(startDate)} - ${this.formatDate(endDate)}`;
+                },
+                
+                // Formater un texte avec des sauts de ligne
+                formatText(text) {
+                    if (!text) return '';
+                    return text.replace(/\n/g, '<br>');
+                },
+                
+                // Formater une liste (texte avec sauts de ligne)
+                formatList(text) {
+                    if (!text) return [];
+                    return text.split('\n').filter(item => item.trim() !== '');
+                }
+            }
         });
-    }
-    
-    // Fonction pour afficher le modal d'évaluation
-    function showEvaluationModal() {
-        // Réinitialiser le formulaire
-        document.getElementById('evaluation-form').reset();
-        
-        // Mettre à jour les champs cachés
-        document.getElementById('assignment_id').value = selectedAssignment.id;
-        document.getElementById('selected_student_id').value = selectedStudent.id;
-        
-        // Afficher le modal
-        const modal = new bootstrap.Modal(document.getElementById('createEvaluationModal'));
-        modal.show();
-    }
-    
-    // Fonction pour soumettre une évaluation
-    function submitEvaluation() {
-        // Récupérer les données du formulaire
-        const form = document.getElementById('evaluation-form');
-        const formData = new FormData(form);
-        
-        // Convertir FormData en objet
-        const data = {};
-        data.assignment_id = formData.get('assignment_id');
-        data.type = formData.get('evaluation_type');
-        data.comments = formData.get('comments');
-        
-        // Récupérer les critères
-        data.criteria = {};
-        for (const [key, value] of formData.entries()) {
-            if (key.startsWith('criteria[')) {
-                const criterionKey = key.substring(9, key.length - 1);
-                data.criteria[criterionKey] = value;
-            }
-        }
-        
-        // Récupérer les points à améliorer et les recommandations
-        data.areas_for_improvement = [];
-        data.recommendations = [];
-        
-        for (const [key, value] of formData.entries()) {
-            if (key === 'areas_for_improvement[]' && value.trim()) {
-                data.areas_for_improvement.push(value.trim());
-            }
-            if (key === 'recommendations[]' && value.trim()) {
-                data.recommendations.push(value.trim());
-            }
-        }
-        
-        // Envoyer les données à l'API
-        fetch('/tutoring/api/evaluations/create.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erreur lors de l\'envoi de l\'évaluation');
-            }
-            return response.json();
-        })
-        .then(responseData => {
-            if (responseData.success) {
-                // Fermer le modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('createEvaluationModal'));
-                modal.hide();
-                
-                // Afficher un message de succès
-                alert('Évaluation enregistrée avec succès');
-                
-                // Recharger les évaluations
-                const studentId = document.getElementById('student_id').value;
-                const type = document.getElementById('type').value;
-                fetchStudentEvaluations(studentId, type);
-                
-                // Mettre à jour les statistiques
-                fetchTeacherStats();
-            } else {
-                alert('Erreur: ' + (responseData.message || 'Une erreur est survenue'));
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            alert('Erreur lors de l\'envoi de l\'évaluation');
-        });
-    }
-    
-    // Fonctions pour ajouter des champs dynamiques
-    function addImprovementArea() {
-        const container = document.getElementById('improvement-areas-container');
-        const newField = document.createElement('div');
-        newField.className = 'input-group mb-2';
-        newField.innerHTML = `
-            <input type="text" class="form-control" name="areas_for_improvement[]" placeholder="Point à améliorer...">
-            <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>
-        `;
-        container.appendChild(newField);
-    }
-    
-    function addRecommendation() {
-        const container = document.getElementById('recommendations-container');
-        const newField = document.createElement('div');
-        newField.className = 'input-group mb-2';
-        newField.innerHTML = `
-            <input type="text" class="form-control" name="recommendations[]" placeholder="Recommandation...">
-            <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>
-        `;
-        container.appendChild(newField);
-    }
-    
-    // Fonctions pour les actions d'évaluation
-    function printEvaluation(index) {
-        // Implémenter la fonction d'impression
-        window.print();
-    }
-    
-    function exportPDF(index) {
-        // Rediriger vers un script PHP qui génère le PDF
-        const evaluation = studentEvaluations[index];
-        if (evaluation && evaluation.id) {
-            window.location.href = `/tutoring/views/tutor/export_evaluation.php?id=${evaluation.id}&format=pdf`;
-        } else {
-            alert('Fonctionnalité d\'export PDF à implémenter');
-        }
-    }
-    
-    function exportData(format) {
-        // Rediriger vers un script PHP qui génère l'export
-        window.location.href = `/tutoring/views/tutor/export_evaluations.php?format=${format}`;
-    }
-    
-    function shareEvaluation(index) {
-        // Implémenter la fonction de partage
-        const evaluation = studentEvaluations[index];
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'Évaluation de stage',
-                text: `Évaluation ${evaluation.type === 'mid_term' ? 'mi-parcours' : 'finale'} - Note: ${evaluation.score}/5`,
-                url: window.location.href
-            }).then(() => {
-                console.log('Partage réussi');
-            }).catch((error) => {
-                console.error('Erreur lors du partage:', error);
-            });
-        } else {
-            // Fallback pour les navigateurs qui ne supportent pas l'API de partage
-            const shareUrl = window.location.href;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    alert('Le lien a été copié dans le presse-papiers');
-                });
-            } else {
-                alert('La fonction de partage n\'est pas supportée par votre navigateur');
-            }
-        }
-    }
+    });
 </script>
 
 <?php

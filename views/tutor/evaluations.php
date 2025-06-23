@@ -44,7 +44,7 @@ if (class_exists('Evaluation')) {
 $selectedStudent = null;
 $selectedAssignment = null;
 $studentEvaluations = [];
-$evaluationTypes = ['mid_term' => 'Mi-parcours', 'final' => 'Finale', 'company' => 'Entreprise'];
+$evaluationTypes = ['mid_term' => 'Mi-parcours', 'final' => 'Finale', 'company' => 'Entreprise', 'student' => 'Auto-évaluation'];
 
 // Filtre par étudiant
 $studentFilter = $_GET['student_id'] ?? null;
@@ -81,90 +81,168 @@ if ($studentFilter) {
             }
         }
         
-        // Récupérer les évaluations de cet étudiant
-        if ($evaluationModel) {
-            $studentEvaluations = $evaluationModel->getByAssignmentId($selectedAssignment['id']);
+        // Récupérer les évaluations de cet étudiant en utilisant l'API
+        if ($selectedStudent) {
+            // Construire l'URL de l'API - utiliser le bon ID étudiant
+            $studentId = isset($selectedStudent['student_id']) ? $selectedStudent['student_id'] : $selectedStudent['id'];
             
-            // Adapter le format des données si nécessaire
-            foreach ($studentEvaluations as &$eval) {
-                // Convertir le score de 20 à 5
-                if (isset($eval['score']) && $eval['score'] > 5) {
-                    $eval['score'] = round($eval['score'] / 4, 1);
+            // Essayer de détecter le chemin du serveur
+            $serverRoot = isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : "";
+            $apiPath = $serverRoot . "/tutoring/api/evaluations/get-student-evaluations.php";
+            $apiUrl = "/tutoring/api/evaluations/get-student-evaluations.php?student_id=" . $studentId;
+            
+            error_log("Appel API URL: " . $apiUrl . " - ID étudiant utilisé: " . $studentId . " - Chemin API absolu: " . $apiPath);
+            
+            // Utiliser cURL pour appeler l'API
+            $apiResponse = '';
+            $httpCode = 0;
+            
+            // Vérifier si cURL est disponible
+            if (function_exists('curl_init')) {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $apiUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id()); // Transmettre la session pour l'authentification
+                
+                // Capture des erreurs cURL
+                $apiResponse = curl_exec($ch);
+                
+                if ($apiResponse === false) {
+                    error_log("Erreur cURL: " . curl_error($ch));
                 }
                 
-                // Décoder les critères si stockés en JSON
-                if (isset($eval['criteria_scores']) && is_string($eval['criteria_scores'])) {
-                    $criteriaScores = json_decode($eval['criteria_scores'], true);
-                    $eval['criteria'] = [];
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+            } else {
+                // Alternative si cURL n'est pas disponible - inclusion directe
+                error_log("cURL n'est pas disponible, inclusion directe du fichier API");
+                
+                // Capture la sortie
+                ob_start();
+                $_GET['student_id'] = $studentId;
+                include_once(__DIR__ . '/../../api/evaluations/get-student-evaluations.php');
+                $apiResponse = ob_get_clean();
+                $httpCode = 200; // Simuler un code HTTP 200
+            }
+            
+            error_log("Code HTTP: " . $httpCode . ", Taille de la réponse: " . strlen($apiResponse));
+            
+            // Traiter la réponse si elle est valide
+            if ($httpCode === 200 && !empty($apiResponse)) {
+                $responseData = json_decode($apiResponse, true);
+                
+                if (isset($responseData['success']) && $responseData['success'] && isset($responseData['evaluations'])) {
+                    $studentEvaluations = $responseData['evaluations'];
                     
-                    $criteriaLabels = [
-                        'technical_skills' => 'Compétences techniques',
-                        'professional_behavior' => 'Comportement professionnel',
-                        'communication' => 'Communication',
-                        'initiative' => 'Initiative et autonomie',
-                        'teamwork' => 'Travail en équipe',
-                        'punctuality' => 'Ponctualité et assiduité'
-                    ];
-                    
-                    foreach ($criteriaScores as $key => $score) {
-                        $eval['criteria'][] = [
-                            'name' => $criteriaLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)),
-                            'score' => round($score / 4, 1) // Convertir de 20 à 5
-                        ];
+                    // Débogage - log des types d'évaluation
+                    foreach ($studentEvaluations as $eval) {
+                        error_log("API a retourné une évaluation de type: " . ($eval['type'] ?? 'non défini'));
                     }
+                    
+                    // Adapter le format des données si nécessaire
+                    foreach ($studentEvaluations as &$eval) {
+                        // S'assurer que le score est sur une échelle de 5
+                        if (isset($eval['score']) && $eval['score'] > 5) {
+                            $eval['score'] = round($eval['score'] / 4, 1);
+                        }
+                        
+                        // Préparer les critères pour l'affichage si ce n'est pas déjà fait
+                        if (!isset($eval['criteria']) || !is_array($eval['criteria'])) {
+                            $eval['criteria'] = [];
+                            
+                            if (isset($eval['criteria_scores'])) {
+                                $criteriaScores = is_array($eval['criteria_scores']) ? 
+                                    $eval['criteria_scores'] : 
+                                    json_decode($eval['criteria_scores'], true);
+                                
+                                if (is_array($criteriaScores)) {
+                                    foreach ($criteriaScores as $key => $value) {
+                                        $score = is_array($value) ? ($value['score'] ?? 0) : $value;
+                                        $eval['criteria'][] = [
+                                            'name' => ucfirst(str_replace('_', ' ', $key)),
+                                            'score' => $score,
+                                            'comment' => is_array($value) ? ($value['comment'] ?? '') : ''
+                                        ];
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Ajouter les autres champs si manquants
+                        if (!isset($eval['evaluator_name']) && isset($eval['evaluator']['name'])) {
+                            $eval['evaluator_name'] = $eval['evaluator']['name'];
+                        } else if (!isset($eval['evaluator_name'])) {
+                            $eval['evaluator_name'] = $user['first_name'] . ' ' . $user['last_name'];
+                        }
+                        
+                        // Gérer les dates
+                        $eval['date'] = $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d');
+                        
+                        // Formater les champs textuels si nécessaire
+                        if (!empty($eval['areas_for_improvement']) && !is_array($eval['areas_for_improvement'])) {
+                            $eval['areas_for_improvement'] = explode("\n", $eval['areas_for_improvement']);
+                        }
+                        
+                        if (!empty($eval['next_steps']) && !is_array($eval['next_steps'])) {
+                            $eval['recommendations'] = explode("\n", $eval['next_steps']);
+                        }
+                    }
+                    
+                    // Filtrer par type si nécessaire
+                    if ($typeFilter !== 'all') {
+                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter) {
+                            // Débogage pour le filtre de type
+                            error_log("Filtrage - type d'évaluation: " . ($eval['type'] ?? 'non défini') . " vs filtre: " . $typeFilter);
+                            return isset($eval['type']) && $eval['type'] === $typeFilter;
+                        });
+                        $studentEvaluations = array_values($studentEvaluations); // Réindexer le tableau
+                    }
+                    
+                    // Débogage des évaluations après filtrage
+                    error_log("Nombre d'évaluations après filtrage: " . count($studentEvaluations));
+                    foreach ($studentEvaluations as $index => $eval) {
+                        error_log("Évaluation #" . $index . " - Type: " . ($eval['type'] ?? 'non défini') . 
+                                ", Score: " . ($eval['score'] ?? 'non défini') . 
+                                ", Date: " . ($eval['submission_date'] ?? $eval['created_at'] ?? $eval['date'] ?? 'non définie'));
+                    }
+                } else {
+                    error_log("Erreur lors de la récupération des évaluations via l'API: " . 
+                              (isset($responseData['message']) ? $responseData['message'] : 'Réponse invalide'));
                 }
+            } else {
+                error_log("Erreur HTTP " . $httpCode . " lors de l'appel à l'API d'évaluations");
                 
-                // Ajouter les autres champs si manquants
-                $eval['evaluator_name'] = $user['first_name'] . ' ' . $user['last_name'];
-                $eval['date'] = $eval['created_at'] ?? date('Y-m-d');
-                
-                // Parser les champs texte si nécessaire
-                if (!empty($eval['improvements'])) {
-                    $eval['areas_for_improvement'] = explode("\n", $eval['improvements']);
+                // Fallback: récupérer directement depuis le modèle
+                if ($evaluationModel && isset($selectedAssignment['id'])) {
+                    error_log("Tentative de récupération directe via le modèle Evaluation");
+                    $studentEvaluations = $evaluationModel->getByAssignmentId($selectedAssignment['id']);
+                    
+                    // Adapter le format des données si nécessaire
+                    foreach ($studentEvaluations as &$eval) {
+                        // S'assurer que le score est sur une échelle de 5
+                        if (isset($eval['score']) && $eval['score'] > 5) {
+                            $eval['score'] = round($eval['score'] / 4, 1);
+                        }
+                        
+                        // Ajouter les autres champs si manquants
+                        $eval['evaluator_name'] = $user['first_name'] . ' ' . $user['last_name'];
+                        $eval['date'] = $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d');
+                        
+                        // Débogage
+                        error_log("Fallback - Evaluation trouvée de type: " . $eval['type']);
+                    }
+                    
+                    // Filtrer par type si nécessaire
+                    if ($typeFilter !== 'all') {
+                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter) {
+                            return $eval['type'] === $typeFilter;
+                        });
+                        $studentEvaluations = array_values($studentEvaluations); // Réindexer le tableau
+                    }
+                } else {
+                    error_log("Impossible de récupérer les évaluations - ni API ni modèle disponible");
                 }
-                if (!empty($eval['recommendations']) && !is_array($eval['recommendations'])) {
-                    $eval['recommendations'] = explode("\n", $eval['recommendations']);
-                }
-            }
-            
-            // Filtrer par type si nécessaire
-            if ($typeFilter !== 'all') {
-                $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter) {
-                    return $eval['type'] === $typeFilter;
-                });
-            }
-        } else {
-            // Données fictives pour la démonstration
-            if ($typeFilter === 'all' || $typeFilter === 'mid_term') {
-                $studentEvaluations[] = [
-                    'id' => 1,
-                    'assignment_id' => $selectedAssignment['id'],
-                    'date' => date('Y-m-d', strtotime('-30 days')),
-                    'type' => 'mid_term',
-                    'evaluator_id' => $teacher['id'],
-                    'evaluator_type' => 'tutor',
-                    'evaluator_name' => $user['first_name'] . ' ' . $user['last_name'],
-                    'score' => 4.2,
-                    'comments' => "L'étudiant montre une bonne progression technique. Il a su s'adapter rapidement aux outils de développement et méthodologies de l'entreprise. Points à améliorer: documentation du code et communication proactive des difficultés rencontrées.",
-                    'criteria' => [
-                        ['name' => 'Compétences techniques', 'score' => 4.5],
-                        ['name' => 'Autonomie', 'score' => 4.0],
-                        ['name' => 'Communication', 'score' => 3.5],
-                        ['name' => 'Intégration dans l\'équipe', 'score' => 4.5],
-                        ['name' => 'Qualité du travail', 'score' => 4.0],
-                        ['name' => 'Respect des délais', 'score' => 4.5]
-                    ],
-                    'areas_for_improvement' => [
-                        'Documentation du code',
-                        'Communication proactive des problèmes',
-                        'Participation aux réunions'
-                    ],
-                    'recommendations' => [
-                        'Prévoir des points réguliers sur l\'avancement',
-                        'Mettre en place un système de documentation',
-                        'Participer plus activement aux stand-up meetings'
-                    ]
-                ];
             }
         }
     }
@@ -299,13 +377,22 @@ $allEvaluations = [];
 $pendingEvaluations = [];
 
 if ($evaluationModel) {
+    // Récupérer toutes les évaluations liées à ce tuteur
+    $allEvaluations = $evaluationModel->getByTeacherId($teacher['id']);
+    
+    // Identifier les évaluations en attente
     foreach ($assignments as $assignment) {
-        $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
-        $allEvaluations = array_merge($allEvaluations, $evaluations);
+        $assignmentEvaluations = array_filter($allEvaluations, function($eval) use ($assignment) {
+            return $eval['assignment_id'] == $assignment['id'];
+        });
         
-        // Vérifier les évaluations manquantes
-        $existingTypes = array_column($evaluations, 'type');
+        // Extraire les types d'évaluation existants pour cette affectation
+        $existingTypes = array_column($assignmentEvaluations, 'type');
+        
+        // Types d'évaluation requis pour chaque étudiant
         $requiredTypes = ['mid_term', 'final'];
+        
+        // Trouver les types manquants
         $missingTypes = array_diff($requiredTypes, $existingTypes);
         
         foreach ($missingTypes as $type) {
@@ -318,27 +405,64 @@ if ($evaluationModel) {
     }
     
     // Calculer les statistiques
-    $stats['total_evaluations'] = count($assignments) * 2; // 2 évaluations par étudiant
+    $stats['total_evaluations'] = count($assignments) * 2; // 2 évaluations par étudiant (mi-parcours et finale)
     $stats['completed_evaluations'] = count($allEvaluations);
     $stats['pending_evaluations'] = count($pendingEvaluations);
     
-    // Calculer la moyenne (convertir de 20 à 5 pour l'affichage)
+    // Calculer la moyenne des scores (s'assurer qu'elle est sur une échelle de 5)
     if ($stats['completed_evaluations'] > 0) {
-        $totalScore = array_sum(array_column($allEvaluations, 'score'));
-        $stats['average_score'] = round(($totalScore / $stats['completed_evaluations']) / 4, 1);
+        $scores = array_column($allEvaluations, 'score');
+        $totalScore = array_sum($scores);
+        
+        // Convertir de 20 à 5 si nécessaire
+        if (max($scores) > 5) {
+            $stats['average_score'] = round(($totalScore / $stats['completed_evaluations']) / 4, 1);
+        } else {
+            $stats['average_score'] = round($totalScore / $stats['completed_evaluations'], 1);
+        }
     }
     
-    // Taux d'amélioration (exemple fictif)
-    $stats['improvement_rate'] = $stats['completed_evaluations'] > 0 ? 75 : 0;
-} else {
-    // Données fictives pour la démonstration
-    $stats = [
-        'total_evaluations' => count($assignments) * 2,
-        'pending_evaluations' => count($assignments),
-        'completed_evaluations' => count($assignments),
-        'average_score' => 4.2,
-        'improvement_rate' => 75
-    ];
+    // Calculer le taux d'amélioration en comparant les évaluations mi-parcours et finales
+    if ($stats['completed_evaluations'] > 0) {
+        $midTermScores = [];
+        $finalScores = [];
+        
+        // Collecter les scores par affectation et type
+        foreach ($allEvaluations as $eval) {
+            $assignmentId = $eval['assignment_id'];
+            $type = $eval['type'];
+            $score = $eval['score'];
+            
+            // Convertir à l'échelle de 5 si nécessaire
+            if ($score > 5) {
+                $score = $score / 4;
+            }
+            
+            if ($type === 'mid_term') {
+                $midTermScores[$assignmentId] = $score;
+            } else if ($type === 'final') {
+                $finalScores[$assignmentId] = $score;
+            }
+        }
+        
+        // Calculer le taux d'amélioration pour les affectations ayant les deux types d'évaluation
+        $improvementCount = 0;
+        $totalComparisons = 0;
+        
+        foreach ($midTermScores as $assignmentId => $midTermScore) {
+            if (isset($finalScores[$assignmentId])) {
+                $totalComparisons++;
+                if ($finalScores[$assignmentId] > $midTermScore) {
+                    $improvementCount++;
+                }
+            }
+        }
+        
+        // Calculer le pourcentage d'amélioration
+        $stats['improvement_rate'] = $totalComparisons > 0 ? round(($improvementCount / $totalComparisons) * 100) : 0;
+    } else {
+        $stats['improvement_rate'] = 0;
+    }
 }
 
 // Inclure l'en-tête
@@ -430,6 +554,7 @@ include_once __DIR__ . '/../common/header.php';
                                         <option value="mid_term" <?php echo $typeFilter === 'mid_term' ? 'selected' : ''; ?>>Mi-parcours</option>
                                         <option value="final" <?php echo $typeFilter === 'final' ? 'selected' : ''; ?>>Finale</option>
                                         <option value="company" <?php echo $typeFilter === 'company' ? 'selected' : ''; ?>>Entreprise</option>
+                                        <option value="student" <?php echo $typeFilter === 'student' ? 'selected' : ''; ?>>Auto-évaluation</option>
                                     </select>
                                 </div>
                                 <?php endif; ?>
@@ -814,7 +939,13 @@ include_once __DIR__ . '/../common/header.php';
             <div class="card mb-4 fade-in">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Évaluation <?php echo h($evaluationTypes[$evaluation['type']] ?? ucfirst(str_replace('_', ' ', $evaluation['type']))); ?></span>
-                    <span class="badge bg-primary"><?php echo date('d/m/Y', strtotime($evaluation['date'])); ?></span>
+                    <span class="badge bg-primary"><?php 
+                        // Utiliser submission_date si disponible, sinon created_at, sinon date actuelle
+                        $dateToUse = !empty($evaluation['submission_date']) ? $evaluation['submission_date'] : 
+                                    (!empty($evaluation['created_at']) ? $evaluation['created_at'] : 
+                                    (!empty($evaluation['date']) ? $evaluation['date'] : date('Y-m-d H:i:s')));
+                        echo date('d/m/Y', strtotime($dateToUse)); 
+                    ?></span>
                 </div>
                 <div class="card-body">
                     <div class="mb-4">
@@ -832,7 +963,7 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         
                         <h6>Commentaires</h6>
-                        <p><?php echo nl2br(h($evaluation['feedback'] ?? '')); ?></p>
+                        <p><?php echo nl2br(h($evaluation['comments'] ?? $evaluation['feedback'] ?? '')); ?></p>
                     </div>
                     
                     <div class="row mb-4">
@@ -854,13 +985,17 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         
                         <div class="col-md-6">
-                            <?php if (!empty($evaluation['areas_to_improve'])): ?>
+                            <?php if (!empty($evaluation['areas_for_improvement']) || !empty($evaluation['areas_to_improve'])): ?>
                             <h6>Points à améliorer</h6>
                             <ul class="list-group list-group-flush mb-3">
                                 <?php 
-                                $areasArray = is_array($evaluation['areas_to_improve']) 
-                                    ? $evaluation['areas_to_improve'] 
-                                    : explode("\n", $evaluation['areas_to_improve']);
+                                // Priorité aux areas_for_improvement, puis areas_to_improve
+                                $areasData = !empty($evaluation['areas_for_improvement']) ? $evaluation['areas_for_improvement'] : $evaluation['areas_to_improve'];
+                                
+                                $areasArray = is_array($areasData) 
+                                    ? $areasData 
+                                    : explode("\n", $areasData);
+                                    
                                 foreach ($areasArray as $area): 
                                     if (trim($area)):
                                 ?>
@@ -872,15 +1007,23 @@ include_once __DIR__ . '/../common/header.php';
                             </ul>
                             <?php endif; ?>
                             
-                            <?php if (!empty($evaluation['recommendations'])): ?>
+                            <?php if (!empty($evaluation['recommendations']) || !empty($evaluation['next_steps'])): ?>
                             <h6>Recommandations</h6>
                             <ul class="list-group list-group-flush">
                                 <?php 
-                                $recommendations = is_array($evaluation['recommendations']) ? $evaluation['recommendations'] : [$evaluation['recommendations']];
+                                // Priorité aux recommendations, puis next_steps
+                                $recoData = !empty($evaluation['recommendations']) ? $evaluation['recommendations'] : $evaluation['next_steps'];
+                                
+                                $recommendations = is_array($recoData) ? $recoData : explode("\n", $recoData);
+                                
                                 foreach ($recommendations as $recommendation): 
+                                    if (trim($recommendation)):
                                 ?>
                                 <li class="list-group-item px-0"><?php echo h($recommendation); ?></li>
-                                <?php endforeach; ?>
+                                <?php 
+                                    endif;
+                                endforeach; 
+                                ?>
                             </ul>
                             <?php endif; ?>
                         </div>

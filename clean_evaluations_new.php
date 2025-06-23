@@ -17,7 +17,7 @@ try {
     // Inclure le fichier de configuration de la base de données
     require_once __DIR__ . '/config/database.php';
     
-    // Établir la connexion à la base de données en utilisant la fonction existante (avec utf8 au lieu de utf8mb4)
+    // Établir la connexion à la base de données en utilisant utf8 au lieu de utf8mb4
     $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8";
     $db = new PDO($dsn, DB_USER, DB_PASS);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -75,6 +75,12 @@ if (!isset($_GET['confirm']) || $_GET['confirm'] !== 'yes') {
     exit;
 }
 
+// Vérifier quelles tables existent
+function tableExists($db, $table) {
+    $stmt = $db->query("SHOW TABLES LIKE '$table'");
+    return $stmt->rowCount() > 0;
+}
+
 // Début du traitement
 try {
     // Démarrer une transaction
@@ -83,7 +89,7 @@ try {
     // Désactiver temporairement les contraintes de clés étrangères
     $db->exec('SET FOREIGN_KEY_CHECKS = 0');
     
-    // Tables à vider
+    // Tables à vérifier et éventuellement vider
     $tables = [
         'evaluation_scores',
         'evaluation_criteria',
@@ -105,8 +111,7 @@ try {
     
     foreach ($tables as $table) {
         // Vérifier si la table existe
-        $stmt = $db->query("SHOW TABLES LIKE '$table'");
-        if ($stmt->rowCount() > 0) {
+        if (tableExists($db, $table)) {
             // Compter les lignes avant suppression
             $countStmt = $db->query("SELECT COUNT(*) FROM $table");
             $rowCount = $countStmt->fetchColumn();
@@ -135,15 +140,17 @@ try {
     $db->exec('SET FOREIGN_KEY_CHECKS = 1');
     
     // Supprimer également les documents d'évaluation qui pourraient créer des conflits
-    $countStmt = $db->query("SELECT COUNT(*) FROM documents WHERE type IN ('evaluation', 'self_evaluation', 'mid_term', 'final')");
-    $docCount = $countStmt->fetchColumn();
-    
-    if ($docCount > 0) {
-        $db->exec("DELETE FROM documents WHERE type IN ('evaluation', 'self_evaluation', 'mid_term', 'final')");
-        echo "<p class='warning'>$docCount documents d'évaluation ont également été supprimés.</p>";
-        $totalRowsDeleted += $docCount;
-    } else {
-        echo "<p>Aucun document d'évaluation à supprimer.</p>";
+    if (tableExists($db, 'documents')) {
+        $countStmt = $db->query("SELECT COUNT(*) FROM documents WHERE type IN ('evaluation', 'self_evaluation', 'mid_term', 'final')");
+        $docCount = $countStmt->fetchColumn();
+        
+        if ($docCount > 0) {
+            $db->exec("DELETE FROM documents WHERE type IN ('evaluation', 'self_evaluation', 'mid_term', 'final')");
+            echo "<p class='warning'>$docCount documents d'évaluation ont également été supprimés.</p>";
+            $totalRowsDeleted += $docCount;
+        } else {
+            echo "<p>Aucun document d'évaluation à supprimer.</p>";
+        }
     }
     
     // Valider la transaction
@@ -167,7 +174,7 @@ try {
 }
 
 echo "    <div class='actions'>
-            <a href='/tutoring/reset_evaluations.php' class='btn btn-info'>Réinitialiser les évaluations</a>
+            <a href='/tutoring/reset_evaluations_new.php' class='btn btn-info'>Réinitialiser les évaluations</a>
             <a href='/tutoring/views/tutor/evaluations.php' class='btn'>Voir les évaluations (tuteur)</a>
             <a href='/tutoring/views/student/evaluations.php' class='btn'>Voir les évaluations (étudiant)</a>
             <a href='/tutoring/' class='btn'>Retour à l'accueil</a>

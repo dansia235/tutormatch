@@ -20,7 +20,6 @@ $teacher = $teacherModel->getByUserId($_SESSION['user_id']);
 // Charger les données directement
 $studentModel = new Student($db);
 $assignmentModel = new Assignment($db);
-$evaluationModel = new Evaluation($db);
 
 // Récupérer les affectations du tuteur
 $assignments = $assignmentModel->getByTeacherId($teacher['id']);
@@ -40,7 +39,11 @@ foreach ($assignments as $assignment) {
 }
 
 // Récupérer les évaluations
-$evaluations = $evaluationModel->getByTeacherId($teacher['id']);
+$evaluations = [];
+if (class_exists('Evaluation')) {
+    $evaluationModel = new Evaluation($db);
+    $evaluations = $evaluationModel->getByTeacherId($teacher['id']);
+}
 
 // Inclure l'en-tête
 include_once __DIR__ . '/../common/header.php';
@@ -231,7 +234,8 @@ include_once __DIR__ . '/../common/header.php';
                                     'mid_term' => 'Mi-parcours',
                                     'final' => 'Finale',
                                     'technical' => 'Technique',
-                                    'soft_skills' => 'Compétences'
+                                    'soft_skills' => 'Compétences',
+                                    'student' => 'Auto-évaluation'
                                 ];
                                 
                                 foreach ($displayEvaluations as $evaluation):
@@ -245,18 +249,21 @@ include_once __DIR__ . '/../common/header.php';
                                         }
                                     }
                                     
-                                    // Convertir le score de 0-20 à 0-5
-                                    $scoreOn5 = number_format($evaluation['score'] / 4, 1);
+                                    // S'assurer que le score est sur une échelle de 5
+                                    $scoreOn5 = $evaluation['score'];
+                                    if ($scoreOn5 > 5) {
+                                        $scoreOn5 = number_format($scoreOn5 / 4, 1);
+                                    }
                                     
                                     // Déterminer le type d'évaluation
                                     $evalType = isset($evaluationTypes[$evaluation['type']]) 
                                         ? $evaluationTypes[$evaluation['type']] 
-                                        : 'Autre';
+                                        : ucfirst(str_replace('_', ' ', $evaluation['type']));
                                 ?>
                                     <tr>
                                         <td><?php echo h($studentName); ?></td>
                                         <td><?php echo h($evalType); ?></td>
-                                        <td><?php echo !empty($evaluation['created_at']) ? date('d/m/Y', strtotime($evaluation['created_at'])) : 'Non spécifiée'; ?></td>
+                                        <td><?php echo !empty($evaluation['submission_date']) ? date('d/m/Y', strtotime($evaluation['submission_date'])) : (!empty($evaluation['created_at']) ? date('d/m/Y', strtotime($evaluation['created_at'])) : 'Non spécifiée'); ?></td>
                                         <td><?php echo $scoreOn5; ?>/5</td>
                                         <td>
                                             <a href="/tutoring/views/tutor/export_evaluation.php?id=<?php echo $evaluation['id']; ?>" class="btn btn-sm btn-outline-primary">
