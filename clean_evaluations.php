@@ -1,18 +1,18 @@
 <?php
 /**
- * Script pour nettoyer la base de données des évaluations incohérentes
- * Ce script supprime les évaluations en double et les documents associés qui créent des incohérences
+ * Script pour vider complètement les tables d'évaluations
+ * Ce script supprime toutes les données des tables liées aux évaluations
  */
 
-// Configuration d'encodage UTF-8 (pour remplacer celle de init.php)
+// Configuration d'encodage UTF-8
 ini_set('default_charset', 'UTF-8');
 
-// Ajouter une fonction d'échappement similaire à celle de init.php
+// Ajouter une fonction d'échappement
 function h($string) {
     return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
 }
 
-// Connexion directe à la base de données sans utiliser init.php
+// Connexion directe à la base de données
 try {
     // Charger les informations de connexion à la base de données
     if (file_exists(__DIR__ . '/config/database.php')) {
@@ -43,7 +43,7 @@ $_SESSION['user_role'] = 'admin';
 echo "<!DOCTYPE html>
 <html>
 <head>
-    <title>Nettoyage des évaluations</title>
+    <title>Nettoyage complet des tables d'évaluations</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .container { max-width: 900px; margin: 0 auto; }
@@ -65,157 +65,117 @@ echo "<!DOCTYPE html>
 </head>
 <body>
     <div class='container'>
-        <h1>Nettoyage des évaluations</h1>";
+        <h1>Nettoyage complet des tables d'évaluations</h1>";
+
+// Confirmation par GET parameter
+if (!isset($_GET['confirm']) || $_GET['confirm'] !== 'yes') {
+    echo "<div class='warning'>
+            <h2>⚠️ Attention !</h2>
+            <p>Ce script va supprimer <strong>TOUTES</strong> les données d'évaluations de la base de données.</p>
+            <p>Cette action est irréversible. Assurez-vous d'avoir une sauvegarde si nécessaire.</p>
+            <p><a href='?confirm=yes' class='btn btn-danger'>Confirmer et procéder au nettoyage</a></p>
+            <p><a href='/tutoring/' class='btn'>Annuler et retourner à l'accueil</a></p>
+          </div>";
+    echo "</div></body></html>";
+    exit;
+}
 
 // Début du traitement
 try {
-    // Commencer une transaction
+    // Démarrer une transaction
     $db->beginTransaction();
     
-    // 1. Identifier les évaluations en double (même assignment_id et même type)
-    $query = "
-        SELECT assignment_id, type, COUNT(*) as count
-        FROM evaluations
-        GROUP BY assignment_id, type
-        HAVING COUNT(*) > 1
-    ";
-    $duplicates = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+    // Désactiver temporairement les contraintes de clés étrangères
+    $db->exec('SET FOREIGN_KEY_CHECKS = 0');
     
-    echo "<h2>Évaluations en double trouvées: " . count($duplicates) . "</h2>";
+    // Tables à vider
+    $tables = [
+        'evaluation_scores',
+        'evaluation_criteria',
+        'evaluations'
+    ];
     
-    if (count($duplicates) > 0) {
-        echo "<table>
-                <thead>
-                    <tr>
-                        <th>ID Affectation</th>
-                        <th>Type</th>
-                        <th>Nombre</th>
-                    </tr>
-                </thead>
-                <tbody>";
-        
-        foreach ($duplicates as $duplicate) {
+    $totalRowsDeleted = 0;
+    
+    echo "<h2>Suppression des données</h2>";
+    echo "<table>
+            <thead>
+                <tr>
+                    <th>Table</th>
+                    <th>Nombre de lignes</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>";
+    
+    foreach ($tables as $table) {
+        // Vérifier si la table existe
+        $stmt = $db->query("SHOW TABLES LIKE '$table'");
+        if ($stmt->rowCount() > 0) {
+            // Compter les lignes avant suppression
+            $countStmt = $db->query("SELECT COUNT(*) FROM $table");
+            $rowCount = $countStmt->fetchColumn();
+            
+            // Supprimer les données
+            $db->exec("TRUNCATE TABLE $table");
+            
             echo "<tr>
-                    <td>{$duplicate['assignment_id']}</td>
-                    <td>{$duplicate['type']}</td>
-                    <td>{$duplicate['count']}</td>
+                    <td>$table</td>
+                    <td>$rowCount</td>
+                    <td class='success'>Vidée avec succès</td>
+                  </tr>";
+            $totalRowsDeleted += $rowCount;
+        } else {
+            echo "<tr>
+                    <td>$table</td>
+                    <td>-</td>
+                    <td class='warning'>Table non trouvée</td>
                   </tr>";
         }
-        
-        echo "</tbody></table>";
-        
-        // 2. Pour chaque ensemble de doublons, garder la plus récente et supprimer les autres
-        // Nettoyer automatiquement sans demander confirmation
-        $removed = 0;
-        
-        foreach ($duplicates as $duplicate) {
-            $assignmentId = $duplicate['assignment_id'];
-            $type = $duplicate['type'];
-            
-            // Trouver toutes les évaluations correspondantes
-            $evalQuery = "
-                SELECT id, submission_date
-                FROM evaluations
-                WHERE assignment_id = ? AND type = ?
-                ORDER BY submission_date DESC
-            ";
-            $evals = $db->prepare($evalQuery);
-            $evals->execute([$assignmentId, $type]);
-            $allEvals = $evals->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Garder le premier (le plus récent) et supprimer les autres
-            $kept = array_shift($allEvals);
-            echo "<p class='success'>Conservation de l'évaluation ID {$kept['id']} (soumise le {$kept['submission_date']})</p>";
-            
-            foreach ($allEvals as $eval) {
-                $deleteQuery = "DELETE FROM evaluations WHERE id = ?";
-                $delete = $db->prepare($deleteQuery);
-                $delete->execute([$eval['id']]);
-                $removed++;
-                
-                echo "<p class='warning'>Suppression de l'évaluation ID {$eval['id']} (soumise le {$eval['submission_date']})</p>";
-            }
-        }
-        
-        echo "<p class='success'>$removed évaluations en double ont été supprimées.</p>";
-    } else {
-        echo "<p>Aucune évaluation en double trouvée.</p>";
     }
     
-    // 3. Identifier les documents sans évaluations correspondantes
-    $query = "
-        SELECT d.id, d.title, d.type, d.user_id, u.first_name, u.last_name
-        FROM documents d
-        JOIN users u ON d.user_id = u.id
-        WHERE d.type IN ('evaluation', 'self_evaluation')
-        AND NOT EXISTS (
-            SELECT 1 FROM evaluations e
-            JOIN assignments a ON e.assignment_id = a.id
-            JOIN students s ON a.student_id = s.id
-            WHERE (s.user_id = d.user_id OR e.evaluator_id = d.user_id)
-        )
-    ";
-    $orphanedDocs = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+    echo "</tbody></table>";
     
-    echo "<h2>Documents d'évaluation orphelins trouvés: " . count($orphanedDocs) . "</h2>";
+    // Réactiver les contraintes de clés étrangères
+    $db->exec('SET FOREIGN_KEY_CHECKS = 1');
     
-    if (count($orphanedDocs) > 0) {
-        echo "<table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Titre</th>
-                        <th>Type</th>
-                        <th>Utilisateur</th>
-                    </tr>
-                </thead>
-                <tbody>";
-        
-        foreach ($orphanedDocs as $doc) {
-            echo "<tr>
-                    <td>{$doc['id']}</td>
-                    <td>{$doc['title']}</td>
-                    <td>{$doc['type']}</td>
-                    <td>{$doc['first_name']} {$doc['last_name']}</td>
-                  </tr>";
-        }
-        
-        echo "</tbody></table>";
-        
-        // Nettoyer automatiquement sans demander confirmation
-        $removed = 0;
-        
-        foreach ($orphanedDocs as $doc) {
-            $deleteQuery = "DELETE FROM documents WHERE id = ?";
-            $delete = $db->prepare($deleteQuery);
-            $delete->execute([$doc['id']]);
-            $removed++;
-            
-            echo "<p class='warning'>Suppression du document ID {$doc['id']} ({$doc['title']})</p>";
-        }
-        
-        echo "<p class='success'>$removed documents orphelins ont été supprimés.</p>";
+    // Supprimer également les documents d'évaluation qui pourraient créer des conflits
+    $countStmt = $db->query("SELECT COUNT(*) FROM documents WHERE type IN ('evaluation', 'self_evaluation', 'mid_term', 'final')");
+    $docCount = $countStmt->fetchColumn();
+    
+    if ($docCount > 0) {
+        $db->exec("DELETE FROM documents WHERE type IN ('evaluation', 'self_evaluation', 'mid_term', 'final')");
+        echo "<p class='warning'>$docCount documents d'évaluation ont également été supprimés.</p>";
+        $totalRowsDeleted += $docCount;
     } else {
-        echo "<p>Aucun document d'évaluation orphelin trouvé.</p>";
+        echo "<p>Aucun document d'évaluation à supprimer.</p>";
     }
     
     // Valider la transaction
     $db->commit();
-    echo "<p class='success'>Toutes les modifications ont été enregistrées dans la base de données.</p>";
+    
+    echo "<div class='success'>
+            <h2>✅ Nettoyage terminé</h2>
+            <p>Total: $totalRowsDeleted enregistrements supprimés de la base de données.</p>
+          </div>";
     
 } catch (Exception $e) {
     // Annuler la transaction en cas d'erreur
-    if (isset($db)) {
+    if (isset($db) && $db->inTransaction()) {
         $db->rollBack();
     }
     
-    echo "<p class='error'>Erreur lors du nettoyage des évaluations: " . $e->getMessage() . "</p>";
+    echo "<div class='error'>
+            <h2>❌ Erreur</h2>
+            <p>Une erreur est survenue lors du nettoyage des tables : " . h($e->getMessage()) . "</p>
+          </div>";
 }
 
 echo "    <div class='actions'>
             <a href='/tutoring/reset_evaluations.php' class='btn btn-info'>Réinitialiser les évaluations</a>
             <a href='/tutoring/views/tutor/evaluations.php' class='btn'>Voir les évaluations (tuteur)</a>
             <a href='/tutoring/views/student/evaluations.php' class='btn'>Voir les évaluations (étudiant)</a>
+            <a href='/tutoring/' class='btn'>Retour à l'accueil</a>
         </div>
     </div>
 </body>

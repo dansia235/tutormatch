@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 21, 2025 at 11:04 PM
+-- Generation Time: Jun 23, 2025 at 10:07 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -360,11 +360,9 @@ INSERT INTO `documents` (`id`, `user_id`, `assignment_id`, `title`, `description
 (1006, 18, 3, 'CV', '', 'other', 'uploads/documents/1749736339_Hugo Simon CV.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 44917, '2025-06-12 13:52:19', 'submitted', 'private', NULL, '1.0'),
 (1008, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15d690689.json', 'application/json', 1024, '2025-06-15 18:49:58', 'submitted', 'private', NULL, NULL),
 (1010, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15efa5fc9.json', 'application/json', 1024, '2025-06-15 18:50:23', 'submitted', 'private', NULL, NULL),
-(1011, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f1f2f0d.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', 'private', NULL, NULL),
 (1012, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f20c5e0.json', 'application/json', 1024, '2025-06-15 18:50:26', 'submitted', 'private', NULL, NULL),
 (1013, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'other', 'evaluations/test_684f15f3152fe.json', 'application/json', 1024, '2025-06-15 18:50:27', '', 'private', NULL, NULL),
 (1014, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f31d02e.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', 'private', NULL, NULL),
-(1015, 18, NULL, 'Évaluation mi-parcours', 'Évaluation du tuteur pour la période mi-parcours du stage', 'evaluation', 'evaluations/test_684f15f3c98cb.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', 'private', NULL, NULL),
 (1016, 18, NULL, 'Auto-évaluation', 'Auto-évaluation pour la période mi-parcours du stage', 'other', 'evaluations/self_684f15f3cd2d4.json', 'application/json', 1024, '2025-06-15 18:50:27', 'submitted', 'private', NULL, NULL);
 
 -- --------------------------------------------------------
@@ -380,6 +378,7 @@ CREATE TABLE `evaluations` (
   `evaluatee_id` int(11) NOT NULL,
   `type` enum('mid_term','final','supervisor','teacher','student') NOT NULL,
   `score` decimal(3,1) DEFAULT NULL,
+  `criteria_scores` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`criteria_scores`)),
   `feedback` text DEFAULT NULL,
   `strengths` text DEFAULT NULL,
   `areas_to_improve` text DEFAULT NULL,
@@ -390,13 +389,64 @@ CREATE TABLE `evaluations` (
 -- Dumping data for table `evaluations`
 --
 
-INSERT INTO `evaluations` (`id`, `assignment_id`, `evaluator_id`, `evaluatee_id`, `type`, `score`, `feedback`, `strengths`, `areas_to_improve`, `submission_date`) VALUES
-(1, 1, 9, 14, 'teacher', 4.5, 'Excellent travail et bonne intégration dans l\'équipe. Continue ainsi.', NULL, NULL, '2025-06-07 09:42:54'),
-(2, 2, 10, 16, 'teacher', 4.0, 'Bon travail, participation active aux projets de l\'équipe.', NULL, NULL, '2025-06-07 09:42:54'),
-(3, 3, 13, 18, 'teacher', 4.2, 'Très bonnes compétences techniques et bonne autonomie.', NULL, NULL, '2025-06-07 09:42:54'),
-(4, 4, 9, 17, 'teacher', 3.8, 'Bon travail, mais besoin d\'améliorer la communication.', NULL, NULL, '2025-06-07 09:42:54'),
-(5, 3, 6, 7, 'final', 14.0, 'Etudiant travailleur.', '', '', '2025-06-12 14:46:52'),
-(6, 3, 6, 7, 'mid_term', 18.0, 'Prends en compte les suggestions et remarque. Tres attentionné.', '', '', '2025-06-12 22:24:06');
+INSERT INTO `evaluations` (`id`, `assignment_id`, `evaluator_id`, `evaluatee_id`, `type`, `score`, `criteria_scores`, `feedback`, `strengths`, `areas_to_improve`, `submission_date`) VALUES
+(74, 1, 9, 14, 'mid_term', 4.4, NULL, 'L\'étudiant Lucas montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-05-29 23:00:00'),
+(75, 2, 10, 16, 'mid_term', 1.2, NULL, 'L\'étudiant Louis montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-05-27 23:00:00'),
+(76, 3, 13, 18, 'mid_term', 2.7, NULL, 'L\'étudiant Hugo montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-17 23:00:00'),
+(77, 4, 9, 17, 'mid_term', 0.7, NULL, 'L\'étudiant Chloé montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-14 23:00:00'),
+(78, 5, 11, 124, 'mid_term', 3.8, NULL, 'L\'étudiant Eva montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-19 23:00:00'),
+(79, 6, 11, 126, 'mid_term', 0.9, NULL, 'L\'étudiant Théo montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-02 23:00:00'),
+(80, 7, 9, 111, 'mid_term', 3.4, NULL, 'L\'étudiant Charlotte montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-09 23:00:00'),
+(81, 8, 11, 105, 'mid_term', 0.5, NULL, 'L\'étudiant Gabriel montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-15 23:00:00'),
+(89, 1, 14, 14, 'student', 4.2, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-14 23:00:00'),
+(90, 2, 16, 16, 'student', 2.7, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-20 23:00:00'),
+(91, 3, 18, 18, 'student', 1.0, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-04 23:00:00'),
+(92, 4, 17, 17, 'student', 2.0, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-07 23:00:00'),
+(93, 5, 124, 124, 'student', 4.0, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-08 23:00:00'),
+(94, 6, 126, 126, 'student', 1.7, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-05 23:00:00'),
+(95, 7, 111, 111, 'student', 3.3, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-14 23:00:00'),
+(96, 8, 105, 105, 'student', 2.1, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-19 23:00:00'),
+(104, 3, 13, 18, 'final', 4.4, NULL, 'L\'étudiant Hugo a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', '2025-06-19 23:00:00'),
+(105, 7, 9, 111, 'final', 3.5, NULL, 'L\'étudiant Charlotte a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', '2025-06-19 23:00:00'),
+(106, 8, 11, 105, 'final', 4.4, NULL, 'L\'étudiant Gabriel a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', '2025-06-14 23:00:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `evaluation_criteria`
+--
+
+CREATE TABLE `evaluation_criteria` (
+  `id` int(11) NOT NULL,
+  `evaluation_id` int(11) NOT NULL,
+  `category` enum('technical','professional') NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `score` decimal(3,1) DEFAULT 0.0,
+  `comments` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `evaluation_scores`
+--
+
+CREATE TABLE `evaluation_scores` (
+  `id` int(11) NOT NULL,
+  `evaluation_id` int(11) NOT NULL,
+  `technical_mastery` decimal(3,1) DEFAULT 0.0,
+  `work_quality` decimal(3,1) DEFAULT 0.0,
+  `problem_solving` decimal(3,1) DEFAULT 0.0,
+  `documentation` decimal(3,1) DEFAULT 0.0,
+  `autonomy` decimal(3,1) DEFAULT 0.0,
+  `communication` decimal(3,1) DEFAULT 0.0,
+  `team_integration` decimal(3,1) DEFAULT 0.0,
+  `deadline_respect` decimal(3,1) DEFAULT 0.0,
+  `technical_avg` decimal(3,1) DEFAULT 0.0,
+  `professional_avg` decimal(3,1) DEFAULT 0.0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -881,6 +931,33 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `relat
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `predefined_criteria`
+--
+
+CREATE TABLE `predefined_criteria` (
+  `id` int(11) NOT NULL,
+  `category` enum('technical','professional') NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `predefined_criteria`
+--
+
+INSERT INTO `predefined_criteria` (`id`, `category`, `name`, `description`) VALUES
+(1, 'technical', 'Maîtrise des technologies', 'Capacité à utiliser efficacement les technologies et outils requis'),
+(2, 'technical', 'Qualité du travail', 'Précision, rigueur et fiabilité des livrables'),
+(3, 'technical', 'Résolution de problèmes', 'Capacité à identifier et résoudre les problèmes techniques'),
+(4, 'technical', 'Documentation', 'Qualité et clarté de la documentation produite'),
+(5, 'professional', 'Autonomie', 'Capacité à travailler de manière indépendante'),
+(6, 'professional', 'Communication', 'Clarté et efficacité dans la communication orale et écrite'),
+(7, 'professional', 'Intégration dans l\'équipe', 'Capacité à travailler en équipe et collaborer'),
+(8, 'professional', 'Respect des délais', 'Ponctualité et respect des échéances fixées');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `students`
 --
 
@@ -1015,8 +1092,36 @@ INSERT INTO `student_preferences` (`id`, `student_id`, `internship_id`, `prefere
 (5, 5, 2, 1, NULL, '2025-06-07 09:42:54'),
 (6, 6, 4, 1, NULL, '2025-06-07 09:42:54'),
 (7, 6, 1, 2, NULL, '2025-06-07 09:42:54'),
-(8, 7, 3, 1, NULL, '2025-06-07 09:42:54'),
-(9, 7, 21, 2, NULL, '2025-06-21 20:54:55');
+(10, 7, 3, 2, 'Préférence de test 1 - 2025-06-21 23:21:34', '2025-06-21 21:21:34'),
+(18, 7, 13, 9, 'Préférence de test ajoutée automatiquement', '2025-06-21 21:21:48'),
+(19, 7, 14, 10, 'Préférence de test ajoutée automatiquement', '2025-06-21 21:21:50'),
+(27, 7, 46, 11, NULL, '2025-06-22 08:09:20'),
+(28, 7, 47, 12, NULL, '2025-06-22 08:09:23');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `student_scores`
+--
+
+CREATE TABLE `student_scores` (
+  `id` int(11) NOT NULL,
+  `student_id` int(11) NOT NULL,
+  `assignment_id` int(11) NOT NULL,
+  `technical_score` decimal(3,1) DEFAULT 0.0,
+  `technical_mastery` decimal(3,1) DEFAULT 0.0,
+  `work_quality` decimal(3,1) DEFAULT 0.0,
+  `problem_solving` decimal(3,1) DEFAULT 0.0,
+  `documentation` decimal(3,1) DEFAULT 0.0,
+  `communication_score` decimal(3,1) DEFAULT 0.0,
+  `teamwork_score` decimal(3,1) DEFAULT 0.0,
+  `autonomy` decimal(3,1) DEFAULT 0.0,
+  `deadline_respect` decimal(3,1) DEFAULT 0.0,
+  `average_score` decimal(3,1) DEFAULT 0.0,
+  `completed_evaluations` int(11) DEFAULT 0,
+  `total_evaluations` int(11) DEFAULT 5,
+  `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1188,7 +1293,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_name`, `role`, `department`, `profile_image`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-21 18:58:58', '2025-06-21 18:58:58'),
+(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-23 07:32:07', '2025-06-23 07:32:07'),
 (3, 'admin2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin2@example.com', 'Admin', 'Secondaire', 'admin', 'Administration', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (4, 'teacher1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher1@example.com', 'Paul', 'Martin', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (5, 'teacher2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher2@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
@@ -1199,12 +1304,12 @@ INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_
 (10, 'prof_dubois', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_dubois@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (11, 'prof_petit', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_petit@example.com', 'Jean', 'Petit', 'teacher', 'Mathématiques', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (12, 'prof_bernard', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_bernard@example.com', 'Sophie', 'Bernard', 'teacher', 'Électronique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
-(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-21 20:49:21', '2025-06-21 20:49:21'),
+(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-23 08:02:32', '2025-06-23 08:02:32'),
 (14, 'etud_dupont', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_dupont@example.com', 'Lucas', 'Dupont', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (15, 'etud_leroy', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_leroy@example.com', 'Emma', 'Leroy', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (16, 'etud_moreau', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_moreau@example.com', 'Louis', 'Moreau', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (17, 'etud_fournier', '$2y$10$PDqgdfSLyx9eDLFbi/lbR.2XOrNQBmvQ5oQv5P1OaBCPX9l3FRxty', 'etud_fournier@example.com', 'Chloé', 'Fournier', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-10 10:04:00', NULL),
-(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-21 20:54:13', '2025-06-21 20:54:13'),
+(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-23 08:01:48', '2025-06-23 08:01:48'),
 (50, 'coordo', '$2y$10$hD8jR6DTr7T8y1K3F7Ojs.WWQH6MTmXdmvEYrN/ma2crI9p/NpHJe', 'coordo@gmail.com', 'Coordo', 'Dansia', 'coordinator', '', NULL, '2025-06-08 19:11:39', '2025-06-12 08:54:16', '2025-06-12 08:54:16'),
 (51, 'hbonnet17', '$2y$10$Tpbea7gOI3fpNJkZCoPHfOSn8Kil//DT.pvcg0.FdF6MFXQP6bz6q', 'hbonnet17@example.com', 'Hugo', 'Bonnet', 'student', 'Économie', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
 (52, 'gfournier15', '$2y$10$BUBawhQhtIbTS9kARJi.AeBBiAr7VkN/msHAONtxFvIXquPCqHX1G', 'gfournier15@example.com', 'Gabriel', 'Fournier', 'student', 'Médecine', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
@@ -1426,6 +1531,45 @@ INSERT INTO `user_preferences` (`id`, `user_id`, `preference_key`, `preference_v
 (119, 13, 'primary_color', 'purple', '2025-06-06 22:31:37', '2025-06-06 22:31:37'),
 (120, 13, 'font_size', '110', '2025-06-06 22:31:37', '2025-06-06 22:31:37');
 
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `view_evaluation_scores`
+-- (See below for the actual view)
+--
+CREATE TABLE `view_evaluation_scores` (
+`id` int(11)
+,`evaluation_id` int(11)
+,`technical_mastery` decimal(3,1)
+,`work_quality` decimal(3,1)
+,`problem_solving` decimal(3,1)
+,`documentation` decimal(3,1)
+,`autonomy` decimal(3,1)
+,`communication` decimal(3,1)
+,`team_integration` decimal(3,1)
+,`deadline_respect` decimal(3,1)
+,`technical_avg` decimal(3,1)
+,`professional_avg` decimal(3,1)
+,`created_at` timestamp
+,`updated_at` timestamp
+,`assignment_id` int(11)
+,`evaluation_type` enum('mid_term','final','supervisor','teacher','student')
+,`submission_date` timestamp
+,`student_id` int(11)
+,`teacher_id` int(11)
+,`student_user_id` int(11)
+,`teacher_user_id` int(11)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `view_evaluation_scores`
+--
+DROP TABLE IF EXISTS `view_evaluation_scores`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_evaluation_scores`  AS SELECT `es`.`id` AS `id`, `es`.`evaluation_id` AS `evaluation_id`, `es`.`technical_mastery` AS `technical_mastery`, `es`.`work_quality` AS `work_quality`, `es`.`problem_solving` AS `problem_solving`, `es`.`documentation` AS `documentation`, `es`.`autonomy` AS `autonomy`, `es`.`communication` AS `communication`, `es`.`team_integration` AS `team_integration`, `es`.`deadline_respect` AS `deadline_respect`, `es`.`technical_avg` AS `technical_avg`, `es`.`professional_avg` AS `professional_avg`, `es`.`created_at` AS `created_at`, `es`.`updated_at` AS `updated_at`, `e`.`assignment_id` AS `assignment_id`, `e`.`type` AS `evaluation_type`, `e`.`submission_date` AS `submission_date`, `a`.`student_id` AS `student_id`, `a`.`teacher_id` AS `teacher_id`, `s`.`user_id` AS `student_user_id`, `t`.`user_id` AS `teacher_user_id` FROM ((((`evaluation_scores` `es` join `evaluations` `e` on(`es`.`evaluation_id` = `e`.`id`)) join `assignments` `a` on(`e`.`assignment_id` = `a`.`id`)) join `students` `s` on(`a`.`student_id` = `s`.`id`)) join `teachers` `t` on(`a`.`teacher_id` = `t`.`id`)) ;
+
 --
 -- Indexes for dumped tables
 --
@@ -1494,6 +1638,21 @@ ALTER TABLE `evaluations`
   ADD KEY `evaluatee_id` (`evaluatee_id`);
 
 --
+-- Indexes for table `evaluation_criteria`
+--
+ALTER TABLE `evaluation_criteria`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_evaluation_criteria_evaluation` (`evaluation_id`),
+  ADD KEY `idx_evaluation_criteria_category` (`category`);
+
+--
+-- Indexes for table `evaluation_scores`
+--
+ALTER TABLE `evaluation_scores`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `evaluation_id` (`evaluation_id`);
+
+--
 -- Indexes for table `internships`
 --
 ALTER TABLE `internships`
@@ -1547,6 +1706,13 @@ ALTER TABLE `notifications`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `predefined_criteria`
+--
+ALTER TABLE `predefined_criteria`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `category` (`category`,`name`);
+
+--
 -- Indexes for table `students`
 --
 ALTER TABLE `students`
@@ -1561,6 +1727,15 @@ ALTER TABLE `student_preferences`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `student_internship_preference` (`student_id`,`internship_id`),
   ADD KEY `internship_id` (`internship_id`);
+
+--
+-- Indexes for table `student_scores`
+--
+ALTER TABLE `student_scores`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_student_assignment` (`student_id`,`assignment_id`),
+  ADD KEY `idx_student_scores_student` (`student_id`),
+  ADD KEY `idx_student_scores_assignment` (`assignment_id`);
 
 --
 -- Indexes for table `system_settings`
@@ -1664,7 +1839,19 @@ ALTER TABLE `documents`
 -- AUTO_INCREMENT for table `evaluations`
 --
 ALTER TABLE `evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
+
+--
+-- AUTO_INCREMENT for table `evaluation_criteria`
+--
+ALTER TABLE `evaluation_criteria`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `evaluation_scores`
+--
+ALTER TABLE `evaluation_scores`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `internships`
@@ -1709,6 +1896,12 @@ ALTER TABLE `notifications`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
+-- AUTO_INCREMENT for table `predefined_criteria`
+--
+ALTER TABLE `predefined_criteria`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
@@ -1718,7 +1911,13 @@ ALTER TABLE `students`
 -- AUTO_INCREMENT for table `student_preferences`
 --
 ALTER TABLE `student_preferences`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+
+--
+-- AUTO_INCREMENT for table `student_scores`
+--
+ALTER TABLE `student_scores`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
@@ -1808,6 +2007,18 @@ ALTER TABLE `evaluations`
   ADD CONSTRAINT `evaluations_ibfk_1` FOREIGN KEY (`assignment_id`) REFERENCES `assignments` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `evaluations_ibfk_2` FOREIGN KEY (`evaluator_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `evaluations_ibfk_3` FOREIGN KEY (`evaluatee_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `evaluation_criteria`
+--
+ALTER TABLE `evaluation_criteria`
+  ADD CONSTRAINT `evaluation_criteria_ibfk_1` FOREIGN KEY (`evaluation_id`) REFERENCES `evaluations` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `evaluation_scores`
+--
+ALTER TABLE `evaluation_scores`
+  ADD CONSTRAINT `evaluation_scores_ibfk_1` FOREIGN KEY (`evaluation_id`) REFERENCES `evaluations` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `internships`

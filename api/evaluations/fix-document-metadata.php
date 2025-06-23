@@ -146,12 +146,22 @@ try {
                     $criteriaScores = json_decode($evaluation['criteria_scores'], true) ?: [];
                     
                     $criteriaLabels = [
+                        // Compétences techniques
                         'technical_skills' => 'Compétences techniques',
+                        'technical_mastery' => 'Maîtrise des technologies',
+                        'work_quality' => 'Qualité du travail',
+                        'problem_solving' => 'Résolution de problèmes',
+                        'documentation' => 'Documentation',
+                        
+                        // Compétences professionnelles
                         'professional_behavior' => 'Comportement professionnel',
                         'communication' => 'Communication',
                         'initiative' => 'Initiative et autonomie',
+                        'autonomy' => 'Autonomie',
                         'teamwork' => 'Travail en équipe',
-                        'punctuality' => 'Ponctualité et assiduité'
+                        'team_integration' => 'Intégration dans l\'équipe',
+                        'punctuality' => 'Ponctualité et assiduité',
+                        'deadline_respect' => 'Respect des délais'
                     ];
                     
                     foreach ($criteriaScores as $key => $value) {

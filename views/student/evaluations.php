@@ -58,10 +58,7 @@ try {
                 // Transformer les données au format attendu
                 foreach ($evalFromModel as $eval) {
                     // Convertir le score de 20 à 5 si nécessaire
-                    $score = isset($eval['score']) ? $eval['score'] : 0;
-                    if ($score > 5) {
-                        $score = min(5, round($score / 4, 1)); // Convertir de 0-20 à 0-5 avec limite à 5
-                    }
+                    $score = isset($eval['score']) && $eval['score'] > 5 ? round($eval['score'] / 4, 1) : $eval['score'];
                     
                     // Préparer les critères
                     $criteria = [];
@@ -80,7 +77,7 @@ try {
                         foreach ($criteriaScores as $key => $criterionScore) {
                             $criteria[] = [
                                 'name' => $criteriaLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)),
-                                'score' => min(5, round($criterionScore / 4, 1)) // Convertir de 0-20 à 0-5 avec limite à 5
+                                'score' => round($criterionScore / 4, 1) // Convertir de 20 à 5
                             ];
                         }
                     }
@@ -90,10 +87,10 @@ try {
                         'id' => $eval['id'],
                         'student_id' => $student_id,
                         'type' => $eval['type'],
-                        'date' => $eval['submission_date'] ?? date('Y-m-d'),
-                        'evaluator_name' => $eval['type'] === 'student' ? 'Auto-évaluation' : 'Tuteur',
+                        'date' => $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d'),
+                        'evaluator_name' => 'Tuteur',
                         'score' => $score,
-                        'comments' => $eval['feedback'] ?? '',
+                        'comments' => $eval['feedback'] ?? $eval['comments'] ?? '',
                         'criteria' => $criteria,
                         'areas_for_improvement' => !empty($eval['areas_to_improve']) ? explode("\n", $eval['areas_to_improve']) : [],
                         'recommendations' => !empty($eval['next_steps']) ? explode("\n", $eval['next_steps']) : []
@@ -103,206 +100,97 @@ try {
         }
         
         // ÉTAPE 2 : Récupération via les documents (pour les auto-évaluations et les versions antérieures)
-        // Uniquement si nous n'avons pas trouvé toutes les évaluations nécessaires
-        if (count($evaluations) < 2) {
-            $documents = $studentModel->getDocuments($student_id);
+        $documents = $studentModel->getDocuments($student_id);
+        
+        // Filtrer pour ne garder que les documents de type évaluation
+        $evaluationDocuments = [];
+        foreach ($documents as $doc) {
+            if (isset($doc['type']) && (
+                $doc['type'] === 'evaluation' || 
+                $doc['type'] === 'self_evaluation' || 
+                $doc['type'] === 'mid_term' || 
+                $doc['type'] === 'final')
+            ) {
+                $evaluationDocuments[] = $doc;
+            }
+        }
+        
+        // Convertir les documents en évaluations
+        foreach ($evaluationDocuments as $doc) {
+            // Vérifier si le document a des métadonnées
+            if (!isset($doc['metadata']) || !is_array($doc['metadata'])) {
+                $doc['metadata'] = [];
+            }
             
-            // Filtrer pour ne garder que les documents de type évaluation
-            $evaluationDocuments = [];
-            foreach ($documents as $doc) {
-                if (isset($doc['type']) && (
-                    $doc['type'] === 'evaluation' || 
-                    $doc['type'] === 'self_evaluation' || 
-                    $doc['type'] === 'mid_term' || 
-                    $doc['type'] === 'final')
-                ) {
-                    $evaluationDocuments[] = $doc;
+            // Extraire les informations de base du document
+            $evaluation = [
+                'id' => 'doc_' . $doc['id'], // Préfixer pour éviter les conflits d'ID
+                'student_id' => $doc['user_id'],
+                'type' => $doc['type'] === 'self_evaluation' ? 'self' : 'teacher',
+                'date' => $doc['upload_date'] ?? date('Y-m-d H:i:s'),
+                'evaluator_name' => isset($doc['metadata']['evaluator_name']) ? $doc['metadata']['evaluator_name'] : 'Système',
+                'score' => isset($doc['metadata']['score']) ? $doc['metadata']['score'] : 0,
+                'comments' => $doc['description'] ?? ($doc['metadata']['comments'] ?? ''),
+                'criteria' => []
+            ];
+            
+            // Extraire les critères s'ils existent
+            if (isset($doc['metadata']['criteria']) && is_array($doc['metadata']['criteria'])) {
+                $evaluation['criteria'] = $doc['metadata']['criteria'];
+            }
+            
+            // Ne pas ajouter si une évaluation avec le même type et une date proche existe déjà
+            $isDuplicate = false;
+            foreach ($evaluations as $existingEval) {
+                if ($existingEval['type'] === $evaluation['type']) {
+                    $existingDate = new DateTime($existingEval['date']);
+                    $newDate = new DateTime($evaluation['date']);
+                    $interval = $existingDate->diff($newDate);
+                    
+                    // Si les dates sont à moins de 2 jours d'écart, considérer comme un doublon
+                    if ($interval->days < 2) {
+                        $isDuplicate = true;
+                        break;
+                    }
                 }
             }
             
-            // Types d'évaluation déjà présents
-            $existingTypes = array_column($evaluations, 'type');
-            
-            // Convertir les documents en évaluations
-            foreach ($evaluationDocuments as $doc) {
-                // Vérifier si le document a des métadonnées
-                if (!isset($doc['metadata']) || !is_array($doc['metadata'])) {
-                    $doc['metadata'] = [];
-                }
-                
-                // Déterminer le type d'évaluation
-                $evalType = $doc['type'] === 'self_evaluation' ? 'student' : 'mid_term';
-                
-                // Vérifier si ce type existe déjà
-                if (in_array($evalType, $existingTypes)) {
-                    continue; // Passer au document suivant si ce type existe déjà
-                }
-                
-                // Ajouter ce type à la liste des types existants
-                $existingTypes[] = $evalType;
-                
-                // S'assurer que le score est dans les limites (0-5)
-                $score = isset($doc['metadata']['score']) ? $doc['metadata']['score'] : 0;
-                if ($score > 5) {
-                    $score = min(5, round($score / 4, 1)); // Limiter à 5 maximum
-                }
-                
-                // Extraire les informations de base du document
-                $evaluation = [
-                    'id' => 'doc_' . $doc['id'], // Préfixer pour éviter les conflits d'ID
-                    'student_id' => $doc['user_id'],
-                    'type' => $evalType,
-                    'date' => $doc['upload_date'] ?? date('Y-m-d'),
-                    'evaluator_name' => $evalType === 'student' ? 'Auto-évaluation' : 'Tuteur',
-                    'score' => $score,
-                    'comments' => $doc['description'] ?? ($doc['metadata']['comments'] ?? ''),
-                    'criteria' => isset($doc['metadata']['criteria']) && is_array($doc['metadata']['criteria']) ? $doc['metadata']['criteria'] : []
-                ];
-                
-                // Ajouter l'évaluation à la liste
+            if (!$isDuplicate) {
                 $evaluations[] = $evaluation;
             }
         }
         
-        // Trier les évaluations par date
-        usort($evaluations, function($a, $b) {
-            return strtotime($a['date']) - strtotime($b['date']);
-        });
-        
-        // Calculer les statistiques en prenant en compte toutes les évaluations pour les critères
-        $totalEvaluations = 0; // On ne compte que les évaluations officielles (mid_term et final) pour la moyenne générale
+        // Calculer les statistiques
+        $totalEvaluations = count($evaluations);
         $totalScore = 0;
         $totalTechnical = 0;
         $totalProfessional = 0;
         $countTechnical = 0;
         $countProfessional = 0;
         
-        // Catégories de critères techniques et professionnels
-        $technicalCriteria = ['technique', 'technical', 'maîtrise', 'qualité', 'problème', 'documentation', 'quality', 'problem'];
-        $professionalCriteria = ['professionnel', 'professional', 'intégration', 'integration', 'équipe', 'team', 'autonomie', 'autonomy', 'communication', 'ponctualité', 'punctuality'];
-        
-        // Définir des mappings spécifiques pour les critères communs
-        $technicalMappings = [
-            'compétences techniques' => true,
-            'technical skills' => true,
-            'maîtrise des technologies' => true,
-            'quality of work' => true,
-            'qualité du travail' => true,
-            'problem solving' => true,
-            'résolution de problèmes' => true,
-            'documentation' => true
-        ];
-        
-        $professionalMappings = [
-            'comportement professionnel' => true, 
-            'professional behavior' => true,
-            'communication' => true,
-            'initiative' => true,
-            'initiative et autonomie' => true,
-            'autonomie' => true,
-            'autonomy' => true,
-            'travail en équipe' => true,
-            'teamwork' => true,
-            'intégration dans l\'équipe' => true,
-            'team integration' => true,
-            'ponctualité' => true,
-            'punctuality' => true,
-            'respect des délais' => true,
-            'deadline respect' => true
-        ];
-        
         foreach ($evaluations as $evaluation) {
-            // Ne prendre en compte que les évaluations de type mid_term et final pour la moyenne générale
-            $isOfficialEval = isset($evaluation['type']) && in_array($evaluation['type'], ['mid_term', 'final']);
+            $totalScore += $evaluation['score'];
             
-            if ($isOfficialEval) {
-                $totalEvaluations++; // Incrémenter le compteur d'évaluations officielles
-                
-                // S'assurer que le score est sur l'échelle 0-5
-                $score = isset($evaluation['score']) ? $evaluation['score'] : 0;
-                // Convertir le score si nécessaire (de 0-20 à 0-5)
-                if ($score > 5) {
-                    $score = min(5, round($score / 4, 1));
-                }
-                $totalScore += $score;
-            }
-            
-            // Parcourir les critères de TOUTES les évaluations (y compris les auto-évaluations)
+            // Parcourir les critères
             if (isset($evaluation['criteria']) && is_array($evaluation['criteria'])) {
                 foreach ($evaluation['criteria'] as $criterion) {
                     if (!isset($criterion['name']) || !isset($criterion['score'])) {
                         continue;
                     }
                     
-                    $criterionName = strtolower($criterion['name']);
-                    
-                    // Vérifier que le score est dans la bonne échelle
-                    $criterionScore = $criterion['score'];
-                    if ($criterionScore > 5) {
-                        $criterionScore = min(5, round($criterionScore / 4, 1));
-                    }
-                    
-                    // Vérifier d'abord dans les mappings spécifiques
-                    $isTechnical = isset($technicalMappings[$criterionName]);
-                    $isProfessional = !$isTechnical && isset($professionalMappings[$criterionName]);
-                    
-                    // Si pas trouvé dans les mappings spécifiques, rechercher par mots-clés
-                    if (!$isTechnical && !$isProfessional) {
-                        // Vérifier si c'est un critère technique
-                        foreach ($technicalCriteria as $keyword) {
-                            if (stripos($criterionName, $keyword) !== false) {
-                                $isTechnical = true;
-                                break;
-                            }
-                        }
-                        
-                        // Vérifier si c'est un critère professionnel
-                        if (!$isTechnical) { // Seulement si ce n'est pas déjà classé comme technique
-                            foreach ($professionalCriteria as $keyword) {
-                                if (stripos($criterionName, $keyword) !== false) {
-                                    $isProfessional = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Ajouter aux totaux appropriés
-                    if ($isTechnical) {
-                        $totalTechnical += $criterionScore;
+                    if (stripos($criterion['name'], 'technique') !== false || stripos($criterion['name'], 'technical') !== false) {
+                        $totalTechnical += $criterion['score'];
                         $countTechnical++;
-                    } else if ($isProfessional) {
-                        $totalProfessional += $criterionScore;
+                    } else if (stripos($criterion['name'], 'professionnel') !== false || 
+                             stripos($criterion['name'], 'professional') !== false ||
+                             stripos($criterion['name'], 'intégration') !== false ||
+                             stripos($criterion['name'], 'integration') !== false ||
+                             stripos($criterion['name'], 'équipe') !== false ||
+                             stripos($criterion['name'], 'team') !== false) {
+                        $totalProfessional += $criterion['score'];
                         $countProfessional++;
                     }
                 }
-            }
-        }
-        
-        // Si aucun critère trouvé mais qu'il y a des évaluations, créer des catégories par défaut
-        if ($countTechnical == 0 && $countProfessional == 0 && count($evaluations) > 0) {
-            // Assigner des scores par défaut basés sur la moyenne globale
-            $defaultScore = 0;
-            $countEvals = 0;
-            
-            foreach ($evaluations as $evaluation) {
-                if (isset($evaluation['score'])) {
-                    $score = $evaluation['score'];
-                    if ($score > 5) {
-                        $score = min(5, round($score / 4, 1));
-                    }
-                    $defaultScore += $score;
-                    $countEvals++;
-                }
-            }
-            
-            if ($countEvals > 0) {
-                $defaultScore = round($defaultScore / $countEvals, 1);
-                // Créer des compétences artificielles pour afficher quelque chose
-                $totalTechnical = $defaultScore;
-                $countTechnical = 1;
-                $totalProfessional = $defaultScore;
-                $countProfessional = 1;
             }
         }
         
@@ -311,26 +199,24 @@ try {
         $technicalScore = $countTechnical > 0 ? round($totalTechnical / $countTechnical, 1) : 0;
         $professionalScore = $countProfessional > 0 ? round($totalProfessional / $countProfessional, 1) : 0;
         
-        // Récupérer les objectifs depuis les évaluations
-        $objectives = [];
-        foreach ($evaluations as $eval) {
-            // Extraire les points à améliorer pour en faire des objectifs
-            if (!empty($eval['areas_for_improvement'])) {
-                $areas = is_array($eval['areas_for_improvement']) ? 
-                    $eval['areas_for_improvement'] : 
-                    explode("\n", $eval['areas_for_improvement']);
-                
-                foreach ($areas as $index => $area) {
-                    if (trim($area)) {
-                        $objectives[] = [
-                            'id' => count($objectives) + 1,
-                            'title' => trim($area),
-                            'description' => 'Identifié dans l\'évaluation du ' . date('d/m/Y', strtotime($eval['date']))
-                        ];
-                    }
-                }
-            }
-        }
+        // Objectifs (fictifs pour l'exemple)
+        $objectives = [
+            [
+                'id' => 1,
+                'title' => 'Améliorer la documentation du code',
+                'description' => 'À compléter pour la prochaine évaluation'
+            ],
+            [
+                'id' => 2,
+                'title' => 'Participer plus activement aux réunions',
+                'description' => 'À compléter pour la prochaine évaluation'
+            ],
+            [
+                'id' => 3,
+                'title' => 'Finaliser le module API',
+                'description' => 'À compléter pour la prochaine évaluation'
+            ]
+        ];
         
         // Statistiques
         $stats = [
@@ -340,9 +226,6 @@ try {
             'technical' => $technicalScore,
             'professional' => $professionalScore
         ];
-        
-        // Debug pour voir les scores calculés
-        error_log("Statistiques étudiants: moyenne=$averageScore, completed=$totalEvaluations, technical=$technicalScore, professional=$professionalScore");
     } else {
         $student_id = null;
         $internship_id = null;
@@ -452,7 +335,7 @@ include_once __DIR__ . '/../common/header.php';
                         <?php foreach ($evaluations as $index => $evaluation): ?>
                             <div class="card mb-4 fade-in">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <span>Évaluation <?php echo h($evaluation['evaluator_name']); ?></span>
+                                    <span>Évaluation <?php echo h($evaluation['type'] === 'self' ? 'Auto-évaluation' : 'Tuteur'); ?></span>
                                     <span class="badge bg-primary"><?php echo date('d/m/Y', strtotime($evaluation['date'])); ?></span>
                                 </div>
                                 <div class="card-body">
@@ -905,10 +788,6 @@ include_once __DIR__ . '/../common/header.php';
                     throw new Error('Aucune évaluation valide trouvée');
                 }
                 
-                // Utiliser les valeurs précalculées du backend comme référence
-                const technicalScore = <?php echo $stats['technical']; ?>;
-                const professionalScore = <?php echo $stats['professional']; ?>;
-                
                 sortedEvals.forEach(eval => {
                     // Vérifier que la date est valide
                     let dateStr;
@@ -932,39 +811,6 @@ include_once __DIR__ . '/../common/header.php';
                     let profScore = 0;
                     let profCount = 0;
                     
-                    // Utiliser les mappings pour identifier les critères avec plus de précision
-                    const technicalMappings = {
-                        'compétences techniques': true,
-                        'technical skills': true,
-                        'maîtrise des technologies': true,
-                        'quality of work': true,
-                        'qualité du travail': true,
-                        'problem solving': true,
-                        'résolution de problèmes': true,
-                        'documentation': true
-                    };
-                    
-                    const professionalMappings = {
-                        'comportement professionnel': true, 
-                        'professional behavior': true,
-                        'communication': true,
-                        'initiative': true,
-                        'initiative et autonomie': true,
-                        'autonomie': true,
-                        'autonomy': true,
-                        'travail en équipe': true,
-                        'teamwork': true,
-                        'intégration dans l\'équipe': true,
-                        'team integration': true,
-                        'ponctualité': true,
-                        'punctuality': true,
-                        'respect des délais': true,
-                        'deadline respect': true
-                    };
-                    
-                    const technicalKeywords = ['technique', 'technical', 'maîtrise', 'qualité', 'problème', 'documentation', 'quality', 'problem'];
-                    const professionalKeywords = ['professionnel', 'professional', 'intégration', 'integration', 'équipe', 'team', 'autonomie', 'autonomy', 'communication', 'ponctualité', 'punctuality'];
-                    
                     // Traiter les critères avec une gestion d'erreur robuste
                     if (eval.criteria && Array.isArray(eval.criteria)) {
                         eval.criteria.forEach(criterion => {
@@ -978,57 +824,24 @@ include_once __DIR__ . '/../common/header.php';
                             if (isNaN(score)) return; // Ignorer les scores non numériques
                             
                             const name = String(criterion.name).toLowerCase();
-                            
-                            // Vérifier d'abord dans les mappings spécifiques
-                            let isTechnical = technicalMappings[name] === true;
-                            let isProfessional = !isTechnical && professionalMappings[name] === true;
-                            
-                            // Si pas trouvé dans les mappings, rechercher par mots-clés
-                            if (!isTechnical && !isProfessional) {
-                                // Vérifier si c'est un critère technique
-                                for (const keyword of technicalKeywords) {
-                                    if (name.includes(keyword)) {
-                                        isTechnical = true;
-                                        break;
-                                    }
-                                }
-                                
-                                // Vérifier si c'est un critère professionnel
-                                if (!isTechnical) {
-                                    for (const keyword of professionalKeywords) {
-                                        if (name.includes(keyword)) {
-                                            isProfessional = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Ajouter aux totaux appropriés
-                            if (isTechnical) {
+                            if (name.includes('technique') || 
+                                name.includes('technical') ||
+                                name.includes('maîtrise') ||
+                                name.includes('qualité') ||
+                                name.includes('problème') ||
+                                name.includes('documentation')) {
                                 techScore += score;
                                 techCount++;
-                            } else if (isProfessional) {
-                                profScore += score;
-                                profCount++;
                             } else {
-                                // Si on ne peut pas déterminer, on le met dans professionnel par défaut
                                 profScore += score;
                                 profCount++;
                             }
                         });
                     }
                     
-                    // Si aucun critère n'est trouvé, utiliser les valeurs précalculées du backend
-                    if (techCount === 0 && profCount === 0) {
-                        // Aucun critère détecté, utiliser les valeurs globales comme fallback
-                        chartData.technical.push(technicalScore);
-                        chartData.professional.push(professionalScore);
-                    } else {
-                        // Ajouter les données avec protection contre les divisions par zéro
-                        chartData.technical.push(techCount > 0 ? parseFloat((techScore / techCount).toFixed(1)) : technicalScore);
-                        chartData.professional.push(profCount > 0 ? parseFloat((profScore / profCount).toFixed(1)) : professionalScore);
-                    }
+                    // Ajouter les données avec protection contre les divisions par zéro
+                    chartData.technical.push(techCount > 0 ? parseFloat((techScore / techCount).toFixed(1)) : 0);
+                    chartData.professional.push(profCount > 0 ? parseFloat((profScore / profCount).toFixed(1)) : 0);
                 });
                 
                 // Créer le graphique si des données sont disponibles
@@ -1162,7 +975,6 @@ include_once __DIR__ . '/../common/header.php';
                 switch(evaluation.type.toLowerCase()) {
                     case 'self':
                     case 'self_evaluation':
-                    case 'student':
                         evaluationType = 'Auto-évaluation';
                         break;
                     case 'mid_term':
@@ -1416,7 +1228,6 @@ include_once __DIR__ . '/../common/header.php';
                 switch(evaluation.type.toLowerCase()) {
                     case 'self':
                     case 'self_evaluation':
-                    case 'student':
                         evaluationType = 'Auto-évaluation';
                         break;
                     case 'mid_term':
