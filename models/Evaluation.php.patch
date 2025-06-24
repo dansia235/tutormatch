@@ -1,0 +1,12 @@
+--- Evaluation.php.old	2023-06-23 12:00:00
++++ Evaluation.php.new	2023-06-23 12:00:00
+@@ -136,7 +136,7 @@
+     public function getByStudentId($studentId) {
+         $query = "SELECT e.*, a.student_id, a.teacher_id, a.internship_id 
+                  FROM evaluations e 
+-                 JOIN assignments a ON e.assignment_id = a.id 
++                 JOIN assignments a ON e.assignment_id = a.id
+                  WHERE a.student_id = :student_id 
+                  ORDER BY e.submission_date DESC";
+         $stmt = $this->db->prepare($query);
+EOL < /dev/null

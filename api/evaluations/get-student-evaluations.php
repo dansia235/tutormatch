@@ -66,7 +66,15 @@ try {
             }
             
             // Vérifier si l'étudiant est assigné à ce tuteur
-            $isAssigned = $teacherModel->hasStudentAssigned($teacher['id'], $requestedStudentId);
+            $assignments = $teacherModel->getAssignments($teacher['id']);
+            $isAssigned = false;
+            foreach ($assignments as $assignment) {
+                if ($assignment['student_id'] == $requestedStudentId) {
+                    $isAssigned = true;
+                    break;
+                }
+            }
+            
             if (!$isAssigned) {
                 sendJsonResponse([
                     'error' => true,

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 23, 2025 at 10:07 AM
+-- Generation Time: Jun 24, 2025 at 03:52 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -377,76 +377,42 @@ CREATE TABLE `evaluations` (
   `evaluator_id` int(11) NOT NULL,
   `evaluatee_id` int(11) NOT NULL,
   `type` enum('mid_term','final','supervisor','teacher','student') NOT NULL,
-  `score` decimal(3,1) DEFAULT NULL,
+  `score` decimal(3,1) DEFAULT 0.0,
   `criteria_scores` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`criteria_scores`)),
-  `feedback` text DEFAULT NULL,
+  `technical_avg` decimal(3,1) DEFAULT 0.0,
+  `professional_avg` decimal(3,1) DEFAULT 0.0,
+  `comments` text DEFAULT NULL,
   `strengths` text DEFAULT NULL,
-  `areas_to_improve` text DEFAULT NULL,
-  `submission_date` timestamp NOT NULL DEFAULT current_timestamp()
+  `areas_for_improvement` text DEFAULT NULL,
+  `next_steps` text DEFAULT NULL,
+  `status` enum('draft','submitted','approved') NOT NULL DEFAULT 'submitted',
+  `submission_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `evaluations`
 --
 
-INSERT INTO `evaluations` (`id`, `assignment_id`, `evaluator_id`, `evaluatee_id`, `type`, `score`, `criteria_scores`, `feedback`, `strengths`, `areas_to_improve`, `submission_date`) VALUES
-(74, 1, 9, 14, 'mid_term', 4.4, NULL, 'L\'étudiant Lucas montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-05-29 23:00:00'),
-(75, 2, 10, 16, 'mid_term', 1.2, NULL, 'L\'étudiant Louis montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-05-27 23:00:00'),
-(76, 3, 13, 18, 'mid_term', 2.7, NULL, 'L\'étudiant Hugo montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-17 23:00:00'),
-(77, 4, 9, 17, 'mid_term', 0.7, NULL, 'L\'étudiant Chloé montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-14 23:00:00'),
-(78, 5, 11, 124, 'mid_term', 3.8, NULL, 'L\'étudiant Eva montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-19 23:00:00'),
-(79, 6, 11, 126, 'mid_term', 0.9, NULL, 'L\'étudiant Théo montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-02 23:00:00'),
-(80, 7, 9, 111, 'mid_term', 3.4, NULL, 'L\'étudiant Charlotte montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-09 23:00:00'),
-(81, 8, 11, 105, 'mid_term', 0.5, NULL, 'L\'étudiant Gabriel montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', '2025-06-15 23:00:00'),
-(89, 1, 14, 14, 'student', 4.2, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-14 23:00:00'),
-(90, 2, 16, 16, 'student', 2.7, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-20 23:00:00'),
-(91, 3, 18, 18, 'student', 1.0, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-04 23:00:00'),
-(92, 4, 17, 17, 'student', 2.0, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-07 23:00:00'),
-(93, 5, 124, 124, 'student', 4.0, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-08 23:00:00'),
-(94, 6, 126, 126, 'student', 1.7, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-05 23:00:00'),
-(95, 7, 111, 111, 'student', 3.3, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-14 23:00:00'),
-(96, 8, 105, 105, 'student', 2.1, NULL, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', '2025-06-19 23:00:00'),
-(104, 3, 13, 18, 'final', 4.4, NULL, 'L\'étudiant Hugo a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', '2025-06-19 23:00:00'),
-(105, 7, 9, 111, 'final', 3.5, NULL, 'L\'étudiant Charlotte a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', '2025-06-19 23:00:00'),
-(106, 8, 11, 105, 'final', 4.4, NULL, 'L\'étudiant Gabriel a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', '2025-06-14 23:00:00');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `evaluation_criteria`
---
-
-CREATE TABLE `evaluation_criteria` (
-  `id` int(11) NOT NULL,
-  `evaluation_id` int(11) NOT NULL,
-  `category` enum('technical','professional') NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `score` decimal(3,1) DEFAULT 0.0,
-  `comments` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `evaluation_scores`
---
-
-CREATE TABLE `evaluation_scores` (
-  `id` int(11) NOT NULL,
-  `evaluation_id` int(11) NOT NULL,
-  `technical_mastery` decimal(3,1) DEFAULT 0.0,
-  `work_quality` decimal(3,1) DEFAULT 0.0,
-  `problem_solving` decimal(3,1) DEFAULT 0.0,
-  `documentation` decimal(3,1) DEFAULT 0.0,
-  `autonomy` decimal(3,1) DEFAULT 0.0,
-  `communication` decimal(3,1) DEFAULT 0.0,
-  `team_integration` decimal(3,1) DEFAULT 0.0,
-  `deadline_respect` decimal(3,1) DEFAULT 0.0,
-  `technical_avg` decimal(3,1) DEFAULT 0.0,
-  `professional_avg` decimal(3,1) DEFAULT 0.0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `evaluations` (`id`, `assignment_id`, `evaluator_id`, `evaluatee_id`, `type`, `score`, `criteria_scores`, `technical_avg`, `professional_avg`, `comments`, `strengths`, `areas_for_improvement`, `next_steps`, `status`, `submission_date`, `updated_at`) VALUES
+(1, 1, 9, 14, 'mid_term', 2.6, '{\"technical_mastery\":{\"score\":4,\"comment\":\"Utilisation efficace de tous les outils\"},\"work_quality\":{\"score\":2.3,\"comment\":\"Travail de base acceptable\"},\"problem_solving\":{\"score\":3.1,\"comment\":\"Approche m\\u00e9thodique\"},\"documentation\":{\"score\":2.9,\"comment\":\"Documentation correcte\"},\"autonomy\":{\"score\":2.3,\"comment\":\"Demande souvent de l\'aide\"},\"communication\":{\"score\":2.1,\"comment\":\"Informations parfois incompl\\u00e8tes\"},\"team_integration\":{\"score\":2,\"comment\":\"Int\\u00e9gration partielle\"},\"deadline_respect\":{\"score\":2,\"comment\":\"Respect irr\\u00e9gulier des d\\u00e9lais\"}}', 3.1, 2.1, 'L\'étudiant montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', 'Améliorer la documentation\nParticiper plus activement aux réunions d\'équipe', 'submitted', '2023-11-29 23:00:00', '2023-11-29 23:00:00'),
+(2, 1, 14, 14, 'student', 3.6, '{\"technical_mastery\":{\"score\":3.7,\"comment\":\"Tr\\u00e8s bonne ma\\u00eetrise technique\"},\"work_quality\":{\"score\":3.4,\"comment\":\"Bonne qualit\\u00e9 de travail\"},\"problem_solving\":{\"score\":4.3,\"comment\":\"Tr\\u00e8s bonne capacit\\u00e9 \\u00e0 r\\u00e9soudre des probl\\u00e8mes\"},\"documentation\":{\"score\":3.2,\"comment\":\"Commentaires utiles\"},\"autonomy\":{\"score\":2.5,\"comment\":\"Travaille seul sur des t\\u00e2ches d\\u00e9finies\"},\"communication\":{\"score\":3.1,\"comment\":\"Expression claire\"},\"team_integration\":{\"score\":3.9,\"comment\":\"Collaboration active\"},\"deadline_respect\":{\"score\":4.1,\"comment\":\"Ponctualit\\u00e9 constante\"}}', 3.7, 3.4, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', 'Proposer des points d\'avancement hebdomadaires\nTenir un journal des tâches accomplies', 'submitted', '2023-12-02 23:00:00', '2023-12-02 23:00:00'),
+(3, 1, 9, 14, 'final', 4.0, '{\"technical_mastery\":{\"score\":4.2,\"comment\":\"Tr\\u00e8s bonne ma\\u00eetrise technique\"},\"work_quality\":{\"score\":4.1,\"comment\":\"Travail soign\\u00e9 et rigoureux\"},\"problem_solving\":{\"score\":3.4,\"comment\":\"Approche m\\u00e9thodique\"},\"documentation\":{\"score\":4,\"comment\":\"Commentaires d\\u00e9taill\\u00e9s\"},\"autonomy\":{\"score\":3.4,\"comment\":\"Demande de l\'aide \\u00e0 bon escient\"},\"communication\":{\"score\":3.5,\"comment\":\"Expression pr\\u00e9cise\"},\"team_integration\":{\"score\":4.6,\"comment\":\"Collaboration exemplaire\"},\"deadline_respect\":{\"score\":5,\"comment\":\"Anticipation des \\u00e9ch\\u00e9ances\"}}', 3.9, 4.1, 'L\'étudiant a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', 'Continuer à développer ses compétences en communication\nExplorer des domaines techniques complémentaires', 'submitted', '2024-02-22 23:00:00', '2024-02-22 23:00:00'),
+(4, 2, 10, 16, 'mid_term', 2.8, '{\"technical_mastery\":{\"score\":2.1,\"comment\":\"Connaissances de base pr\\u00e9sentes mais limit\\u00e9es\"},\"work_quality\":{\"score\":2.5,\"comment\":\"Bonne qualit\\u00e9 de travail\"},\"problem_solving\":{\"score\":2.5,\"comment\":\"Approche m\\u00e9thodique\"},\"documentation\":{\"score\":2,\"comment\":\"Commentaires basiques\"},\"autonomy\":{\"score\":2.6,\"comment\":\"Travaille seul sur des t\\u00e2ches d\\u00e9finies\"},\"communication\":{\"score\":3.7,\"comment\":\"Tr\\u00e8s bonne communication\"},\"team_integration\":{\"score\":2.7,\"comment\":\"Interactions positives\"},\"deadline_respect\":{\"score\":4,\"comment\":\"Ponctualit\\u00e9 constante\"}}', 2.3, 3.3, 'L\'étudiant montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', 'Améliorer la documentation\nParticiper plus activement aux réunions d\'équipe', 'submitted', '2023-11-29 23:00:00', '2023-11-29 23:00:00'),
+(5, 2, 16, 16, 'student', 3.5, '{\"technical_mastery\":{\"score\":4,\"comment\":\"Utilisation efficace de tous les outils\"},\"work_quality\":{\"score\":3,\"comment\":\"Bonne qualit\\u00e9 de travail\"},\"problem_solving\":{\"score\":3.7,\"comment\":\"Tr\\u00e8s bonne capacit\\u00e9 \\u00e0 r\\u00e9soudre des probl\\u00e8mes\"},\"documentation\":{\"score\":4.2,\"comment\":\"Commentaires d\\u00e9taill\\u00e9s\"},\"autonomy\":{\"score\":3.2,\"comment\":\"Demande de l\'aide \\u00e0 bon escient\"},\"communication\":{\"score\":3.3,\"comment\":\"Expression claire\"},\"team_integration\":{\"score\":3.5,\"comment\":\"Collaboration active\"},\"deadline_respect\":{\"score\":3,\"comment\":\"Retards rares\"}}', 3.7, 3.3, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', 'Proposer des points d\'avancement hebdomadaires\nTenir un journal des tâches accomplies', 'submitted', '2023-12-02 23:00:00', '2023-12-02 23:00:00'),
+(6, 2, 10, 16, 'final', 4.2, '{\"technical_mastery\":{\"score\":4.5,\"comment\":\"Expertise technique remarquable\"},\"work_quality\":{\"score\":4,\"comment\":\"Travail soign\\u00e9 et rigoureux\"},\"problem_solving\":{\"score\":3.8,\"comment\":\"Analyse pertinente\"},\"documentation\":{\"score\":4.5,\"comment\":\"Commentaires exhaustifs\"},\"autonomy\":{\"score\":3.1,\"comment\":\"Travaille seul sur des t\\u00e2ches d\\u00e9finies\"},\"communication\":{\"score\":4.3,\"comment\":\"Tr\\u00e8s bonne communication\"},\"team_integration\":{\"score\":4.5,\"comment\":\"Excellente int\\u00e9gration\"},\"deadline_respect\":{\"score\":5,\"comment\":\"Anticipation des \\u00e9ch\\u00e9ances\"}}', 4.2, 4.2, 'L\'étudiant a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', 'Continuer à développer ses compétences en communication\nExplorer des domaines techniques complémentaires', 'submitted', '2024-02-22 23:00:00', '2024-02-22 23:00:00'),
+(7, 3, 13, 18, 'mid_term', 3.0, '{\"technical_mastery\":{\"score\":2.2,\"comment\":\"Utilisation correcte des outils simples\"},\"work_quality\":{\"score\":3.2,\"comment\":\"Bonne qualit\\u00e9 de travail\"},\"problem_solving\":{\"score\":2.4,\"comment\":\"A besoin d\'aide pour les cas complexes\"},\"documentation\":{\"score\":3.5,\"comment\":\"Tr\\u00e8s bonne documentation\"},\"autonomy\":{\"score\":3.4,\"comment\":\"Demande de l\'aide \\u00e0 bon escient\"},\"communication\":{\"score\":2.5,\"comment\":\"Expression claire\"},\"team_integration\":{\"score\":3.8,\"comment\":\"Tr\\u00e8s bonne int\\u00e9gration\"},\"deadline_respect\":{\"score\":2.7,\"comment\":\"Respect satisfaisant des d\\u00e9lais\"}}', 2.8, 3.1, 'L\'étudiant montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', 'Améliorer la documentation\nParticiper plus activement aux réunions d\'équipe', 'submitted', '2023-11-29 23:00:00', '2023-11-29 23:00:00'),
+(8, 3, 18, 18, 'student', 3.3, '{\"technical_mastery\":{\"score\":4.2,\"comment\":\"Utilisation efficace de tous les outils\"},\"work_quality\":{\"score\":2.8,\"comment\":\"Travail conforme aux attentes\"},\"problem_solving\":{\"score\":3.1,\"comment\":\"Bonne capacit\\u00e9 d\'analyse\"},\"documentation\":{\"score\":2.8,\"comment\":\"Commentaires utiles\"},\"autonomy\":{\"score\":3.3,\"comment\":\"Demande de l\'aide \\u00e0 bon escient\"},\"communication\":{\"score\":2.7,\"comment\":\"Partage ad\\u00e9quat d\'informations\"},\"team_integration\":{\"score\":3.5,\"comment\":\"Collaboration active\"},\"deadline_respect\":{\"score\":4.2,\"comment\":\"Tr\\u00e8s bon respect des d\\u00e9lais\"}}', 3.2, 3.4, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', 'Proposer des points d\'avancement hebdomadaires\nTenir un journal des tâches accomplies', 'submitted', '2023-12-02 23:00:00', '2023-12-02 23:00:00'),
+(9, 3, 13, 18, 'final', 3.9, '{\"technical_mastery\":{\"score\":4.2,\"comment\":\"Utilisation efficace de tous les outils\"},\"work_quality\":{\"score\":3.8,\"comment\":\"Livrables pr\\u00e9cis et fiables\"},\"problem_solving\":{\"score\":3.4,\"comment\":\"R\\u00e9sout la plupart des probl\\u00e8mes\"},\"documentation\":{\"score\":5,\"comment\":\"Commentaires exhaustifs\"},\"autonomy\":{\"score\":3,\"comment\":\"Travaille seul sur des t\\u00e2ches d\\u00e9finies\"},\"communication\":{\"score\":4.7,\"comment\":\"Partage optimal des informations\"},\"team_integration\":{\"score\":3.5,\"comment\":\"Tr\\u00e8s bonne int\\u00e9gration\"},\"deadline_respect\":{\"score\":3.6,\"comment\":\"Tr\\u00e8s bon respect des d\\u00e9lais\"}}', 4.1, 3.7, 'L\'étudiant a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', 'Continuer à développer ses compétences en communication\nExplorer des domaines techniques complémentaires', 'submitted', '2024-02-22 23:00:00', '2024-02-22 23:00:00'),
+(10, 4, 9, 17, 'mid_term', 3.3, '{\"technical_mastery\":{\"score\":3.1,\"comment\":\"Bonne ma\\u00eetrise des technologies principales\"},\"work_quality\":{\"score\":2.2,\"comment\":\"Plusieurs corrections n\\u00e9cessaires\"},\"problem_solving\":{\"score\":3.9,\"comment\":\"Tr\\u00e8s bonne capacit\\u00e9 \\u00e0 r\\u00e9soudre des probl\\u00e8mes\"},\"documentation\":{\"score\":3.7,\"comment\":\"Documentation claire et pr\\u00e9cise\"},\"autonomy\":{\"score\":2.8,\"comment\":\"Demande de l\'aide \\u00e0 bon escient\"},\"communication\":{\"score\":3.6,\"comment\":\"Partage proactif d\'informations\"},\"team_integration\":{\"score\":3.5,\"comment\":\"Appr\\u00e9ci\\u00e9 par l\'\\u00e9quipe\"},\"deadline_respect\":{\"score\":3.6,\"comment\":\"Planification efficace\"}}', 3.2, 3.4, 'L\'étudiant montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', 'Améliorer la documentation\nParticiper plus activement aux réunions d\'équipe', 'submitted', '2023-11-29 23:00:00', '2023-11-29 23:00:00'),
+(11, 4, 17, 17, 'student', 3.4, '{\"technical_mastery\":{\"score\":4.3,\"comment\":\"Comp\\u00e9tences techniques avanc\\u00e9es\"},\"work_quality\":{\"score\":3.5,\"comment\":\"Travail soign\\u00e9 et rigoureux\"},\"problem_solving\":{\"score\":2.8,\"comment\":\"Approche m\\u00e9thodique\"},\"documentation\":{\"score\":2.6,\"comment\":\"Commentaires utiles\"},\"autonomy\":{\"score\":3.7,\"comment\":\"Prend des initiatives pertinentes\"},\"communication\":{\"score\":2.7,\"comment\":\"Bonne communication\"},\"team_integration\":{\"score\":3.1,\"comment\":\"Bonne int\\u00e9gration\"},\"deadline_respect\":{\"score\":4,\"comment\":\"Tr\\u00e8s bon respect des d\\u00e9lais\"}}', 3.3, 3.4, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', 'Proposer des points d\'avancement hebdomadaires\nTenir un journal des tâches accomplies', 'submitted', '2023-12-02 23:00:00', '2023-12-02 23:00:00'),
+(12, 4, 9, 17, 'final', 4.1, '{\"technical_mastery\":{\"score\":4.9,\"comment\":\"Ma\\u00eetrise parfaite de l\'environnement technique\"},\"work_quality\":{\"score\":3.1,\"comment\":\"Bonne qualit\\u00e9 de travail\"},\"problem_solving\":{\"score\":4.1,\"comment\":\"Analyse pertinente\"},\"documentation\":{\"score\":3.4,\"comment\":\"Documentation correcte\"},\"autonomy\":{\"score\":5,\"comment\":\"Fait preuve d\'initiative et d\'anticipation\"},\"communication\":{\"score\":4.5,\"comment\":\"Communication excellente\"},\"team_integration\":{\"score\":3,\"comment\":\"Interactions positives\"},\"deadline_respect\":{\"score\":4.7,\"comment\":\"Planification exemplaire\"}}', 3.9, 4.3, 'L\'étudiant a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', 'Continuer à développer ses compétences en communication\nExplorer des domaines techniques complémentaires', 'submitted', '2024-02-22 23:00:00', '2024-02-22 23:00:00'),
+(13, 5, 11, 124, 'mid_term', 3.3, '{\"technical_mastery\":{\"score\":2.6,\"comment\":\"Utilise correctement les outils du projet\"},\"work_quality\":{\"score\":3.3,\"comment\":\"Bonne qualit\\u00e9 de travail\"},\"problem_solving\":{\"score\":3.4,\"comment\":\"Bonne capacit\\u00e9 d\'analyse\"},\"documentation\":{\"score\":3.4,\"comment\":\"Commentaires utiles\"},\"autonomy\":{\"score\":3.5,\"comment\":\"G\\u00e8re bien son temps de travail\"},\"communication\":{\"score\":4,\"comment\":\"Partage proactif d\'informations\"},\"team_integration\":{\"score\":2.3,\"comment\":\"Collaboration \\u00e0 am\\u00e9liorer\"},\"deadline_respect\":{\"score\":3.8,\"comment\":\"Ponctualit\\u00e9 constante\"}}', 3.2, 3.4, 'L\'étudiant montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', 'Améliorer la documentation\nParticiper plus activement aux réunions d\'équipe', 'submitted', '2023-11-29 23:00:00', '2023-11-29 23:00:00'),
+(14, 5, 124, 124, 'student', 3.4, '{\"technical_mastery\":{\"score\":3.9,\"comment\":\"Tr\\u00e8s bonne ma\\u00eetrise technique\"},\"work_quality\":{\"score\":4.5,\"comment\":\"Excellente qualit\\u00e9 de travail\"},\"problem_solving\":{\"score\":3,\"comment\":\"Approche m\\u00e9thodique\"},\"documentation\":{\"score\":2.7,\"comment\":\"Documentation correcte\"},\"autonomy\":{\"score\":2.9,\"comment\":\"Travaille seul sur des t\\u00e2ches d\\u00e9finies\"},\"communication\":{\"score\":3.7,\"comment\":\"Expression pr\\u00e9cise\"},\"team_integration\":{\"score\":2.7,\"comment\":\"Collaboration satisfaisante\"},\"deadline_respect\":{\"score\":3.7,\"comment\":\"Tr\\u00e8s bon respect des d\\u00e9lais\"}}', 3.5, 3.3, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', 'Proposer des points d\'avancement hebdomadaires\nTenir un journal des tâches accomplies', 'submitted', '2023-12-02 23:00:00', '2023-12-02 23:00:00'),
+(15, 5, 11, 124, 'final', 3.8, '{\"technical_mastery\":{\"score\":4.4,\"comment\":\"Utilisation efficace de tous les outils\"},\"work_quality\":{\"score\":3.5,\"comment\":\"Tr\\u00e8s bonne qualit\\u00e9\"},\"problem_solving\":{\"score\":4.5,\"comment\":\"Excellente capacit\\u00e9 d\'analyse et r\\u00e9solution\"},\"documentation\":{\"score\":3.2,\"comment\":\"Commentaires utiles\"},\"autonomy\":{\"score\":4.2,\"comment\":\"G\\u00e8re bien son temps de travail\"},\"communication\":{\"score\":3.2,\"comment\":\"Bonne communication\"},\"team_integration\":{\"score\":3,\"comment\":\"Interactions positives\"},\"deadline_respect\":{\"score\":4.4,\"comment\":\"Ponctualit\\u00e9 constante\"}}', 3.9, 3.7, 'L\'étudiant a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', 'Continuer à développer ses compétences en communication\nExplorer des domaines techniques complémentaires', 'submitted', '2024-02-22 23:00:00', '2024-02-22 23:00:00'),
+(16, 9, 10, 15, 'mid_term', 2.9, '{\"technical_mastery\":{\"score\":3.6,\"comment\":\"Comp\\u00e9tences techniques avanc\\u00e9es\"},\"work_quality\":{\"score\":2.3,\"comment\":\"Plusieurs corrections n\\u00e9cessaires\"},\"problem_solving\":{\"score\":3.1,\"comment\":\"Approche m\\u00e9thodique\"},\"documentation\":{\"score\":3,\"comment\":\"Documentation fonctionnelle\"},\"autonomy\":{\"score\":2.3,\"comment\":\"Autonomie limit\\u00e9e\"},\"communication\":{\"score\":2.9,\"comment\":\"Expression claire\"},\"team_integration\":{\"score\":3.5,\"comment\":\"Collaboration active\"},\"deadline_respect\":{\"score\":2,\"comment\":\"Planification \\u00e0 am\\u00e9liorer\"}}', 3.0, 2.7, 'L\'étudiant montre une progression satisfaisante. Ses compétences techniques sont en développement et son intégration dans l\'équipe est bonne. Il doit améliorer sa communication et sa documentation.', 'Bonne maîtrise technique, autonomie dans les tâches assignées', 'Documentation du code\nCommunication proactive des problèmes\nParticipation aux réunions', 'Améliorer la documentation\nParticiper plus activement aux réunions d\'équipe', 'submitted', '2023-11-29 23:00:00', '2023-11-29 23:00:00'),
+(17, 9, 15, 15, 'student', 3.3, '{\"technical_mastery\":{\"score\":3.7,\"comment\":\"Tr\\u00e8s bonne ma\\u00eetrise technique\"},\"work_quality\":{\"score\":2.9,\"comment\":\"Peu d\'erreurs dans les livrables\"},\"problem_solving\":{\"score\":4.1,\"comment\":\"Analyse pertinente\"},\"documentation\":{\"score\":3.8,\"comment\":\"Tr\\u00e8s bonne documentation\"},\"autonomy\":{\"score\":3.2,\"comment\":\"Demande de l\'aide \\u00e0 bon escient\"},\"communication\":{\"score\":2.7,\"comment\":\"Partage ad\\u00e9quat d\'informations\"},\"team_integration\":{\"score\":3.2,\"comment\":\"Interactions positives\"},\"deadline_respect\":{\"score\":2.7,\"comment\":\"Bonne planification\"}}', 3.6, 3.0, 'Je pense avoir bien progressé dans mon stage. J\'ai acquis de nouvelles compétences techniques et j\'ai pu contribuer à plusieurs projets. Je dois améliorer ma communication avec l\'équipe.', 'Apprentissage rapide des technologies, implication dans les projets', 'Communication plus régulière\nMeilleure organisation du temps', 'Proposer des points d\'avancement hebdomadaires\nTenir un journal des tâches accomplies', 'submitted', '2023-12-02 23:00:00', '2023-12-02 23:00:00'),
+(18, 9, 10, 15, 'final', 4.0, '{\"technical_mastery\":{\"score\":4.2,\"comment\":\"Comp\\u00e9tences techniques avanc\\u00e9es\"},\"work_quality\":{\"score\":4.4,\"comment\":\"Travail soign\\u00e9 et rigoureux\"},\"problem_solving\":{\"score\":3.4,\"comment\":\"R\\u00e9sout la plupart des probl\\u00e8mes\"},\"documentation\":{\"score\":4.9,\"comment\":\"Documentation excellente\"},\"autonomy\":{\"score\":3.1,\"comment\":\"Demande de l\'aide \\u00e0 bon escient\"},\"communication\":{\"score\":3.1,\"comment\":\"Partage ad\\u00e9quat d\'informations\"},\"team_integration\":{\"score\":4.8,\"comment\":\"Collaboration exemplaire\"},\"deadline_respect\":{\"score\":3.7,\"comment\":\"Planification efficace\"}}', 4.2, 3.7, 'L\'étudiant a réalisé d\'excellents progrès tout au long de son stage. Il a su s\'adapter aux défis techniques et a démontré une bonne capacité d\'intégration dans l\'équipe. Ses compétences techniques se sont nettement améliorées.', 'Maîtrise technique approfondie, autonomie, capacité d\'analyse et résolution de problèmes', 'Communication technique avec les équipes non-techniques\nPrise de recul sur les solutions implémentées', 'Continuer à développer ses compétences en communication\nExplorer des domaines techniques complémentaires', 'submitted', '2024-02-22 23:00:00', '2024-02-22 23:00:00');
 
 -- --------------------------------------------------------
 
@@ -931,33 +897,6 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `relat
 -- --------------------------------------------------------
 
 --
--- Table structure for table `predefined_criteria`
---
-
-CREATE TABLE `predefined_criteria` (
-  `id` int(11) NOT NULL,
-  `category` enum('technical','professional') NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `description` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `predefined_criteria`
---
-
-INSERT INTO `predefined_criteria` (`id`, `category`, `name`, `description`) VALUES
-(1, 'technical', 'Maîtrise des technologies', 'Capacité à utiliser efficacement les technologies et outils requis'),
-(2, 'technical', 'Qualité du travail', 'Précision, rigueur et fiabilité des livrables'),
-(3, 'technical', 'Résolution de problèmes', 'Capacité à identifier et résoudre les problèmes techniques'),
-(4, 'technical', 'Documentation', 'Qualité et clarté de la documentation produite'),
-(5, 'professional', 'Autonomie', 'Capacité à travailler de manière indépendante'),
-(6, 'professional', 'Communication', 'Clarté et efficacité dans la communication orale et écrite'),
-(7, 'professional', 'Intégration dans l\'équipe', 'Capacité à travailler en équipe et collaborer'),
-(8, 'professional', 'Respect des délais', 'Ponctualité et respect des échéances fixées');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `students`
 --
 
@@ -1293,7 +1232,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_name`, `role`, `department`, `profile_image`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-23 07:32:07', '2025-06-23 07:32:07'),
+(1, 'admin', '$2y$10$iQ7C/0pvxFYDHQvZh59P8uvtcSslbiSJyF4frwYSiN6CxzK/nTU1.', 'admin@example.com', 'Admin', 'System', 'admin', NULL, NULL, '2025-06-03 10:43:29', '2025-06-23 11:36:16', '2025-06-23 11:36:16'),
 (3, 'admin2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin2@example.com', 'Admin', 'Secondaire', 'admin', 'Administration', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (4, 'teacher1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher1@example.com', 'Paul', 'Martin', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
 (5, 'teacher2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'teacher2@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 08:42:49', '2025-06-07 08:42:49', NULL),
@@ -1304,12 +1243,12 @@ INSERT INTO `users` (`id`, `username`, `password`, `email`, `first_name`, `last_
 (10, 'prof_dubois', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_dubois@example.com', 'Marie', 'Dubois', 'teacher', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (11, 'prof_petit', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_petit@example.com', 'Jean', 'Petit', 'teacher', 'Mathématiques', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (12, 'prof_bernard', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'prof_bernard@example.com', 'Sophie', 'Bernard', 'teacher', 'Électronique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
-(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-23 08:02:32', '2025-06-23 08:02:32'),
+(13, 'prof_robert', '$2y$10$ZRLuMdm3wselkH92Sv6x4.Rw9ubtgOTPKal2sOY8FT5SnQ4Kgdrp.', 'prof_robert@example.com', 'Thomas', 'Robert', 'teacher', 'Réseaux', NULL, '2025-06-07 09:42:54', '2025-06-23 19:22:44', '2025-06-23 19:22:44'),
 (14, 'etud_dupont', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_dupont@example.com', 'Lucas', 'Dupont', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (15, 'etud_leroy', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_leroy@example.com', 'Emma', 'Leroy', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (16, 'etud_moreau', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etud_moreau@example.com', 'Louis', 'Moreau', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-07 09:42:54', NULL),
 (17, 'etud_fournier', '$2y$10$PDqgdfSLyx9eDLFbi/lbR.2XOrNQBmvQ5oQv5P1OaBCPX9l3FRxty', 'etud_fournier@example.com', 'Chloé', 'Fournier', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-10 10:04:00', NULL),
-(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-23 08:01:48', '2025-06-23 08:01:48'),
+(18, 'etud_simon', '$2y$10$uPZ35WZl2io5x6eon6JN6OSKM.GZNg3XMzc4mDIImn3TY9vcOg7K6', 'etud_simon@example.com', 'Hugo', 'Simon', 'student', 'Informatique', NULL, '2025-06-07 09:42:54', '2025-06-23 19:00:38', '2025-06-23 19:00:38'),
 (50, 'coordo', '$2y$10$hD8jR6DTr7T8y1K3F7Ojs.WWQH6MTmXdmvEYrN/ma2crI9p/NpHJe', 'coordo@gmail.com', 'Coordo', 'Dansia', 'coordinator', '', NULL, '2025-06-08 19:11:39', '2025-06-12 08:54:16', '2025-06-12 08:54:16'),
 (51, 'hbonnet17', '$2y$10$Tpbea7gOI3fpNJkZCoPHfOSn8Kil//DT.pvcg0.FdF6MFXQP6bz6q', 'hbonnet17@example.com', 'Hugo', 'Bonnet', 'student', 'Économie', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
 (52, 'gfournier15', '$2y$10$BUBawhQhtIbTS9kARJi.AeBBiAr7VkN/msHAONtxFvIXquPCqHX1G', 'gfournier15@example.com', 'Gabriel', 'Fournier', 'student', 'Médecine', NULL, '2025-06-10 06:44:57', '2025-06-10 06:44:57', NULL),
@@ -1538,27 +1477,6 @@ INSERT INTO `user_preferences` (`id`, `user_id`, `preference_key`, `preference_v
 -- (See below for the actual view)
 --
 CREATE TABLE `view_evaluation_scores` (
-`id` int(11)
-,`evaluation_id` int(11)
-,`technical_mastery` decimal(3,1)
-,`work_quality` decimal(3,1)
-,`problem_solving` decimal(3,1)
-,`documentation` decimal(3,1)
-,`autonomy` decimal(3,1)
-,`communication` decimal(3,1)
-,`team_integration` decimal(3,1)
-,`deadline_respect` decimal(3,1)
-,`technical_avg` decimal(3,1)
-,`professional_avg` decimal(3,1)
-,`created_at` timestamp
-,`updated_at` timestamp
-,`assignment_id` int(11)
-,`evaluation_type` enum('mid_term','final','supervisor','teacher','student')
-,`submission_date` timestamp
-,`student_id` int(11)
-,`teacher_id` int(11)
-,`student_user_id` int(11)
-,`teacher_user_id` int(11)
 );
 
 -- --------------------------------------------------------
@@ -1638,21 +1556,6 @@ ALTER TABLE `evaluations`
   ADD KEY `evaluatee_id` (`evaluatee_id`);
 
 --
--- Indexes for table `evaluation_criteria`
---
-ALTER TABLE `evaluation_criteria`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_evaluation_criteria_evaluation` (`evaluation_id`),
-  ADD KEY `idx_evaluation_criteria_category` (`category`);
-
---
--- Indexes for table `evaluation_scores`
---
-ALTER TABLE `evaluation_scores`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `evaluation_id` (`evaluation_id`);
-
---
 -- Indexes for table `internships`
 --
 ALTER TABLE `internships`
@@ -1704,13 +1607,6 @@ ALTER TABLE `message_recipients`
 ALTER TABLE `notifications`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `predefined_criteria`
---
-ALTER TABLE `predefined_criteria`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `category` (`category`,`name`);
 
 --
 -- Indexes for table `students`
@@ -1839,19 +1735,7 @@ ALTER TABLE `documents`
 -- AUTO_INCREMENT for table `evaluations`
 --
 ALTER TABLE `evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
-
---
--- AUTO_INCREMENT for table `evaluation_criteria`
---
-ALTER TABLE `evaluation_criteria`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `evaluation_scores`
---
-ALTER TABLE `evaluation_scores`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `internships`
@@ -1894,12 +1778,6 @@ ALTER TABLE `message_recipients`
 --
 ALTER TABLE `notifications`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-
---
--- AUTO_INCREMENT for table `predefined_criteria`
---
-ALTER TABLE `predefined_criteria`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `students`
@@ -2007,18 +1885,6 @@ ALTER TABLE `evaluations`
   ADD CONSTRAINT `evaluations_ibfk_1` FOREIGN KEY (`assignment_id`) REFERENCES `assignments` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `evaluations_ibfk_2` FOREIGN KEY (`evaluator_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `evaluations_ibfk_3` FOREIGN KEY (`evaluatee_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `evaluation_criteria`
---
-ALTER TABLE `evaluation_criteria`
-  ADD CONSTRAINT `evaluation_criteria_ibfk_1` FOREIGN KEY (`evaluation_id`) REFERENCES `evaluations` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `evaluation_scores`
---
-ALTER TABLE `evaluation_scores`
-  ADD CONSTRAINT `evaluation_scores_ibfk_1` FOREIGN KEY (`evaluation_id`) REFERENCES `evaluations` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `internships`

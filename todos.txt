@@ -27,6 +27,7 @@
      ✓ Créer la vue API pour les étudiants (evaluations-api.php)
      ✓ Créer la vue API pour les tuteurs (evaluations-api.php)
      ✓ Corriger l'affichage des évaluations dans views/tutor/evaluations.php et views/student/evaluations.php
+     ✓ Améliorer l'affichage des statistiques pour inclure toutes les compétences (technique, communication, travail d'équipe, autonomie)
 
 ● En analysant votre système de tutorat, j'ai identifié plusieurs problèmes critiques qui nécessitent des actions
   pour améliorer la robustesse, la sécurité et la qualité du code. Voici un résumé des actions prioritaires à
@@ -85,8 +86,9 @@
      - Vue tuteur : Gestion complète des évaluations pour les étudiants assignés
   
   5. Statistiques et visualisation :
-     - Calculs automatiques des moyennes techniques et professionnelles
-     - Graphiques d'évolution avec Chart.js
+     - Calculs automatiques des moyennes pour quatre catégories de compétences : technique, communication, travail d'équipe, et autonomie
+     - Graphiques d'évolution avec Chart.js montrant la progression dans chaque catégorie
+     - Interface améliorée avec code couleur par catégorie de compétence
   
   Cette refactorisation a permis d'éliminer les incohérences et redondances qui existaient
   auparavant entre les différentes approches de stockage des critères d'évaluation.

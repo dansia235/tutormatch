@@ -40,46 +40,15 @@ if (class_exists('Evaluation')) {
     $evaluationModel = new Evaluation($db);
 }
 
-// Fonction d'aide pour normaliser les types d'évaluation
-function normalizeEvaluationType($type) {
-    switch (strtolower($type)) {
-        case 'mid-term':
-        case 'midterm':
-        case 'mid_term':
-            return 'mid_term';
-        case 'self':
-        case 'self_evaluation':
-        case 'student':
-            return 'student';
-        case 'enterprise':
-        case 'company':
-            return 'company';
-        default:
-            return $type;
-    }
-}
-
 // Initialiser les variables
 $selectedStudent = null;
 $selectedAssignment = null;
 $studentEvaluations = [];
-// Types d'évaluation - inclure toutes les variations possibles
-$evaluationTypes = [
-    'mid_term' => 'Mi-parcours', 
-    'mid-term' => 'Mi-parcours', 
-    'midterm' => 'Mi-parcours',
-    'final' => 'Finale', 
-    'company' => 'Entreprise', 
-    'enterprise' => 'Entreprise',
-    'student' => 'Auto-évaluation',
-    'self' => 'Auto-évaluation'
-];
+$evaluationTypes = ['mid_term' => 'Mi-parcours', 'final' => 'Finale', 'company' => 'Entreprise', 'student' => 'Auto-évaluation'];
 
 // Filtre par étudiant
 $studentFilter = $_GET['student_id'] ?? null;
 $typeFilter = $_GET['type'] ?? 'all';
-$normalizedTypeFilter = normalizeEvaluationType($typeFilter);
-error_log("Type filter: " . $typeFilter . ", Normalized: " . $normalizedTypeFilter);
 
 // Récupérer l'étudiant sélectionné
 if ($studentFilter) {
@@ -127,79 +96,58 @@ if ($studentFilter) {
                 }
             }
             
-            // Appeler directement les modèles au lieu d'utiliser l'API
-            error_log("Récupération des évaluations pour l'étudiant ID: " . $studentId);
+            // Essayer de détecter le chemin du serveur
+            $serverRoot = isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : "";
+            $apiPath = $serverRoot . "/tutoring/api/evaluations/get-student-evaluations.php";
+            $apiUrl = "/tutoring/api/evaluations/get-student-evaluations.php?student_id=" . $studentId;
             
-            // Simuler la réponse de l'API en appelant directement les méthodes
-            $studentEvaluations = [];
-            $httpCode = 200;
+            error_log("Appel API URL: " . $apiUrl . " - ID étudiant utilisé: " . $studentId . " - Chemin API absolu: " . $apiPath);
             
-            try {
-                // Récupérer les évaluations via le modèle
-                $evaluations = $evaluationModel->getByStudentId($studentId);
+            // Utiliser cURL pour appeler l'API
+            $apiResponse = '';
+            $httpCode = 0;
+            
+            // Vérifier si cURL est disponible
+            if (function_exists('curl_init')) {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $apiUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id()); // Transmettre la session pour l'authentification
                 
-                // Enrichir les données comme le fait l'API
-                foreach ($evaluations as $evaluation) {
-                    // Type d'évaluation formaté
-                    $evaluationType = '';
-                    switch($evaluation['type']) {
-                        case 'mid_term': $evaluationType = 'Mi-parcours'; break;
-                        case 'final': $evaluationType = 'Finale'; break;
-                        case 'student': $evaluationType = 'Auto-évaluation'; break;
-                        case 'supervisor': $evaluationType = 'Superviseur'; break;
-                        case 'teacher': $evaluationType = 'Tuteur'; break;
-                        default: $evaluationType = ucfirst($evaluation['type']); break;
-                    }
-                    
-                    // Décoder les critères si nécessaire
-                    if (isset($evaluation['criteria_scores']) && is_string($evaluation['criteria_scores'])) {
-                        $evaluation['criteria_scores'] = json_decode($evaluation['criteria_scores'], true);
-                    }
-                    
-                    // Créer une entrée enrichie
-                    $enrichedEvaluation = [
-                        'id' => $evaluation['id'],
-                        'assignment_id' => $evaluation['assignment_id'],
-                        'type' => $evaluation['type'],
-                        'type_name' => $evaluationType,
-                        'status' => $evaluation['status'] ?? 'submitted',
-                        'score' => floatval($evaluation['score'] ?? 0),
-                        'criteria_scores' => $evaluation['criteria_scores'] ?? [],
-                        'comments' => $evaluation['feedback'] ?? $evaluation['comments'] ?? '',
-                        'strengths' => $evaluation['strengths'] ?? '',
-                        'areas_for_improvement' => $evaluation['areas_for_improvement'] ?? $evaluation['areas_to_improve'] ?? '',
-                        'next_steps' => $evaluation['next_steps'] ?? '',
-                        'submission_date' => $evaluation['submission_date'] ?? $evaluation['created_at'] ?? date('Y-m-d'),
-                        'evaluator_name' => $user['first_name'] . ' ' . $user['last_name']
-                    ];
-                    
-                    $studentEvaluations[] = $enrichedEvaluation;
+                // Capture des erreurs cURL
+                $apiResponse = curl_exec($ch);
+                
+                if ($apiResponse === false) {
+                    error_log("Erreur cURL: " . curl_error($ch));
                 }
                 
-                // Créer une réponse similaire à l'API
-                $responseData = [
-                    'success' => true,
-                    'evaluations' => $studentEvaluations
-                ];
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+            } else {
+                // Alternative si cURL n'est pas disponible - inclusion directe
+                error_log("cURL n'est pas disponible, inclusion directe du fichier API");
                 
-                error_log("Nombre d'évaluations récupérées: " . count($studentEvaluations));
-                
-            } catch (Exception $e) {
-                error_log("Erreur lors de la récupération des évaluations: " . $e->getMessage());
-                $httpCode = 500;
-                $responseData = [
-                    'success' => false,
-                    'message' => 'Erreur lors de la récupération des évaluations'
-                ];
+                // Capture la sortie
+                ob_start();
+                $_GET['student_id'] = $studentId;
+                include_once(__DIR__ . '/../../api/evaluations/get-student-evaluations.php');
+                $apiResponse = ob_get_clean();
+                $httpCode = 200; // Simuler un code HTTP 200
             }
             
+            error_log("Code HTTP: " . $httpCode . ", Taille de la réponse: " . strlen($apiResponse));
+            
             // Traiter la réponse si elle est valide
-            if ($httpCode === 200 && isset($responseData['success']) && $responseData['success']) {
-                // Les évaluations sont déjà dans $studentEvaluations
+            if ($httpCode === 200 && !empty($apiResponse)) {
+                $responseData = json_decode($apiResponse, true);
+                
+                if (isset($responseData['success']) && $responseData['success'] && isset($responseData['evaluations'])) {
+                    $studentEvaluations = $responseData['evaluations'];
                     
                     // Débogage - log des types d'évaluation
                     foreach ($studentEvaluations as $eval) {
-                        error_log("Évaluation trouvée de type: " . ($eval['type'] ?? 'non défini'));
+                        error_log("API a retourné une évaluation de type: " . ($eval['type'] ?? 'non défini'));
                     }
                     
                     // Adapter le format des données si nécessaire
@@ -209,20 +157,33 @@ if ($studentFilter) {
                             $eval['score'] = round($eval['score'] / 4, 1);
                         }
                         
-                        // Préparer les critères pour l'affichage
+                        // Préparer les critères pour l'affichage si ce n'est pas déjà fait
                         if (!isset($eval['criteria']) || !is_array($eval['criteria'])) {
                             $eval['criteria'] = [];
                             
-                            if (isset($eval['criteria_scores']) && is_array($eval['criteria_scores'])) {
-                                foreach ($eval['criteria_scores'] as $key => $value) {
-                                    $score = is_array($value) ? ($value['score'] ?? 0) : $value;
-                                    $eval['criteria'][] = [
-                                        'name' => ucfirst(str_replace('_', ' ', $key)),
-                                        'score' => $score,
-                                        'comment' => is_array($value) ? ($value['comment'] ?? '') : ''
-                                    ];
+                            if (isset($eval['criteria_scores'])) {
+                                $criteriaScores = is_array($eval['criteria_scores']) ? 
+                                    $eval['criteria_scores'] : 
+                                    json_decode($eval['criteria_scores'], true);
+                                
+                                if (is_array($criteriaScores)) {
+                                    foreach ($criteriaScores as $key => $value) {
+                                        $score = is_array($value) ? ($value['score'] ?? 0) : $value;
+                                        $eval['criteria'][] = [
+                                            'name' => ucfirst(str_replace('_', ' ', $key)),
+                                            'score' => $score,
+                                            'comment' => is_array($value) ? ($value['comment'] ?? '') : ''
+                                        ];
+                                    }
                                 }
                             }
+                        }
+                        
+                        // Ajouter les autres champs si manquants
+                        if (!isset($eval['evaluator_name']) && isset($eval['evaluator']['name'])) {
+                            $eval['evaluator_name'] = $eval['evaluator']['name'];
+                        } else if (!isset($eval['evaluator_name'])) {
+                            $eval['evaluator_name'] = $user['first_name'] . ' ' . $user['last_name'];
                         }
                         
                         // Gérer les dates
@@ -240,37 +201,60 @@ if ($studentFilter) {
                     
                     // Filtrer par type si nécessaire
                     if ($typeFilter !== 'all') {
-                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter, $normalizedTypeFilter) {
-                            // Normaliser le type de l'évaluation pour la comparaison
-                            $evalType = isset($eval['type']) ? normalizeEvaluationType($eval['type']) : '';
-                            error_log("API - Filtrage - Type d'évaluation: " . ($eval['type'] ?? 'non défini') . 
-                                     ", Normalisé: " . $evalType . 
-                                     ", Comparé avec: " . $typeFilter . " / " . $normalizedTypeFilter);
-                            
-                            // Comparer avec le type normalisé
-                            return isset($eval['type']) && $evalType === $normalizedTypeFilter;
+                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter) {
+                            // Débogage pour le filtre de type
+                            error_log("Filtrage - type d'évaluation: " . ($eval['type'] ?? 'non défini') . " vs filtre: " . $typeFilter);
+                            return isset($eval['type']) && $eval['type'] === $typeFilter;
                         });
                         $studentEvaluations = array_values($studentEvaluations); // Réindexer le tableau
                     }
                     
-                    // Pas de dédoublonnage par type ici, garder toutes les évaluations
+                    // Organiser les évaluations par type pour éviter les doublons
+                    $evaluationsByType = [];
+                    foreach ($studentEvaluations as $eval) {
+                        if (!isset($eval['type'])) continue;
+                        
+                        // Si on a déjà une évaluation de ce type, comparer les dates pour garder la plus récente
+                        if (isset($evaluationsByType[$eval['type']])) {
+                            $existingDate = new DateTime($evaluationsByType[$eval['type']]['submission_date'] ?? 
+                                                        $evaluationsByType[$eval['type']]['created_at'] ?? 
+                                                        $evaluationsByType[$eval['type']]['date'] ?? '2000-01-01');
+                            
+                            $newDate = new DateTime($eval['submission_date'] ?? 
+                                                   $eval['created_at'] ?? 
+                                                   $eval['date'] ?? '2000-01-01');
+                            
+                            // Garder la plus récente
+                            if ($newDate > $existingDate) {
+                                $evaluationsByType[$eval['type']] = $eval;
+                            }
+                        } else {
+                            $evaluationsByType[$eval['type']] = $eval;
+                        }
+                    }
                     
-                    // Débogage des évaluations après filtrage
-                    error_log("Nombre d'évaluations après filtrage: " . count($studentEvaluations));
+                    // Reconvertir en tableau indexé pour l'affichage
+                    $studentEvaluations = array_values($evaluationsByType);
+                    
+                    // Débogage des évaluations après filtrage et dédoublonnage
+                    error_log("Nombre d'évaluations après filtrage et dédoublonnage: " . count($studentEvaluations));
                     foreach ($studentEvaluations as $index => $eval) {
                         error_log("Évaluation #" . $index . " - Type: " . ($eval['type'] ?? 'non défini') . 
                                 ", Score: " . ($eval['score'] ?? 'non défini') . 
                                 ", Date: " . ($eval['submission_date'] ?? $eval['created_at'] ?? $eval['date'] ?? 'non définie'));
                     }
+                } else {
+                    error_log("Erreur lors de la récupération des évaluations via l'API: " . 
+                              (isset($responseData['message']) ? $responseData['message'] : 'Réponse invalide'));
+                }
             } else {
-                error_log("Erreur lors de la récupération des évaluations: " . 
-                          (isset($responseData['message']) ? $responseData['message'] : 'Erreur inconnue'));
+                error_log("Erreur HTTP " . $httpCode . " lors de l'appel à l'API d'évaluations");
                 
                 // Fallback: récupérer directement depuis le modèle
-                if ($evaluationModel && isset($selectedStudent['student_id'])) {
-                    error_log("Tentative de récupération directe via le modèle Evaluation avec student_id: " . $selectedStudent['student_id']);
-                    // Utiliser getByStudentId avec le bon ID étudiant pour récupérer toutes les évaluations de l'étudiant
-                    $studentEvaluations = $evaluationModel->getByStudentId($selectedStudent['student_id']);
+                if ($evaluationModel && isset($selectedStudent['id'])) {
+                    error_log("Tentative de récupération directe via le modèle Evaluation");
+                    // Utiliser getByStudentId au lieu de getByAssignmentId pour récupérer toutes les évaluations de l'étudiant
+                    $studentEvaluations = $evaluationModel->getByStudentId($selectedStudent['id']);
                     
                     // Adapter le format des données si nécessaire
                     foreach ($studentEvaluations as &$eval) {
@@ -287,108 +271,45 @@ if ($studentFilter) {
                         error_log("Fallback - Evaluation trouvée de type: " . $eval['type']);
                     }
                     
-                    // Pas de dédoublonnage par type ici, garder toutes les évaluations
+                    // Organiser les évaluations par type pour éviter les doublons
+                    $evaluationsByType = [];
+                    foreach ($studentEvaluations as $eval) {
+                        if (!isset($eval['type'])) continue;
+                        
+                        // Si on a déjà une évaluation de ce type, comparer les dates pour garder la plus récente
+                        if (isset($evaluationsByType[$eval['type']])) {
+                            $existingDate = new DateTime($evaluationsByType[$eval['type']]['submission_date'] ?? 
+                                                        $evaluationsByType[$eval['type']]['created_at'] ?? 
+                                                        $evaluationsByType[$eval['type']]['date'] ?? '2000-01-01');
+                            
+                            $newDate = new DateTime($eval['submission_date'] ?? 
+                                                   $eval['created_at'] ?? 
+                                                   $eval['date'] ?? '2000-01-01');
+                            
+                            // Garder la plus récente
+                            if ($newDate > $existingDate) {
+                                $evaluationsByType[$eval['type']] = $eval;
+                            }
+                        } else {
+                            $evaluationsByType[$eval['type']] = $eval;
+                        }
+                    }
+                    
+                    // Reconvertir en tableau indexé pour l'affichage
+                    $studentEvaluations = array_values($evaluationsByType);
                     
                     // Filtrer par type si nécessaire
                     if ($typeFilter !== 'all') {
-                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter, $normalizedTypeFilter) {
-                            // Normaliser le type de l'évaluation pour la comparaison
-                            $evalType = normalizeEvaluationType($eval['type']);
-                            error_log("Filtrage - Type d'évaluation: " . $eval['type'] . 
-                                     ", Normalisé: " . $evalType . 
-                                     ", Comparé avec: " . $typeFilter . " / " . $normalizedTypeFilter);
-                            
-                            // Comparer avec le type normalisé
-                            return $evalType === $normalizedTypeFilter;
+                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter) {
+                            return $eval['type'] === $typeFilter;
                         });
                         $studentEvaluations = array_values($studentEvaluations); // Réindexer le tableau
                     }
                     
-                    // Débogage des évaluations après filtrage
-                    error_log("Fallback - Nombre d'évaluations après filtrage: " . count($studentEvaluations));
+                    // Débogage des évaluations après filtrage et dédoublonnage
+                    error_log("Fallback - Nombre d'évaluations après dédoublonnage et filtrage: " . count($studentEvaluations));
                 } else {
                     error_log("Impossible de récupérer les évaluations - ni API ni modèle disponible");
-                }
-            }
-            
-            // ÉTAPE 3 : Récupération via les documents (pour les auto-évaluations et les versions antérieures)
-            // Comme dans le profil étudiant
-            if (isset($selectedStudent['student_id'])) {
-                $documents = $studentModel->getDocuments($selectedStudent['student_id']);
-                
-                // Filtrer pour ne garder que les documents de type évaluation
-                $evaluationDocuments = [];
-                foreach ($documents as $doc) {
-                    if (isset($doc['type']) && (
-                        $doc['type'] === 'evaluation' || 
-                        $doc['type'] === 'self_evaluation' || 
-                        $doc['type'] === 'mid_term' || 
-                        $doc['type'] === 'final')
-                    ) {
-                        $evaluationDocuments[] = $doc;
-                    }
-                }
-                
-                // Convertir les documents en évaluations
-                foreach ($evaluationDocuments as $doc) {
-                    // Vérifier si le document a des métadonnées
-                    if (!isset($doc['metadata']) || !is_array($doc['metadata'])) {
-                        $doc['metadata'] = [];
-                    }
-                    
-                    // Extraire les informations de base du document
-                    $evaluation = [
-                        'id' => 'doc_' . $doc['id'], // Préfixer pour éviter les conflits d'ID
-                        'student_id' => $doc['user_id'],
-                        'type' => $doc['type'], // Conserver le type exact du document (mid_term, final, self_evaluation)
-                        'date' => $doc['upload_date'] ?? date('Y-m-d H:i:s'),
-                        'evaluator_name' => isset($doc['metadata']['evaluator_name']) ? $doc['metadata']['evaluator_name'] : 'Système',
-                        'score' => isset($doc['metadata']['score']) ? $doc['metadata']['score'] : 0,
-                        'comments' => $doc['description'] ?? ($doc['metadata']['comments'] ?? ''),
-                        'criteria' => []
-                    ];
-                    
-                    // Extraire les critères s'ils existent
-                    if (isset($doc['metadata']['criteria']) && is_array($doc['metadata']['criteria'])) {
-                        $evaluation['criteria'] = $doc['metadata']['criteria'];
-                    }
-                    
-                    // Ne pas ajouter si une évaluation avec le même type et une date proche existe déjà
-                    $isDuplicate = false;
-                    foreach ($studentEvaluations as $existingEval) {
-                        if ($existingEval['type'] === $evaluation['type']) {
-                            $existingDate = new DateTime($existingEval['date']);
-                            $newDate = new DateTime($evaluation['date']);
-                            $interval = $existingDate->diff($newDate);
-                            
-                            // Si les dates sont à moins de 2 jours d'écart, considérer comme un doublon
-                            if ($interval->days < 2) {
-                                $isDuplicate = true;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (!$isDuplicate) {
-                        $studentEvaluations[] = $evaluation;
-                    }
-                }
-                
-                // Dédoublonner les évaluations par ID au lieu du type
-                // Cela permet d'avoir plusieurs évaluations du même type si elles ont des IDs différents
-                $evaluationsById = [];
-                foreach ($studentEvaluations as $eval) {
-                    $evalId = isset($eval['id']) ? $eval['id'] : 'doc_' . uniqid();
-                    $evaluationsById[$evalId] = $eval;
-                }
-                
-                // Reconvertir en tableau indexé pour l'affichage
-                $studentEvaluations = array_values($evaluationsById);
-                
-                // Log final
-                error_log("Total des évaluations après récupération complète (API + modèle + documents): " . count($studentEvaluations));
-                foreach ($studentEvaluations as $eval) {
-                    error_log("  - Type: " . $eval['type'] . ", ID: " . $eval['id']);
                 }
             }
         }
@@ -845,97 +766,39 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         <div class="col-md-8">
                             <?php
-                            // Calculer les statistiques spécifiques à l'étudiant avec des compteurs pour chaque critère
+                            // Calculer les statistiques spécifiques à l'étudiant
                             $studentStats = [
                                 'evaluations_count' => count($studentEvaluations),
                                 'technical_score' => 0,
-                                'technical_count' => 0,
                                 'communication_score' => 0,
-                                'communication_count' => 0,
                                 'teamwork_score' => 0,
-                                'teamwork_count' => 0,
-                                'autonomy_score' => 0,
-                                'autonomy_count' => 0,
-                                'overall_score' => 0,
-                                'overall_count' => 0
+                                'autonomy_score' => 0
                             ];
                             
                             foreach ($studentEvaluations as $eval) {
-                                // Ajouter le score global si disponible
-                                if (isset($eval['score']) && is_numeric($eval['score'])) {
-                                    $studentStats['overall_score'] += $eval['score'];
-                                    $studentStats['overall_count']++;
-                                }
-                                
-                                // Parcourir les critères de chaque évaluation
                                 if (isset($eval['criteria']) && is_array($eval['criteria'])) {
                                     foreach ($eval['criteria'] as $criterion) {
-                                        if (!isset($criterion['name']) || !isset($criterion['score']) || !is_numeric($criterion['score'])) {
-                                            continue; // Ignorer les critères incomplets ou non numériques
-                                        }
-                                        
                                         $name = strtolower($criterion['name']);
-                                        $score = (float)$criterion['score'];
-                                        
-                                        // Assurer que le score est sur une échelle de 5
-                                        if ($score > 5) {
-                                            $score = round($score / 4, 1); // Convertir de 20 à 5
-                                        }
-                                        
-                                        if (strpos($name, 'technique') !== false || 
-                                            strpos($name, 'technical') !== false ||
-                                            strpos($name, 'mastery') !== false ||
-                                            strpos($name, 'maîtrise') !== false) {
-                                            $studentStats['technical_score'] += $score;
-                                            $studentStats['technical_count']++;
-                                        } 
-                                        elseif (strpos($name, 'communication') !== false) {
-                                            $studentStats['communication_score'] += $score;
-                                            $studentStats['communication_count']++;
-                                        } 
-                                        elseif (strpos($name, 'équipe') !== false || 
-                                               strpos($name, 'team') !== false || 
-                                               strpos($name, 'integration') !== false || 
-                                               strpos($name, 'intégration') !== false) {
-                                            $studentStats['teamwork_score'] += $score;
-                                            $studentStats['teamwork_count']++;
-                                        } 
-                                        elseif (strpos($name, 'autonomie') !== false || 
-                                               strpos($name, 'autonomy') !== false || 
-                                               strpos($name, 'initiative') !== false) {
-                                            $studentStats['autonomy_score'] += $score;
-                                            $studentStats['autonomy_count']++;
+                                        if (strpos($name, 'technique') !== false || strpos($name, 'technical') !== false) {
+                                            $studentStats['technical_score'] += $criterion['score'];
+                                        } elseif (strpos($name, 'communication') !== false) {
+                                            $studentStats['communication_score'] += $criterion['score'];
+                                        } elseif (strpos($name, 'équipe') !== false || strpos($name, 'team') !== false) {
+                                            $studentStats['teamwork_score'] += $criterion['score'];
+                                        } elseif (strpos($name, 'autonomie') !== false || strpos($name, 'autonomy') !== false) {
+                                            $studentStats['autonomy_score'] += $criterion['score'];
                                         }
                                     }
                                 }
                             }
                             
-                            // Calculer les moyennes en utilisant les compteurs spécifiques pour chaque critère
-                            $studentStats['technical_score'] = $studentStats['technical_count'] > 0 ? 
-                                round($studentStats['technical_score'] / $studentStats['technical_count'], 1) : 0;
-                                
-                            $studentStats['communication_score'] = $studentStats['communication_count'] > 0 ? 
-                                round($studentStats['communication_score'] / $studentStats['communication_count'], 1) : 0;
-                                
-                            $studentStats['teamwork_score'] = $studentStats['teamwork_count'] > 0 ? 
-                                round($studentStats['teamwork_score'] / $studentStats['teamwork_count'], 1) : 0;
-                                
-                            $studentStats['autonomy_score'] = $studentStats['autonomy_count'] > 0 ? 
-                                round($studentStats['autonomy_score'] / $studentStats['autonomy_count'], 1) : 0;
-                                
-                            $studentStats['overall_avg'] = $studentStats['overall_count'] > 0 ? 
-                                round($studentStats['overall_score'] / $studentStats['overall_count'], 1) : 0;
-                                
-                            // Ajouter la journalisation des compteurs pour faciliter le débogage
-                            error_log("Statistiques étudiantes - Technique: " . $studentStats['technical_score'] . 
-                                     " (" . $studentStats['technical_count'] . " critères), " . 
-                                     "Communication: " . $studentStats['communication_score'] . 
-                                     " (" . $studentStats['communication_count'] . " critères), " .
-                                     "Travail d'équipe: " . $studentStats['teamwork_score'] . 
-                                     " (" . $studentStats['teamwork_count'] . " critères), " .
-                                     "Autonomie: " . $studentStats['autonomy_score'] . 
-                                     " (" . $studentStats['autonomy_count'] . " critères)");
-                            
+                            // Calculer les moyennes
+                            if ($studentStats['evaluations_count'] > 0) {
+                                $studentStats['technical_score'] = round($studentStats['technical_score'] / $studentStats['evaluations_count'], 1);
+                                $studentStats['communication_score'] = round($studentStats['communication_score'] / $studentStats['evaluations_count'], 1);
+                                $studentStats['teamwork_score'] = round($studentStats['teamwork_score'] / $studentStats['evaluations_count'], 1);
+                                $studentStats['autonomy_score'] = round($studentStats['autonomy_score'] / $studentStats['evaluations_count'], 1);
+                            }
                             ?>
                             
                             <h5 class="mb-3">Compétences évaluées</h5>
@@ -1008,11 +871,6 @@ include_once __DIR__ . '/../common/header.php';
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Vue d'ensemble des évaluations</span>
-                    <?php if ($selectedStudent): ?>
-                    <a href="/tutoring/views/tutor/debug_evaluations.php?student_id=<?php echo h($selectedStudent['id']); ?>" class="btn btn-sm btn-outline-info" target="_blank">
-                        <i class="bi bi-bug"></i> Déboguer
-                    </a>
-                    <?php endif; ?>
                     <a href="/tutoring/views/tutor/export_evaluations.php" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-download"></i> Exporter
                     </a>
@@ -1540,140 +1398,46 @@ include_once __DIR__ . '/../common/header.php';
         // Données pour le graphique
         const evaluationData = <?php echo json_encode($studentEvaluations); ?>;
         
-        // Préparer les données pour le graphique - inclure toutes les compétences
+        // Préparer les données pour le graphique
         const chartData = {
             labels: [],
             technical: [],
-            communication: [],
-            teamwork: [],
-            autonomy: [],
             professional: []
         };
         
-        // Organiser les données chronologiquement avec gestion d'erreur
-        const sortedEvals = [...evaluationData].filter(eval => eval && typeof eval === 'object').sort((a, b) => {
-            try {
-                // Utiliser la date correcte avec fallback
-                const dateA = a.submission_date || a.created_at || a.date || '2000-01-01';
-                const dateB = b.submission_date || b.created_at || b.date || '2000-01-01';
-                return new Date(dateA) - new Date(dateB);
-            } catch (e) {
-                console.error("Erreur de tri des dates:", e);
-                return 0;
-            }
-        });
-        
-        // Journaliser le nombre d'évaluations pour le graphique
-        console.log(`Préparation du graphique avec ${sortedEvals.length} évaluations`);
+        // Organiser les données chronologiquement
+        const sortedEvals = [...evaluationData].sort((a, b) => new Date(a.date) - new Date(b.date));
         
         sortedEvals.forEach(eval => {
-            try {
-                // Déterminer la date à utiliser
-                const evalDate = eval.submission_date || eval.created_at || eval.date || new Date().toISOString();
-                
-                // Ajouter la date au format court
-                let dateStr;
-                try {
-                    dateStr = new Date(evalDate).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'});
-                } catch (e) {
-                    console.error("Erreur de formatage de date:", e);
-                    dateStr = "Date inconnue";
-                }
-                chartData.labels.push(dateStr);
-                
-                // Préparer les compteurs pour chaque catégorie
-                let scores = {
-                    technical: { total: 0, count: 0 },
-                    communication: { total: 0, count: 0 },
-                    teamwork: { total: 0, count: 0 },
-                    autonomy: { total: 0, count: 0 }
-                };
-                
-                // Ajouter le score global de l'évaluation s'il n'y a pas de critères
-                if (!eval.criteria || !Array.isArray(eval.criteria) || eval.criteria.length === 0) {
-                    if (typeof eval.score === 'number') {
-                        // Si le score est > 5, convertir à l'échelle de 5
-                        const score = eval.score > 5 ? eval.score / 4 : eval.score;
-                        
-                        // Utiliser le même score pour toutes les catégories
-                        scores.technical.total = score;
-                        scores.technical.count = 1;
-                        scores.communication.total = score;
-                        scores.communication.count = 1;
-                        scores.teamwork.total = score;
-                        scores.teamwork.count = 1;
-                        scores.autonomy.total = score;
-                        scores.autonomy.count = 1;
+            // Ajouter la date au format court
+            chartData.labels.push(new Date(eval.date).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'}));
+            
+            // Calculer les moyennes techniques et professionnelles
+            let techScore = 0;
+            let techCount = 0;
+            let profScore = 0;
+            let profCount = 0;
+            
+            if (eval.criteria && Array.isArray(eval.criteria)) {
+                eval.criteria.forEach(criterion => {
+                    const name = criterion.name.toLowerCase();
+                    if (name.includes('technique') || 
+                        name.includes('technical') ||
+                        name.includes('maîtrise') ||
+                        name.includes('qualité') ||
+                        name.includes('problème') ||
+                        name.includes('documentation')) {
+                        techScore += criterion.score;
+                        techCount++;
+                    } else {
+                        profScore += criterion.score;
+                        profCount++;
                     }
-                } else {
-                    // Parcourir les critères pour calculer les scores par catégorie
-                    eval.criteria.forEach(criterion => {
-                        if (!criterion || typeof criterion !== 'object' || !criterion.name || typeof criterion.score !== 'number') {
-                            return; // Ignorer les critères invalides
-                        }
-                        
-                        const name = criterion.name.toLowerCase();
-                        const score = criterion.score > 5 ? criterion.score / 4 : criterion.score;
-                        
-                        if (name.includes('technique') || name.includes('technical') || 
-                            name.includes('maîtrise') || name.includes('mastery') ||
-                            name.includes('qualité') || name.includes('quality') ||
-                            name.includes('documentation')) {
-                            scores.technical.total += score;
-                            scores.technical.count++;
-                        } 
-                        else if (name.includes('communication')) {
-                            scores.communication.total += score;
-                            scores.communication.count++;
-                        } 
-                        else if (name.includes('équipe') || name.includes('team') || 
-                                name.includes('intégration') || name.includes('integration')) {
-                            scores.teamwork.total += score;
-                            scores.teamwork.count++;
-                        } 
-                        else if (name.includes('autonomie') || name.includes('autonomy') || 
-                                name.includes('initiative')) {
-                            scores.autonomy.total += score;
-                            scores.autonomy.count++;
-                        } 
-                        else {
-                            // Si la catégorie n'est pas reconnue, distribuer le score équitablement
-                            scores.technical.total += score / 4;
-                            scores.technical.count += 0.25;
-                            scores.communication.total += score / 4;
-                            scores.communication.count += 0.25;
-                            scores.teamwork.total += score / 4;
-                            scores.teamwork.count += 0.25;
-                            scores.autonomy.total += score / 4;
-                            scores.autonomy.count += 0.25;
-                        }
-                    });
-                }
-                
-                // Calculer les moyennes et les ajouter au graphique
-                const technicalAvg = scores.technical.count > 0 ? scores.technical.total / scores.technical.count : 0;
-                const communicationAvg = scores.communication.count > 0 ? scores.communication.total / scores.communication.count : 0;
-                const teamworkAvg = scores.teamwork.count > 0 ? scores.teamwork.total / scores.teamwork.count : 0;
-                const autonomyAvg = scores.autonomy.count > 0 ? scores.autonomy.total / scores.autonomy.count : 0;
-                
-                chartData.technical.push(technicalAvg);
-                chartData.communication.push(communicationAvg);
-                chartData.teamwork.push(teamworkAvg);
-                chartData.autonomy.push(autonomyAvg);
-                
-                // Calculer le score professionnel comme la moyenne des compétences professionnelles
-                const professionalAvg = ((communicationAvg + teamworkAvg + autonomyAvg) / 3);
-                chartData.professional.push(professionalAvg);
-                
-            } catch (e) {
-                console.error("Erreur lors du traitement de l'évaluation pour le graphique:", e);
-                // Ajouter des valeurs par défaut pour ne pas perturber le graphique
-                chartData.labels.push("Erreur");
-                chartData.technical.push(0);
-                chartData.communication.push(0);
-                chartData.teamwork.push(0);
-                chartData.autonomy.push(0);
+                });
             }
+            
+            chartData.technical.push(techCount > 0 ? techScore / techCount : 0);
+            chartData.professional.push(profCount > 0 ? profScore / profCount : 0);
         });
         
         // Créer le graphique si des données sont disponibles
@@ -1694,26 +1458,10 @@ include_once __DIR__ . '/../common/header.php';
                                 fill: true
                             },
                             {
-                                label: 'Communication',
-                                data: chartData.communication,
+                                label: 'Professionnel',
+                                data: chartData.professional,
                                 borderColor: '#2ecc71',
                                 backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                                tension: 0.3,
-                                fill: true
-                            },
-                            {
-                                label: 'Travail en équipe',
-                                data: chartData.teamwork,
-                                borderColor: '#f39c12',
-                                backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                                tension: 0.3,
-                                fill: true
-                            },
-                            {
-                                label: 'Autonomie',
-                                data: chartData.autonomy,
-                                borderColor: '#9b59b6',
-                                backgroundColor: 'rgba(155, 89, 182, 0.1)',
                                 tension: 0.3,
                                 fill: true
                             }

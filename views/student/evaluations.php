@@ -795,10 +795,13 @@ include_once __DIR__ . '/../common/header.php';
                     throw new Error('Données d\'évaluations invalides ou manquantes');
                 }
                 
-                // Préparer les données pour le graphique
+                // Préparer les données pour le graphique - inclure toutes les compétences
                 const chartData = {
                     labels: [],
                     technical: [],
+                    communication: [],
+                    teamwork: [],
+                    autonomy: [],
                     professional: []
                 };
                 
@@ -842,11 +845,13 @@ include_once __DIR__ . '/../common/header.php';
                     // Ajouter la date au format court
                     chartData.labels.push(dateStr);
                     
-                    // Calculer les moyennes techniques et professionnelles
-                    let techScore = 0;
-                    let techCount = 0;
-                    let profScore = 0;
-                    let profCount = 0;
+                    // Préparer les compteurs pour chaque catégorie
+                    let scores = {
+                        technical: { total: 0, count: 0 },
+                        communication: { total: 0, count: 0 },
+                        teamwork: { total: 0, count: 0 },
+                        autonomy: { total: 0, count: 0 }
+                    };
                     
                     // Traiter les critères avec une gestion d'erreur robuste
                     if (eval.criteria && Array.isArray(eval.criteria)) {
@@ -867,18 +872,49 @@ include_once __DIR__ . '/../common/header.php';
                                 name.includes('qualité') ||
                                 name.includes('problème') ||
                                 name.includes('documentation')) {
-                                techScore += score;
-                                techCount++;
-                            } else {
-                                profScore += score;
-                                profCount++;
+                                scores.technical.total += score;
+                                scores.technical.count++;
+                            } 
+                            else if (name.includes('communication')) {
+                                scores.communication.total += score;
+                                scores.communication.count++;
+                            } 
+                            else if (name.includes('équipe') || name.includes('team') || 
+                                    name.includes('intégration') || name.includes('integration')) {
+                                scores.teamwork.total += score;
+                                scores.teamwork.count++;
+                            } 
+                            else if (name.includes('autonomie') || name.includes('autonomy') || 
+                                    name.includes('initiative')) {
+                                scores.autonomy.total += score;
+                                scores.autonomy.count++;
+                            }
+                            else {
+                                // Si catégorie non reconnue, ajouter à professionnel pour compatibilité
+                                scores.communication.total += score / 3;
+                                scores.communication.count += 0.33;
+                                scores.teamwork.total += score / 3;
+                                scores.teamwork.count += 0.33;
+                                scores.autonomy.total += score / 3;
+                                scores.autonomy.count += 0.33;
                             }
                         });
                     }
                     
-                    // Ajouter les données avec protection contre les divisions par zéro
-                    chartData.technical.push(techCount > 0 ? parseFloat((techScore / techCount).toFixed(1)) : 0);
-                    chartData.professional.push(profCount > 0 ? parseFloat((profScore / profCount).toFixed(1)) : 0);
+                    // Calculer les moyennes et les ajouter au graphique
+                    const technicalAvg = scores.technical.count > 0 ? parseFloat((scores.technical.total / scores.technical.count).toFixed(1)) : 0;
+                    const communicationAvg = scores.communication.count > 0 ? parseFloat((scores.communication.total / scores.communication.count).toFixed(1)) : 0;
+                    const teamworkAvg = scores.teamwork.count > 0 ? parseFloat((scores.teamwork.total / scores.teamwork.count).toFixed(1)) : 0;
+                    const autonomyAvg = scores.autonomy.count > 0 ? parseFloat((scores.autonomy.total / scores.autonomy.count).toFixed(1)) : 0;
+                    
+                    chartData.technical.push(technicalAvg);
+                    chartData.communication.push(communicationAvg);
+                    chartData.teamwork.push(teamworkAvg);
+                    chartData.autonomy.push(autonomyAvg);
+                    
+                    // Calculer le score professionnel comme la moyenne des compétences professionnelles
+                    const professionalAvg = ((communicationAvg + teamworkAvg + autonomyAvg) / 3);
+                    chartData.professional.push(professionalAvg);
                 });
                 
                 // Créer le graphique si des données sont disponibles
@@ -904,10 +940,26 @@ include_once __DIR__ . '/../common/header.php';
                                     fill: true
                                 },
                                 {
-                                    label: 'Professionnel',
-                                    data: chartData.professional,
+                                    label: 'Communication',
+                                    data: chartData.communication,
                                     borderColor: '#2ecc71',
                                     backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
+                                },
+                                {
+                                    label: 'Travail en équipe',
+                                    data: chartData.teamwork,
+                                    borderColor: '#f39c12',
+                                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                                    tension: 0.3,
+                                    fill: true
+                                },
+                                {
+                                    label: 'Autonomie',
+                                    data: chartData.autonomy,
+                                    borderColor: '#9b59b6',
+                                    backgroundColor: 'rgba(155, 89, 182, 0.1)',
                                     tension: 0.3,
                                     fill: true
                                 }
