@@ -11,18 +11,43 @@ require_once __DIR__ . '/api-init.php';
 requireApiAuth();
 requireApiRole(['admin', 'coordinator']);
 
-// Fonction pour récupérer des données de test
-function getSimulatedInternshipStatus() {
-    return [
-        'available' => 15,
-        'assigned' => 22,
-        'completed' => 10,
-        'cancelled' => 3
-    ];
+// Fonction pour récupérer les données réelles depuis la base de données
+function getInternshipStatus($db) {
+    try {
+        $query = "SELECT status, COUNT(*) as count FROM internships GROUP BY status";
+        $stmt = $db->prepare($query);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Initialiser avec des valeurs par défaut
+        $statusCounts = [
+            'available' => 0,
+            'assigned' => 0,
+            'completed' => 0,
+            'cancelled' => 0
+        ];
+        
+        // Remplir avec les données réelles
+        foreach ($results as $row) {
+            $statusCounts[$row['status']] = (int)$row['count'];
+        }
+        
+        return $statusCounts;
+        
+    } catch (Exception $e) {
+        error_log("Erreur lors de la récupération des statuts de stages: " . $e->getMessage());
+        // Retourner des données par défaut en cas d'erreur
+        return [
+            'available' => 0,
+            'assigned' => 0,
+            'completed' => 0,
+            'cancelled' => 0
+        ];
+    }
 }
 
 // Préparer les données pour le graphique
-$internshipStatus = getSimulatedInternshipStatus();
+$internshipStatus = getInternshipStatus($db);
 
 // Préparer les étiquettes en français
 $statusLabels = [

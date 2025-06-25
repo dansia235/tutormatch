@@ -11,18 +11,43 @@ require_once __DIR__ . '/api-init.php';
 requireApiAuth();
 requireApiRole(['admin', 'coordinator']);
 
-// Fonction pour récupérer des données de test
-function getSimulatedAssignmentStatus() {
-    return [
-        'pending' => 12,
-        'confirmed' => 25,
-        'rejected' => 4,
-        'completed' => 18
-    ];
+// Fonction pour récupérer les données réelles depuis la base de données
+function getAssignmentStatus($db) {
+    try {
+        $query = "SELECT status, COUNT(*) as count FROM assignments GROUP BY status";
+        $stmt = $db->prepare($query);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Initialiser avec des valeurs par défaut
+        $statusCounts = [
+            'pending' => 0,
+            'confirmed' => 0,
+            'rejected' => 0,
+            'completed' => 0
+        ];
+        
+        // Remplir avec les données réelles
+        foreach ($results as $row) {
+            $statusCounts[$row['status']] = (int)$row['count'];
+        }
+        
+        return $statusCounts;
+        
+    } catch (Exception $e) {
+        error_log("Erreur lors de la récupération des statuts d'affectation: " . $e->getMessage());
+        // Retourner des données par défaut en cas d'erreur
+        return [
+            'pending' => 0,
+            'confirmed' => 0,
+            'rejected' => 0,
+            'completed' => 0
+        ];
+    }
 }
 
 // Préparer les données pour le graphique
-$assignmentStatus = getSimulatedAssignmentStatus();
+$assignmentStatus = getAssignmentStatus($db);
 
 // Préparer les étiquettes en français
 $statusLabels = [
