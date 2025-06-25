@@ -21,21 +21,19 @@ $teacher = $teacherModel->getByUserId($_SESSION['user_id']);
 $studentModel = new Student($db);
 $assignmentModel = new Assignment($db);
 
-// Récupérer les affectations du tuteur
-$assignments = $assignmentModel->getByTeacherId($teacher['id']);
+// Récupérer les affectations du tuteur (même méthode que students.php)
+$assignments = $teacherModel->getAssignments($teacher['id']);
 
 // Récupérer les étudiants
 $students = [];
 foreach ($assignments as $assignment) {
-    $student = $studentModel->getById($assignment['student_id']);
-    if ($student) {
-        $students[] = [
-            'id' => $student['id'],
-            'name' => $student['first_name'] . ' ' . $student['last_name'],
-            'program' => $student['program'] ?? 'Non spécifié',
-            'assignment_status' => $assignment['status']
-        ];
-    }
+    // Les données de l'étudiant sont déjà dans l'assignment grâce aux JOINs
+    $students[] = [
+        'id' => $assignment['student_id'],
+        'name' => $assignment['student_first_name'] . ' ' . $assignment['student_last_name'],
+        'program' => $assignment['program'] ?? $assignment['level'] ?? 'Non spécifié',
+        'assignment_status' => $assignment['status']
+    ];
 }
 
 // Récupérer les évaluations

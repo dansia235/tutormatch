@@ -26,9 +26,51 @@ if (!$student) {
 $assignmentModel = new Assignment($db);
 $assignments = $assignmentModel->getByStudentId($student['id']);
 
-// Récupérer les stages disponibles pour l'étudiant
+// Récupérer les stages disponibles pour l'étudiant avec pagination
 $internshipModel = new Internship($db);
-$availableInternships = $internshipModel->getAvailableForStudent($student['id']);
+
+// Paramètres de pagination
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$itemsPerPage = 6; // 6 stages par page pour un affichage optimal en grille
+$offset = ($page - 1) * $itemsPerPage;
+
+// Essayer d'abord la méthode spécifique pour l'étudiant
+$availableInternships = [];
+$totalInternships = 0;
+
+try {
+    $availableInternships = $internshipModel->getAvailableForStudent($student['id']);
+    
+    // Si aucun stage disponible avec cette méthode, essayer une approche plus générale
+    if (empty($availableInternships)) {
+        // Récupérer tous les stages actifs ou disponibles
+        $allInternships = $internshipModel->getAll();
+        $availableInternships = array_filter($allInternships, function($internship) {
+            return in_array($internship['status'], ['available', 'active']) && 
+                   strtotime($internship['start_date']) > time() - (30 * 24 * 60 * 60); // Dans les 30 derniers jours ou futurs
+        });
+    }
+    
+    $totalInternships = count($availableInternships);
+    
+    // Appliquer la pagination
+    $availableInternships = array_slice($availableInternships, $offset, $itemsPerPage);
+    
+} catch (Exception $e) {
+    // En cas d'erreur, essayer de récupérer tous les stages
+    error_log("Erreur lors de la récupération des stages: " . $e->getMessage());
+    try {
+        $allInternships = $internshipModel->getAll();
+        $availableInternships = array_slice($allInternships, $offset, $itemsPerPage);
+        $totalInternships = count($allInternships);
+    } catch (Exception $e2) {
+        $availableInternships = [];
+        $totalInternships = 0;
+    }
+}
+
+// Calculer le nombre de pages
+$totalPages = ceil($totalInternships / $itemsPerPage);
 
 // Récupérer les préférences de l'étudiant si elles existent
 $preferences = $studentModel->getPreferences($student['id']);
@@ -156,10 +198,10 @@ include_once __DIR__ . '/../common/header.php';
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <span>Stages disponibles</span>
-                            <strong><?php echo count($availableInternships); ?></strong>
+                            <strong><?php echo $totalInternships; ?></strong>
                         </div>
                         <div class="progress mt-1">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo count($availableInternships) > 0 ? 100 : 0; ?>%;"></div>
+                            <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo $totalInternships > 0 ? 100 : 0; ?>%;"></div>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -202,7 +244,7 @@ include_once __DIR__ . '/../common/header.php';
                     <div class="row g-3">
                         <?php foreach ($availableInternships as $internship): ?>
                         <div class="col-lg-4 col-md-6">
-                            <div class="card h-100 border-0 shadow-sm">
+                            <div class="card h-100 border-0 shadow-sm hover-shadow">
                                 <div class="card-body">
                                     <h6 class="card-title"><?php echo h($internship['title']); ?></h6>
                                     <p class="card-subtitle mb-2 text-muted"><?php echo h($internship['company_name']); ?></p>
@@ -248,12 +290,123 @@ include_once __DIR__ . '/../common/header.php';
                         </div>
                         <?php endforeach; ?>
                     </div>
+                    
+                    <!-- Pagination -->
+                    <?php if ($totalPages > 1): ?>
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav aria-label="Navigation des stages">
+                            <ul class="pagination">
+                                <!-- Bouton Précédent -->
+                                <?php if ($page > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<?= $page - 1 ?>" aria-label="Précédent">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <?php else: ?>
+                                <li class="page-item disabled">
+                                    <span class="page-link" aria-label="Précédent">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </span>
+                                </li>
+                                <?php endif; ?>
+                                
+                                <!-- Numéros de page -->
+                                <?php
+                                $startPage = max(1, $page - 2);
+                                $endPage = min($totalPages, $page + 2);
+                                
+                                if ($startPage > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">1</a>
+                                </li>
+                                <?php if ($startPage > 2): ?>
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                <?php endif; ?>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                                    <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+                                </li>
+                                <?php endfor; ?>
+                                
+                                <?php if ($endPage < $totalPages): ?>
+                                <?php if ($endPage < $totalPages - 1): ?>
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                <?php endif; ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<?= $totalPages ?>"><?= $totalPages ?></a>
+                                </li>
+                                <?php endif; ?>
+                                
+                                <!-- Bouton Suivant -->
+                                <?php if ($page < $totalPages): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=<?= $page + 1 ?>" aria-label="Suivant">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <?php else: ?>
+                                <li class="page-item disabled">
+                                    <span class="page-link" aria-label="Suivant">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </span>
+                                </li>
+                                <?php endif; ?>
+                            </ul>
+                        </nav>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <!-- Information de pagination -->
+                    <?php if ($totalInternships > 0): ?>
+                    <div class="text-center text-muted mt-2">
+                        <small>
+                            Affichage de <?= min($offset + 1, $totalInternships) ?> à <?= min($offset + $itemsPerPage, $totalInternships) ?> 
+                            sur <?= $totalInternships ?> stage<?= $totalInternships > 1 ? 's' : '' ?>
+                        </small>
+                    </div>
+                    <?php endif; ?>
+                    
                     <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Styles pour la pagination */
+.pagination .page-item.active .page-link {
+    color: #fff !important;
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.card.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.hover-shadow:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+</style>
 
 <script>
     // Fonction pour ajouter un stage aux préférences de l'étudiant

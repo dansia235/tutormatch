@@ -29,6 +29,12 @@ if (!$teacher) {
 // Récupérer les affectations d'étudiants pour ce tuteur
 $assignments = $teacherModel->getAssignments($teacher['id']);
 
+// Debug: Log the number of assignments
+error_log("DEBUG evaluations.php - Teacher ID: " . $teacher['id'] . ", Number of assignments: " . count($assignments));
+foreach ($assignments as $idx => $assignment) {
+    error_log("DEBUG evaluations.php - Assignment $idx: ID=" . $assignment['id'] . ", Student=" . $assignment['student_first_name'] . " " . $assignment['student_last_name']);
+}
+
 // Modèles nécessaires
 $internshipModel = new Internship($db);
 $studentModel = new Student($db);
@@ -51,9 +57,6 @@ function normalizeEvaluationType($type) {
         case 'self_evaluation':
         case 'student':
             return 'student';
-        case 'enterprise':
-        case 'company':
-            return 'company';
         default:
             return $type;
     }
@@ -69,8 +72,6 @@ $evaluationTypes = [
     'mid-term' => 'Mi-parcours', 
     'midterm' => 'Mi-parcours',
     'final' => 'Finale', 
-    'company' => 'Entreprise', 
-    'enterprise' => 'Entreprise',
     'student' => 'Auto-évaluation',
     'self' => 'Auto-évaluation'
 ];
@@ -112,283 +113,86 @@ if ($studentFilter) {
             }
         }
         
-        // Récupérer les évaluations de cet étudiant en utilisant l'API
+        // Récupérer les évaluations de cet étudiant en utilisant la même méthode que le dashboard
         if ($selectedStudent) {
-            // Construire l'URL de l'API - utiliser le bon ID étudiant pour récupérer toutes les évaluations
             $studentId = isset($selectedStudent['student_id']) ? $selectedStudent['student_id'] : $selectedStudent['id'];
-            error_log("ID étudiant utilisé: " . $studentId . " - Méthode cible: getByStudentId");
             
-            // DEBUG: Vérifier directement les évaluations mi-parcours dans la base
             if ($evaluationModel) {
-                $allEvals = $evaluationModel->getByStudentId($studentId);
-                error_log("DEBUG - Types d'évaluations trouvés directement dans la base:");
-                foreach ($allEvals as $eval) {
-                    error_log("  - ID: " . $eval['id'] . ", Type: " . $eval['type'] . ", Assignment ID: " . $eval['assignment_id']);
-                }
-            }
-            
-            // Appeler directement les modèles au lieu d'utiliser l'API
-            error_log("Récupération des évaluations pour l'étudiant ID: " . $studentId);
-            
-            // Simuler la réponse de l'API en appelant directement les méthodes
-            $studentEvaluations = [];
-            $httpCode = 200;
-            
-            try {
-                // Récupérer les évaluations via le modèle
-                $evaluations = $evaluationModel->getByStudentId($studentId);
+                // Utiliser la même approche que le dashboard: récupérer par teacher_id et filtrer par étudiant
+                $allEvaluations = $evaluationModel->getByTeacherId($teacher['id']);
                 
-                // Enrichir les données comme le fait l'API
-                foreach ($evaluations as $evaluation) {
-                    // Type d'évaluation formaté
-                    $evaluationType = '';
-                    switch($evaluation['type']) {
-                        case 'mid_term': $evaluationType = 'Mi-parcours'; break;
-                        case 'final': $evaluationType = 'Finale'; break;
-                        case 'student': $evaluationType = 'Auto-évaluation'; break;
-                        case 'supervisor': $evaluationType = 'Superviseur'; break;
-                        case 'teacher': $evaluationType = 'Tuteur'; break;
-                        default: $evaluationType = ucfirst($evaluation['type']); break;
-                    }
-                    
-                    // Décoder les critères si nécessaire
-                    if (isset($evaluation['criteria_scores']) && is_string($evaluation['criteria_scores'])) {
-                        $evaluation['criteria_scores'] = json_decode($evaluation['criteria_scores'], true);
-                    }
-                    
-                    // Créer une entrée enrichie
-                    $enrichedEvaluation = [
-                        'id' => $evaluation['id'],
-                        'assignment_id' => $evaluation['assignment_id'],
-                        'type' => $evaluation['type'],
-                        'type_name' => $evaluationType,
-                        'status' => $evaluation['status'] ?? 'submitted',
-                        'score' => floatval($evaluation['score'] ?? 0),
-                        'criteria_scores' => $evaluation['criteria_scores'] ?? [],
-                        'comments' => $evaluation['feedback'] ?? $evaluation['comments'] ?? '',
-                        'strengths' => $evaluation['strengths'] ?? '',
-                        'areas_for_improvement' => $evaluation['areas_for_improvement'] ?? $evaluation['areas_to_improve'] ?? '',
-                        'next_steps' => $evaluation['next_steps'] ?? '',
-                        'submission_date' => $evaluation['submission_date'] ?? $evaluation['created_at'] ?? date('Y-m-d'),
-                        'evaluator_name' => $user['first_name'] . ' ' . $user['last_name']
-                    ];
-                    
-                    $studentEvaluations[] = $enrichedEvaluation;
-                }
+                // Créer un modèle d'assignment pour les jointures
+                $assignmentModel = new Assignment($db);
                 
-                // Créer une réponse similaire à l'API
-                $responseData = [
-                    'success' => true,
-                    'evaluations' => $studentEvaluations
-                ];
-                
-                error_log("Nombre d'évaluations récupérées: " . count($studentEvaluations));
-                
-            } catch (Exception $e) {
-                error_log("Erreur lors de la récupération des évaluations: " . $e->getMessage());
-                $httpCode = 500;
-                $responseData = [
-                    'success' => false,
-                    'message' => 'Erreur lors de la récupération des évaluations'
-                ];
-            }
-            
-            // Traiter la réponse si elle est valide
-            if ($httpCode === 200 && isset($responseData['success']) && $responseData['success']) {
-                // Les évaluations sont déjà dans $studentEvaluations
-                    
-                    // Débogage - log des types d'évaluation
-                    foreach ($studentEvaluations as $eval) {
-                        error_log("Évaluation trouvée de type: " . ($eval['type'] ?? 'non défini'));
-                    }
-                    
-                    // Adapter le format des données si nécessaire
-                    foreach ($studentEvaluations as &$eval) {
+                // Filtrer pour l'étudiant sélectionné
+                $studentEvaluations = [];
+                foreach ($allEvaluations as $evaluation) {
+                    // Récupérer l'affectation pour trouver l'étudiant
+                    $assignment = $assignmentModel->getById($evaluation['assignment_id']);
+                    if ($assignment && $assignment['student_id'] == $studentId) {
                         // S'assurer que le score est sur une échelle de 5
-                        if (isset($eval['score']) && $eval['score'] > 5) {
-                            $eval['score'] = round($eval['score'] / 4, 1);
+                        $scoreOn5 = $evaluation['score'];
+                        if ($scoreOn5 > 5) {
+                            $scoreOn5 = number_format($scoreOn5 / 4, 1);
+                        }
+                        
+                        // Déterminer le type d'évaluation
+                        $evaluationType = '';
+                        switch($evaluation['type']) {
+                            case 'mid_term': $evaluationType = 'Mi-parcours'; break;
+                            case 'final': $evaluationType = 'Finale'; break;
+                            case 'student': $evaluationType = 'Auto-évaluation'; break;
+                            case 'supervisor': $evaluationType = 'Superviseur'; break;
+                            case 'teacher': $evaluationType = 'Tuteur'; break;
+                            default: $evaluationType = ucfirst(str_replace('_', ' ', $evaluation['type'])); break;
+                        }
+                        
+                        // Décoder les critères si nécessaire
+                        $criteriaScores = $evaluation['criteria_scores'];
+                        if (is_string($criteriaScores)) {
+                            $criteriaScores = json_decode($criteriaScores, true);
                         }
                         
                         // Préparer les critères pour l'affichage
-                        if (!isset($eval['criteria']) || !is_array($eval['criteria'])) {
-                            $eval['criteria'] = [];
-                            
-                            if (isset($eval['criteria_scores']) && is_array($eval['criteria_scores'])) {
-                                foreach ($eval['criteria_scores'] as $key => $value) {
-                                    $score = is_array($value) ? ($value['score'] ?? 0) : $value;
-                                    $eval['criteria'][] = [
-                                        'name' => ucfirst(str_replace('_', ' ', $key)),
-                                        'score' => $score,
-                                        'comment' => is_array($value) ? ($value['comment'] ?? '') : ''
-                                    ];
-                                }
+                        $criteria = [];
+                        if (is_array($criteriaScores)) {
+                            foreach ($criteriaScores as $key => $value) {
+                                $score = is_array($value) ? ($value['score'] ?? 0) : $value;
+                                $criteria[] = [
+                                    'name' => ucfirst(str_replace('_', ' ', $key)),
+                                    'score' => $score,
+                                    'comment' => is_array($value) ? ($value['comment'] ?? '') : ''
+                                ];
                             }
                         }
                         
-                        // Gérer les dates
-                        $eval['date'] = $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d');
+                        // Créer l'évaluation formatée
+                        $formattedEvaluation = [
+                            'id' => $evaluation['id'],
+                            'assignment_id' => $evaluation['assignment_id'],
+                            'type' => $evaluation['type'],
+                            'type_name' => $evaluationType,
+                            'status' => $evaluation['status'] ?? 'submitted',
+                            'score' => floatval($scoreOn5),
+                            'technical_avg' => floatval($evaluation['technical_avg'] ?? 0),
+                            'professional_avg' => floatval($evaluation['professional_avg'] ?? 0),
+                            'criteria_scores' => $criteriaScores ?? [],
+                            'criteria' => $criteria,
+                            'comments' => $evaluation['comments'] ?? '',
+                            'strengths' => $evaluation['strengths'] ?? '',
+                            'areas_for_improvement' => $evaluation['areas_for_improvement'] ?? '',
+                            'next_steps' => $evaluation['next_steps'] ?? '',
+                            'submission_date' => $evaluation['submission_date'] ?? $evaluation['created_at'] ?? date('Y-m-d'),
+                            'date' => $evaluation['submission_date'] ?? $evaluation['created_at'] ?? date('Y-m-d'),
+                            'evaluator_name' => $user['first_name'] . ' ' . $user['last_name']
+                        ];
                         
-                        // Formater les champs textuels si nécessaire
-                        if (!empty($eval['areas_for_improvement']) && !is_array($eval['areas_for_improvement'])) {
-                            $eval['areas_for_improvement'] = explode("\n", $eval['areas_for_improvement']);
-                        }
-                        
-                        if (!empty($eval['next_steps']) && !is_array($eval['next_steps'])) {
-                            $eval['recommendations'] = explode("\n", $eval['next_steps']);
-                        }
-                    }
-                    
-                    // Filtrer par type si nécessaire
-                    if ($typeFilter !== 'all') {
-                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter, $normalizedTypeFilter) {
-                            // Normaliser le type de l'évaluation pour la comparaison
-                            $evalType = isset($eval['type']) ? normalizeEvaluationType($eval['type']) : '';
-                            error_log("API - Filtrage - Type d'évaluation: " . ($eval['type'] ?? 'non défini') . 
-                                     ", Normalisé: " . $evalType . 
-                                     ", Comparé avec: " . $typeFilter . " / " . $normalizedTypeFilter);
-                            
-                            // Comparer avec le type normalisé
-                            return isset($eval['type']) && $evalType === $normalizedTypeFilter;
-                        });
-                        $studentEvaluations = array_values($studentEvaluations); // Réindexer le tableau
-                    }
-                    
-                    // Pas de dédoublonnage par type ici, garder toutes les évaluations
-                    
-                    // Débogage des évaluations après filtrage
-                    error_log("Nombre d'évaluations après filtrage: " . count($studentEvaluations));
-                    foreach ($studentEvaluations as $index => $eval) {
-                        error_log("Évaluation #" . $index . " - Type: " . ($eval['type'] ?? 'non défini') . 
-                                ", Score: " . ($eval['score'] ?? 'non défini') . 
-                                ", Date: " . ($eval['submission_date'] ?? $eval['created_at'] ?? $eval['date'] ?? 'non définie'));
-                    }
-            } else {
-                error_log("Erreur lors de la récupération des évaluations: " . 
-                          (isset($responseData['message']) ? $responseData['message'] : 'Erreur inconnue'));
-                
-                // Fallback: récupérer directement depuis le modèle
-                if ($evaluationModel && isset($selectedStudent['student_id'])) {
-                    error_log("Tentative de récupération directe via le modèle Evaluation avec student_id: " . $selectedStudent['student_id']);
-                    // Utiliser getByStudentId avec le bon ID étudiant pour récupérer toutes les évaluations de l'étudiant
-                    $studentEvaluations = $evaluationModel->getByStudentId($selectedStudent['student_id']);
-                    
-                    // Adapter le format des données si nécessaire
-                    foreach ($studentEvaluations as &$eval) {
-                        // S'assurer que le score est sur une échelle de 5
-                        if (isset($eval['score']) && $eval['score'] > 5) {
-                            $eval['score'] = round($eval['score'] / 4, 1);
-                        }
-                        
-                        // Ajouter les autres champs si manquants
-                        $eval['evaluator_name'] = $user['first_name'] . ' ' . $user['last_name'];
-                        $eval['date'] = $eval['submission_date'] ?? $eval['created_at'] ?? date('Y-m-d');
-                        
-                        // Débogage
-                        error_log("Fallback - Evaluation trouvée de type: " . $eval['type']);
-                    }
-                    
-                    // Pas de dédoublonnage par type ici, garder toutes les évaluations
-                    
-                    // Filtrer par type si nécessaire
-                    if ($typeFilter !== 'all') {
-                        $studentEvaluations = array_filter($studentEvaluations, function($eval) use ($typeFilter, $normalizedTypeFilter) {
-                            // Normaliser le type de l'évaluation pour la comparaison
-                            $evalType = normalizeEvaluationType($eval['type']);
-                            error_log("Filtrage - Type d'évaluation: " . $eval['type'] . 
-                                     ", Normalisé: " . $evalType . 
-                                     ", Comparé avec: " . $typeFilter . " / " . $normalizedTypeFilter);
-                            
-                            // Comparer avec le type normalisé
-                            return $evalType === $normalizedTypeFilter;
-                        });
-                        $studentEvaluations = array_values($studentEvaluations); // Réindexer le tableau
-                    }
-                    
-                    // Débogage des évaluations après filtrage
-                    error_log("Fallback - Nombre d'évaluations après filtrage: " . count($studentEvaluations));
-                } else {
-                    error_log("Impossible de récupérer les évaluations - ni API ni modèle disponible");
-                }
-            }
-            
-            // ÉTAPE 3 : Récupération via les documents (pour les auto-évaluations et les versions antérieures)
-            // Comme dans le profil étudiant
-            if (isset($selectedStudent['student_id'])) {
-                $documents = $studentModel->getDocuments($selectedStudent['student_id']);
-                
-                // Filtrer pour ne garder que les documents de type évaluation
-                $evaluationDocuments = [];
-                foreach ($documents as $doc) {
-                    if (isset($doc['type']) && (
-                        $doc['type'] === 'evaluation' || 
-                        $doc['type'] === 'self_evaluation' || 
-                        $doc['type'] === 'mid_term' || 
-                        $doc['type'] === 'final')
-                    ) {
-                        $evaluationDocuments[] = $doc;
-                    }
-                }
-                
-                // Convertir les documents en évaluations
-                foreach ($evaluationDocuments as $doc) {
-                    // Vérifier si le document a des métadonnées
-                    if (!isset($doc['metadata']) || !is_array($doc['metadata'])) {
-                        $doc['metadata'] = [];
-                    }
-                    
-                    // Extraire les informations de base du document
-                    $evaluation = [
-                        'id' => 'doc_' . $doc['id'], // Préfixer pour éviter les conflits d'ID
-                        'student_id' => $doc['user_id'],
-                        'type' => $doc['type'], // Conserver le type exact du document (mid_term, final, self_evaluation)
-                        'date' => $doc['upload_date'] ?? date('Y-m-d H:i:s'),
-                        'evaluator_name' => isset($doc['metadata']['evaluator_name']) ? $doc['metadata']['evaluator_name'] : 'Système',
-                        'score' => isset($doc['metadata']['score']) ? $doc['metadata']['score'] : 0,
-                        'comments' => $doc['description'] ?? ($doc['metadata']['comments'] ?? ''),
-                        'criteria' => []
-                    ];
-                    
-                    // Extraire les critères s'ils existent
-                    if (isset($doc['metadata']['criteria']) && is_array($doc['metadata']['criteria'])) {
-                        $evaluation['criteria'] = $doc['metadata']['criteria'];
-                    }
-                    
-                    // Ne pas ajouter si une évaluation avec le même type et une date proche existe déjà
-                    $isDuplicate = false;
-                    foreach ($studentEvaluations as $existingEval) {
-                        if ($existingEval['type'] === $evaluation['type']) {
-                            $existingDate = new DateTime($existingEval['date']);
-                            $newDate = new DateTime($evaluation['date']);
-                            $interval = $existingDate->diff($newDate);
-                            
-                            // Si les dates sont à moins de 2 jours d'écart, considérer comme un doublon
-                            if ($interval->days < 2) {
-                                $isDuplicate = true;
-                                break;
-                            }
+                        // Filtrer par type si nécessaire et exclure les évaluations de type "company"
+                        if ($evaluation['type'] !== 'company' && $evaluation['type'] !== 'enterprise' && 
+                            ($typeFilter === 'all' || normalizeEvaluationType($evaluation['type']) === $normalizedTypeFilter)) {
+                            $studentEvaluations[] = $formattedEvaluation;
                         }
                     }
-                    
-                    if (!$isDuplicate) {
-                        $studentEvaluations[] = $evaluation;
-                    }
-                }
-                
-                // Dédoublonner les évaluations par ID au lieu du type
-                // Cela permet d'avoir plusieurs évaluations du même type si elles ont des IDs différents
-                $evaluationsById = [];
-                foreach ($studentEvaluations as $eval) {
-                    $evalId = isset($eval['id']) ? $eval['id'] : 'doc_' . uniqid();
-                    $evaluationsById[$evalId] = $eval;
-                }
-                
-                // Reconvertir en tableau indexé pour l'affichage
-                $studentEvaluations = array_values($evaluationsById);
-                
-                // Log final
-                error_log("Total des évaluations après récupération complète (API + modèle + documents): " . count($studentEvaluations));
-                foreach ($studentEvaluations as $eval) {
-                    error_log("  - Type: " . $eval['type'] . ", ID: " . $eval['id']);
                 }
             }
         }
@@ -700,7 +504,6 @@ include_once __DIR__ . '/../common/header.php';
                                         <option value="all" <?php echo $typeFilter === 'all' ? 'selected' : ''; ?>>Toutes les évaluations</option>
                                         <option value="mid_term" <?php echo $typeFilter === 'mid_term' ? 'selected' : ''; ?>>Mi-parcours</option>
                                         <option value="final" <?php echo $typeFilter === 'final' ? 'selected' : ''; ?>>Finale</option>
-                                        <option value="company" <?php echo $typeFilter === 'company' ? 'selected' : ''; ?>>Entreprise</option>
                                         <option value="student" <?php echo $typeFilter === 'student' ? 'selected' : ''; ?>>Auto-évaluation</option>
                                     </select>
                                 </div>
@@ -730,7 +533,8 @@ include_once __DIR__ . '/../common/header.php';
                             <hr>
                             <h6 class="mb-2">Guide d'évaluation</h6>
                             <p class="small mb-2"><strong>Mi-parcours:</strong> Évaluation de la progression et identification des axes d'amélioration.</p>
-                            <p class="small mb-0"><strong>Finale:</strong> Bilan global des compétences acquises et recommandations futures.</p>
+                            <p class="small mb-2"><strong>Finale:</strong> Bilan global des compétences acquises et recommandations futures.</p>
+                            <p class="small mb-0 text-muted"><strong>Maximum:</strong> 2 évaluations par étudiant (1 mi-parcours + 1 finale)</p>
                         </div>
                     </div>
                 </div>
@@ -1046,10 +850,26 @@ include_once __DIR__ . '/../common/header.php';
                                         }
                                     }
                                     
-                                    // Récupérer les évaluations
+                                    // Récupérer les évaluations en utilisant la même méthode que le dashboard
                                     $evaluations = [];
                                     if ($evaluationModel) {
-                                        $evaluations = $evaluationModel->getByAssignmentId($assignment['id']);
+                                        // Debug: Vérifier teacher_id
+                                        error_log("DEBUG Vue d'ensemble - Teacher ID: " . $teacher['id'] . ", Assignment ID: " . $assignment['id'] . ", Student: " . $student['first_name'] . " " . $student['last_name']);
+                                        
+                                        // Utiliser getByTeacherId comme le dashboard
+                                        $allEvaluations = $evaluationModel->getByTeacherId($teacher['id']);
+                                        error_log("DEBUG Vue d'ensemble - Nombre total d'évaluations pour le tuteur: " . count($allEvaluations));
+                                        
+                                        // Filtrer pour cet assignment
+                                        foreach ($allEvaluations as $eval) {
+                                            error_log("DEBUG Vue d'ensemble - Evaluation ID: " . $eval['id'] . ", Assignment ID: " . $eval['assignment_id'] . ", Type: " . $eval['type'] . ", Score: " . $eval['score']);
+                                            if ($eval['assignment_id'] == $assignment['id']) {
+                                                $evaluations[] = $eval;
+                                                error_log("DEBUG Vue d'ensemble - Evaluation trouvée pour cet assignment!");
+                                            }
+                                        }
+                                        
+                                        error_log("DEBUG Vue d'ensemble - Nombre d'évaluations pour cet assignment: " . count($evaluations));
                                     }
                                     
                                     $evalByType = [
@@ -1058,16 +878,49 @@ include_once __DIR__ . '/../common/header.php';
                                     ];
                                     
                                     foreach ($evaluations as $eval) {
-                                        if (isset($evalByType[$eval['type']])) {
-                                            // Convertir le score de 20 à 5 pour l'affichage
-                                            $eval['display_score'] = round($eval['score'] / 4, 1);
+                                        error_log("DEBUG Vue d'ensemble - Processing eval type: " . $eval['type'] . ", Score: " . $eval['score']);
+                                        // Ne traiter que les types mid_term et final (exclure company et enterprise)
+                                        if (($eval['type'] === 'mid_term' || $eval['type'] === 'final') && 
+                                            $eval['type'] !== 'company' && $eval['type'] !== 'enterprise') {
+                                            // S'assurer que le score est sur une échelle de 5
+                                            $scoreOn5 = $eval['score'];
+                                            if ($scoreOn5 > 5) {
+                                                $scoreOn5 = number_format($scoreOn5 / 4, 1);
+                                            }
+                                            $eval['display_score'] = $scoreOn5;
                                             $evalByType[$eval['type']] = $eval;
+                                            error_log("DEBUG Vue d'ensemble - Added eval type " . $eval['type'] . " with score " . $scoreOn5);
+                                        } else {
+                                            error_log("DEBUG Vue d'ensemble - Type " . $eval['type'] . " ignored (not mid_term or final)");
                                         }
                                     }
                                     
-                                    // Calculer la moyenne
-                                    $scores = array_filter(array_column($evaluations, 'score'));
-                                    $average = !empty($scores) ? round((array_sum($scores) / count($scores)) / 4, 1) : null;
+                                    error_log("DEBUG Vue d'ensemble - Final evalByType mid_term: " . ($evalByType['mid_term'] ? 'EXISTS' : 'NULL'));
+                                    error_log("DEBUG Vue d'ensemble - Final evalByType final: " . ($evalByType['final'] ? 'EXISTS' : 'NULL'));
+                                    
+                                    // Calculer la moyenne de toutes les évaluations (comme dans la carte)
+                                    $totalScore = 0;
+                                    $evaluationCount = 0;
+                                    
+                                    foreach ($evaluations as $eval) {
+                                        if (isset($eval['score']) && is_numeric($eval['score'])) {
+                                            // S'assurer que le score est sur une échelle de 5
+                                            $scoreOn5 = $eval['score'];
+                                            if ($scoreOn5 > 5) {
+                                                $scoreOn5 = $scoreOn5 / 4;
+                                            }
+                                            $totalScore += $scoreOn5;
+                                            $evaluationCount++;
+                                            error_log("DEBUG Vue d'ensemble - Adding score: " . $scoreOn5 . " (type: " . $eval['type'] . ")");
+                                        }
+                                    }
+                                    
+                                    $average = $evaluationCount > 0 ? round($totalScore / $evaluationCount, 1) : null;
+                                    error_log("DEBUG Vue d'ensemble - Final average: " . ($average !== null ? $average : 'NULL') . " (total: $totalScore, count: $evaluationCount)");
+                                    
+                                    // Mettre à jour les scores pour les statuts
+                                    $midTermScore = $evalByType['mid_term'] ? floatval($evalByType['mid_term']['display_score']) : null;
+                                    $finalScore = $evalByType['final'] ? floatval($evalByType['final']['display_score']) : null;
                                 ?>
                                 <tr>
                                     <td>
@@ -1079,14 +932,14 @@ include_once __DIR__ . '/../common/header.php';
                                     <td><?php echo $company ? h($company['name']) : '<span class="text-muted">N/A</span>'; ?></td>
                                     <td>
                                         <?php if ($evalByType['mid_term']): ?>
-                                            <span class="badge bg-success"><?php echo h($evalByType['mid_term']['display_score']); ?>/5</span>
+                                            <span class="badge bg-success">Terminé - <?php echo h($evalByType['mid_term']['display_score']); ?>/5</span>
                                         <?php else: ?>
                                             <span class="badge bg-warning">En attente</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <?php if ($evalByType['final']): ?>
-                                            <span class="badge bg-success"><?php echo h($evalByType['final']['display_score']); ?>/5</span>
+                                            <span class="badge bg-success">Terminé - <?php echo h($evalByType['final']['display_score']); ?>/5</span>
                                         <?php else: ?>
                                             <span class="badge bg-warning">En attente</span>
                                         <?php endif; ?>
@@ -1328,6 +1181,21 @@ include_once __DIR__ . '/../common/header.php';
         padding-right: 0.5rem;
     }
 }
+
+/* Style pour le select d'étudiant dans le modal */
+#modal_student_select option {
+    padding: 8px 12px;
+}
+
+#modal_student_select {
+    border: 2px solid #e9ecef;
+    transition: border-color 0.15s ease-in-out;
+}
+
+#modal_student_select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
 </style>
 
 <!-- Create Evaluation Modal -->
@@ -1340,22 +1208,41 @@ include_once __DIR__ . '/../common/header.php';
             </div>
             <form action="" method="POST">
                 <div class="modal-body">
-                    <input type="hidden" name="assignment_id" value="<?php echo h($selectedAssignment['id'] ?? ''); ?>">
-                    <input type="hidden" name="student_id" value="<?php echo h($selectedStudent['student_id'] ?? ''); ?>">
+                    <input type="hidden" name="assignment_id" id="modal_assignment_id" value="">
                     
                     <div class="mb-4">
                         <h5>Informations générales</h5>
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="modal_student_select" class="form-label">Étudiant</label>
+                                    <select class="form-select" id="modal_student_select" name="student_assignment" onchange="updateAssignmentId()" required>
+                                        <option value="" disabled selected>Choisir un étudiant...</option>
+                                        <?php foreach ($assignments as $assignment): ?>
+                                        <option value="<?php echo h($assignment['id']); ?>" 
+                                                data-assignment-id="<?php echo h($assignment['id']); ?>"
+                                                data-student-id="<?php echo h($assignment['student_id']); ?>"
+                                                <?php echo ($selectedStudent && $selectedStudent['student_id'] == $assignment['student_id']) ? 'selected' : ''; ?>>
+                                            <?php echo h($assignment['student_first_name'] . ' ' . $assignment['student_last_name']); ?>
+                                            <?php if (!empty($assignment['internship_title'])): ?>
+                                                - <?php echo h(substr($assignment['internship_title'], 0, 30) . (strlen($assignment['internship_title']) > 30 ? '...' : '')); ?>
+                                            <?php endif; ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="evaluation_type" class="form-label">Type d'évaluation</label>
                                     <select class="form-select" id="evaluation_type" name="evaluation_type" required>
+                                        <option value="" disabled selected>Choisir un type...</option>
                                         <option value="mid_term">Mi-parcours</option>
                                         <option value="final">Finale</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="evaluation_date" class="form-label">Date d'évaluation</label>
                                     <input type="date" class="form-control" id="evaluation_date" name="evaluation_date" value="<?php echo date('Y-m-d'); ?>" required>
@@ -1770,6 +1657,41 @@ include_once __DIR__ . '/../common/header.php';
         `;
         container.appendChild(newField);
     }
+    
+    // Fonction pour mettre à jour l'assignment_id quand l'étudiant change
+    function updateAssignmentId() {
+        const select = document.getElementById('modal_student_select');
+        const selectedOption = select.options[select.selectedIndex];
+        const assignmentIdField = document.getElementById('modal_assignment_id');
+        
+        if (selectedOption && selectedOption.value) {
+            assignmentIdField.value = selectedOption.getAttribute('data-assignment-id');
+        } else {
+            assignmentIdField.value = '';
+        }
+    }
+    
+    // Initialiser le modal quand il s'ouvre
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('createEvaluationModal');
+        if (modal) {
+            modal.addEventListener('show.bs.modal', function() {
+                // Si un étudiant est déjà sélectionné sur la page, le pré-sélectionner dans le modal
+                <?php if ($selectedStudent): ?>
+                const studentSelect = document.getElementById('modal_student_select');
+                const targetValue = '<?php echo h($selectedAssignment['id'] ?? ''); ?>';
+                
+                for (let i = 0; i < studentSelect.options.length; i++) {
+                    if (studentSelect.options[i].value === targetValue) {
+                        studentSelect.selectedIndex = i;
+                        updateAssignmentId();
+                        break;
+                    }
+                }
+                <?php endif; ?>
+            });
+        }
+    });
     
     // Fonctions pour les actions d'évaluation
     function printEvaluation(index) {

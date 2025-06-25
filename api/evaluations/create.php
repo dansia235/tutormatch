@@ -94,8 +94,20 @@ $evaluationData = [
     'submission_date' => date('Y-m-d H:i:s')
 ];
 
-// Créer l'évaluation
-$evaluationId = $evaluationModel->create($evaluationData);
+// Créer l'évaluation avec vérification des restrictions d'unicité
+try {
+    $evaluationId = $evaluationModel->create($evaluationData);
+} catch (Exception $e) {
+    // Gestion des erreurs de contrainte d'unicité
+    setFlashMessage('error', $e->getMessage());
+    $_SESSION['form_data'] = $_POST;
+    
+    if (isset($_POST['redirect_url'])) {
+        redirect($_POST['redirect_url']);
+    } else {
+        redirect('/tutoring/views/admin/assignments/evaluation_form.php?id=' . $assignmentId . '&type=' . $_POST['type']);
+    }
+}
 
 if (!$evaluationId) {
     setFlashMessage('error', "Erreur lors de la création de l'évaluation");

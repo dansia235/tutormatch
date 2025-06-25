@@ -23,21 +23,52 @@ $assignmentController = new AssignmentController($db);
 
 // Récupérer les données pour le formulaire directement
 $studentModel = new Student($db);
-$students = $studentModel->getAll('active');
+$allStudents = $studentModel->getAll('active');
 
 $teacherModel = new Teacher($db);
 $teachers = $teacherModel->getAll(true);
 
-// Calculer la capacité restante pour chaque tuteur
+$internshipModel = new Internship($db);
+$allInternships = $internshipModel->getAll('available');
+
+// Récupérer les affectations existantes pour filtrer
 $assignmentModel = new Assignment($db);
+$existingAssignments = $assignmentModel->getAll(); // Récupérer toutes les affectations
+
+// Filtrer pour ne garder que les affectations actives
+$activeAssignments = array_filter($existingAssignments, function($assignment) {
+    return in_array($assignment['status'], ['pending', 'confirmed', 'active']);
+});
+
+// Créer des listes des étudiants et stages déjà affectés
+$assignedStudentIds = [];
+$assignedInternshipIds = [];
+
+foreach ($activeAssignments as $assignment) {
+    if (!in_array($assignment['student_id'], $assignedStudentIds)) {
+        $assignedStudentIds[] = $assignment['student_id'];
+    }
+    if (!in_array($assignment['internship_id'], $assignedInternshipIds)) {
+        $assignedInternshipIds[] = $assignment['internship_id'];
+    }
+}
+
+// Filtrer les étudiants disponibles (non affectés)
+$students = array_filter($allStudents, function($student) use ($assignedStudentIds) {
+    return !in_array($student['id'], $assignedStudentIds);
+});
+
+// Filtrer les stages disponibles (non pris)
+$internships = array_filter($allInternships, function($internship) use ($assignedInternshipIds) {
+    return !in_array($internship['id'], $assignedInternshipIds);
+});
+
+// Calculer la capacité restante pour chaque tuteur
 foreach ($teachers as &$teacher) {
     $currentAssignments = $assignmentModel->countByTeacherId($teacher['id']);
     $teacher['remaining_capacity'] = $teacher['max_students'] - $currentAssignments;
 }
 unset($teacher); // Important pour éviter des problèmes avec la référence
-
-$internshipModel = new Internship($db);
-$internships = $internshipModel->getAll('available');
 
 // Récupérer les anciennes données du formulaire en cas d'erreur
 $formData = $_SESSION['form_data'] ?? [];
@@ -89,6 +120,44 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
     </div>
     <?php endif; ?>
     
+    <!-- Alertes de disponibilité -->
+    <?php if (empty($students) && empty($internships)): ?>
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Aucune affectation possible :</strong>
+        Il n'y a ni étudiants ni stages disponibles. Tous sont déjà affectés.
+        <div class="mt-2">
+            <a href="/tutoring/views/admin/assignments.php" class="btn btn-sm btn-outline-warning me-2">
+                <i class="bi bi-list me-1"></i>Voir les affectations existantes
+            </a>
+            <a href="/tutoring/views/admin/students.php" class="btn btn-sm btn-outline-primary me-2">
+                <i class="bi bi-people me-1"></i>Gérer les étudiants
+            </a>
+            <a href="/tutoring/views/admin/internships.php" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-building me-1"></i>Gérer les stages
+            </a>
+        </div>
+    </div>
+    <?php elseif (empty($students)): ?>
+    <div class="alert alert-warning">
+        <i class="bi bi-person-x me-2"></i>
+        <strong>Aucun étudiant disponible :</strong>
+        Tous les étudiants sont déjà affectés à un stage.
+        <a href="/tutoring/views/admin/assignments.php" class="btn btn-sm btn-outline-warning ms-2">
+            <i class="bi bi-list me-1"></i>Voir les affectations
+        </a>
+    </div>
+    <?php elseif (empty($internships)): ?>
+    <div class="alert alert-warning">
+        <i class="bi bi-building-x me-2"></i>
+        <strong>Aucun stage disponible :</strong>
+        Tous les stages sont déjà pris.
+        <a href="/tutoring/views/admin/internships.php" class="btn btn-sm btn-outline-success ms-2">
+            <i class="bi bi-building me-1"></i>Ajouter des stages
+        </a>
+    </div>
+    <?php endif; ?>
+    
     <!-- Formulaire de création d'affectation -->
     <div class="card">
         <div class="card-header">
@@ -100,9 +169,15 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
                 
                 <div class="row mb-4">
                     <div class="col-md-4 mb-3">
-                        <label for="student_id" class="form-label">Étudiant <span class="text-danger">*</span></label>
+                        <label for="student_id" class="form-label">
+                            Étudiant <span class="text-danger">*</span>
+                            <small class="text-muted">(<?php echo count($students); ?> disponible(s))</small>
+                        </label>
                         <select class="form-select" id="student_id" name="student_id" required>
                             <option value="">-- Sélectionner un étudiant --</option>
+                            <?php if (empty($students)): ?>
+                            <option value="" disabled>Aucun étudiant disponible (tous déjà affectés)</option>
+                            <?php else: ?>
                             <?php foreach ($students as $student): ?>
                             <option value="<?php echo $student['id']; ?>" 
                                 <?php echo ($selectedStudentId == $student['id']) ? 'selected' : ''; ?>
@@ -113,7 +188,14 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
                                 (<?php echo h($student['program']); ?>)
                             </option>
                             <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
+                        <?php if (empty($students)): ?>
+                        <div class="form-text text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Tous les étudiants sont déjà affectés. Modifiez ou supprimez des affectations existantes pour en créer de nouvelles.
+                        </div>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="col-md-4 mb-3">
@@ -134,9 +216,15 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
                     </div>
                     
                     <div class="col-md-4 mb-3">
-                        <label for="internship_id" class="form-label">Stage <span class="text-danger">*</span></label>
+                        <label for="internship_id" class="form-label">
+                            Stage <span class="text-danger">*</span>
+                            <small class="text-muted">(<?php echo count($internships); ?> disponible(s))</small>
+                        </label>
                         <select class="form-select" id="internship_id" name="internship_id" required>
                             <option value="">-- Sélectionner un stage --</option>
+                            <?php if (empty($internships)): ?>
+                            <option value="" disabled>Aucun stage disponible (tous déjà pris)</option>
+                            <?php else: ?>
                             <?php foreach ($internships as $internship): ?>
                             <option value="<?php echo $internship['id']; ?>" 
                                 <?php echo ($selectedInternshipId == $internship['id']) ? 'selected' : ''; ?>
@@ -147,7 +235,14 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
                                 (<?php echo h($internship['company_name']); ?>)
                             </option>
                             <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
+                        <?php if (empty($internships)): ?>
+                        <div class="form-text text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Tous les stages sont déjà pris. Ajoutez de nouveaux stages ou modifiez des affectations existantes.
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
@@ -204,7 +299,7 @@ $selectedInternshipId = isset($_GET['internship_id']) ? intval($_GET['internship
                 
                 <div class="d-flex justify-content-end mt-4">
                     <button type="reset" class="btn btn-secondary me-2">Réinitialiser</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" <?php echo (empty($students) || empty($internships)) ? 'disabled title="Étudiants ou stages manquants"' : ''; ?>>
                         <i class="bi bi-save me-2"></i>Créer l'affectation
                     </button>
                 </div>

@@ -20,17 +20,22 @@ class Assignment {
      */
     public function getById($id) {
         $query = "SELECT a.*, 
-                  s.id as student_id, s.student_number, u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  s.id as student_id, s.student_number, s.program, s.level,
+                  u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  u_s.department as student_department, u_s.email as student_email,
                   t.id as teacher_id, u_t.first_name as teacher_first_name, u_t.last_name as teacher_last_name,
+                  u_t.department as teacher_department, u_t.email as teacher_email,
                   i.id as internship_id, i.title as internship_title, i.company_id,
+                  i.start_date as internship_start_date, i.end_date as internship_end_date,
+                  i.description as internship_description,
                   c.name as company_name, c.logo_path as company_logo
                   FROM assignments a
-                  JOIN students s ON a.student_id = s.id
-                  JOIN users u_s ON s.user_id = u_s.id
-                  JOIN teachers t ON a.teacher_id = t.id
-                  JOIN users u_t ON t.user_id = u_t.id
-                  JOIN internships i ON a.internship_id = i.id
-                  JOIN companies c ON i.company_id = c.id
+                  LEFT JOIN students s ON a.student_id = s.id
+                  LEFT JOIN users u_s ON s.user_id = u_s.id
+                  LEFT JOIN teachers t ON a.teacher_id = t.id
+                  LEFT JOIN users u_t ON t.user_id = u_t.id
+                  LEFT JOIN internships i ON a.internship_id = i.id
+                  LEFT JOIN companies c ON i.company_id = c.id
                   WHERE a.id = :id LIMIT 1";
                   
         $stmt = $this->db->prepare($query);
@@ -47,24 +52,32 @@ class Assignment {
      */
     public function getAll($status = null) {
         $query = "SELECT a.*, 
-                  s.id as student_id, s.student_number, u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  s.id as student_id, s.student_number, s.program, s.level,
+                  u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  u_s.department as student_department, u_s.email as student_email,
                   t.id as teacher_id, u_t.first_name as teacher_first_name, u_t.last_name as teacher_last_name,
+                  u_t.department as teacher_department, u_t.email as teacher_email,
                   i.id as internship_id, i.title as internship_title, i.company_id,
+                  i.start_date as internship_start_date, i.end_date as internship_end_date,
                   c.name as company_name
                   FROM assignments a
-                  JOIN students s ON a.student_id = s.id
-                  JOIN users u_s ON s.user_id = u_s.id
-                  JOIN teachers t ON a.teacher_id = t.id
-                  JOIN users u_t ON t.user_id = u_t.id
-                  JOIN internships i ON a.internship_id = i.id
-                  JOIN companies c ON i.company_id = c.id";
+                  LEFT JOIN students s ON a.student_id = s.id
+                  LEFT JOIN users u_s ON s.user_id = u_s.id
+                  LEFT JOIN teachers t ON a.teacher_id = t.id
+                  LEFT JOIN users u_t ON t.user_id = u_t.id
+                  LEFT JOIN internships i ON a.internship_id = i.id
+                  LEFT JOIN companies c ON i.company_id = c.id";
                   
         if ($status) {
             $query .= " WHERE a.status = :status";
-            $stmt = $this->db->prepare($query);
+        }
+        
+        $query .= " ORDER BY a.assignment_date DESC";
+        
+        $stmt = $this->db->prepare($query);
+        
+        if ($status) {
             $stmt->bindParam(':status', $status);
-        } else {
-            $stmt = $this->db->prepare($query);
         }
         
         $stmt->execute();
@@ -290,17 +303,21 @@ class Assignment {
         $term = "%$term%";
         
         $query = "SELECT a.*, 
-                  s.id as student_id, s.student_number, u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  s.id as student_id, s.student_number, s.program, s.level,
+                  u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  u_s.department as student_department, u_s.email as student_email,
                   t.id as teacher_id, u_t.first_name as teacher_first_name, u_t.last_name as teacher_last_name,
+                  u_t.department as teacher_department, u_t.email as teacher_email,
                   i.id as internship_id, i.title as internship_title, i.company_id,
+                  i.start_date as internship_start_date, i.end_date as internship_end_date,
                   c.name as company_name
                   FROM assignments a
-                  JOIN students s ON a.student_id = s.id
-                  JOIN users u_s ON s.user_id = u_s.id
-                  JOIN teachers t ON a.teacher_id = t.id
-                  JOIN users u_t ON t.user_id = u_t.id
-                  JOIN internships i ON a.internship_id = i.id
-                  JOIN companies c ON i.company_id = c.id
+                  LEFT JOIN students s ON a.student_id = s.id
+                  LEFT JOIN users u_s ON s.user_id = u_s.id
+                  LEFT JOIN teachers t ON a.teacher_id = t.id
+                  LEFT JOIN users u_t ON t.user_id = u_t.id
+                  LEFT JOIN internships i ON a.internship_id = i.id
+                  LEFT JOIN companies c ON i.company_id = c.id
                   WHERE ";
                   
         $conditions = [];
@@ -471,12 +488,13 @@ class Assignment {
                   i.id as internship_id, i.title as internship_title, i.description as internship_description,
                   i.start_date as internship_start_date, i.end_date as internship_end_date,
                   t.id as teacher_id, u_t.first_name as teacher_first_name, u_t.last_name as teacher_last_name,
+                  u_t.department as teacher_department, u_t.email as teacher_email,
                   c.id as company_id, c.name as company_name, c.logo_path as company_logo
                   FROM assignments a
-                  JOIN internships i ON a.internship_id = i.id
-                  JOIN teachers t ON a.teacher_id = t.id
-                  JOIN users u_t ON t.user_id = u_t.id
-                  JOIN companies c ON i.company_id = c.id
+                  LEFT JOIN internships i ON a.internship_id = i.id
+                  LEFT JOIN teachers t ON a.teacher_id = t.id
+                  LEFT JOIN users u_t ON t.user_id = u_t.id
+                  LEFT JOIN companies c ON i.company_id = c.id
                   WHERE a.student_id = :student_id";
         
         // Ajouter des filtres si nécessaire
@@ -533,15 +551,17 @@ class Assignment {
      */
     public function getByTeacherId($teacherId, $options = []) {
         $query = "SELECT a.*, 
-                  s.id as student_id, s.student_number, u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  s.id as student_id, s.student_number, s.program, s.level,
+                  u_s.first_name as student_first_name, u_s.last_name as student_last_name,
+                  u_s.department as student_department, u_s.email as student_email,
                   i.id as internship_id, i.title as internship_title, i.description as internship_description,
                   i.start_date as internship_start_date, i.end_date as internship_end_date,
                   c.id as company_id, c.name as company_name
                   FROM assignments a
-                  JOIN students s ON a.student_id = s.id
-                  JOIN users u_s ON s.user_id = u_s.id
-                  JOIN internships i ON a.internship_id = i.id
-                  JOIN companies c ON i.company_id = c.id
+                  LEFT JOIN students s ON a.student_id = s.id
+                  LEFT JOIN users u_s ON s.user_id = u_s.id
+                  LEFT JOIN internships i ON a.internship_id = i.id
+                  LEFT JOIN companies c ON i.company_id = c.id
                   WHERE a.teacher_id = :teacher_id";
         
         // Ajouter des filtres si nécessaire

@@ -990,16 +990,32 @@ class AssignmentController {
             return;
         }
         
-        // Récupérer les étudiants sans affectation
-        $students = $this->studentModel->getAll('active');
-        $unassignedStudents = [];
+        // Récupérer les affectations existantes pour filtrer (même logique que create.php)
+        $existingAssignments = $this->assignmentModel->getAll(); // Récupérer toutes les affectations
         
-        foreach ($students as $student) {
-            $existingAssignment = $this->assignmentModel->getByStudentId($student['id']);
-            if (!$existingAssignment) {
-                $unassignedStudents[] = $student;
+        // Filtrer pour ne garder que les affectations actives (même logique que create.php)
+        $activeAssignments = array_filter($existingAssignments, function($assignment) {
+            return in_array($assignment['status'], ['pending', 'confirmed', 'active']);
+        });
+        
+        // Créer des listes des étudiants et stages déjà affectés
+        $assignedStudentIds = [];
+        $assignedInternshipIds = [];
+        
+        foreach ($activeAssignments as $assignment) {
+            if (!in_array($assignment['student_id'], $assignedStudentIds)) {
+                $assignedStudentIds[] = $assignment['student_id'];
+            }
+            if (!in_array($assignment['internship_id'], $assignedInternshipIds)) {
+                $assignedInternshipIds[] = $assignment['internship_id'];
             }
         }
+        
+        // Récupérer tous les étudiants actifs et filtrer les non affectés
+        $allStudents = $this->studentModel->getAll('active');
+        $unassignedStudents = array_filter($allStudents, function($student) use ($assignedStudentIds) {
+            return !in_array($student['id'], $assignedStudentIds);
+        });
         
         // Récupérer les enseignants disponibles
         $teachers = $this->teacherModel->getAll(true);
@@ -1013,8 +1029,11 @@ class AssignmentController {
             }
         }
         
-        // Récupérer les stages disponibles
-        $availableInternships = $this->internshipModel->getAll('available');
+        // Récupérer tous les stages disponibles et filtrer les non pris
+        $allInternships = $this->internshipModel->getAll('available');
+        $availableInternships = array_filter($allInternships, function($internship) use ($assignedInternshipIds) {
+            return !in_array($internship['id'], $assignedInternshipIds);
+        });
         
         // Vérifier s'il y a assez d'étudiants, d'enseignants et de stages
         if (empty($unassignedStudents)) {

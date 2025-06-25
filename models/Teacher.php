@@ -220,19 +220,24 @@ class Teacher {
         $query = "SELECT a.*, 
                   s.id as student_id, 
                   s.student_number,
+                  s.program,
+                  s.level,
                   u_s.id as student_user_id,
                   u_s.first_name as student_first_name, 
                   u_s.last_name as student_last_name,
                   u_s.email as student_email,
+                  u_s.department as student_department,
                   i.id as internship_id, 
                   i.title as internship_title, 
+                  i.start_date as internship_start_date,
+                  i.end_date as internship_end_date,
                   i.company_id,
                   c.name as company_name
                   FROM assignments a
-                  JOIN students s ON a.student_id = s.id
-                  JOIN users u_s ON s.user_id = u_s.id
-                  JOIN internships i ON a.internship_id = i.id
-                  JOIN companies c ON i.company_id = c.id
+                  LEFT JOIN students s ON a.student_id = s.id
+                  LEFT JOIN users u_s ON s.user_id = u_s.id
+                  LEFT JOIN internships i ON a.internship_id = i.id
+                  LEFT JOIN companies c ON i.company_id = c.id
                   WHERE a.teacher_id = :teacher_id";
                   
         if ($status) {

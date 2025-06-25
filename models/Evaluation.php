@@ -224,6 +224,11 @@ class Evaluation {
      * @return int|bool L'ID de la nouvelle évaluation ou false en cas d'échec
      */
     public function create($data) {
+        // Vérifier l'unicité de l'évaluation avant la création
+        if (!$this->canCreateEvaluation($data['assignment_id'], $data['type'], $data['evaluator_id'])) {
+            throw new Exception("Une évaluation de ce type existe déjà pour cet étudiant et cet évaluateur.");
+        }
+        
         // Préparer les critères d'évaluation
         $criteriaScores = isset($data['criteria_scores']) ? $data['criteria_scores'] : $this->initEmptyCriteriaScores();
         
@@ -565,5 +570,83 @@ class Evaluation {
      */
     public function getCriteriaStructure() {
         return $this->criteriaStructure;
+    }
+    
+    /**
+     * Vérifie si une évaluation peut être créée en respectant les règles d'unicité
+     * Règles:
+     * - 1 seule évaluation finale par tuteur/étudiant
+     * - 1 seule évaluation mi-parcours par tuteur/étudiant  
+     * - 1 seule auto-évaluation par étudiant
+     * 
+     * @param int $assignmentId ID de l'affectation
+     * @param string $type Type d'évaluation (mid_term, final, student)
+     * @param int $evaluatorId ID de l'évaluateur
+     * @return bool True si l'évaluation peut être créée, false sinon
+     */
+    public function canCreateEvaluation($assignmentId, $type, $evaluatorId) {
+        // Vérifier s'il existe déjà une évaluation de ce type pour cette affectation
+        $query = "SELECT COUNT(*) FROM evaluations 
+                  WHERE assignment_id = :assignment_id 
+                  AND type = :type";
+        
+        $params = [
+            ':assignment_id' => $assignmentId,
+            ':type' => $type
+        ];
+        
+        // Pour les évaluations de tuteur (mid_term, final), vérifier aussi l'évaluateur
+        if (in_array($type, ['mid_term', 'final'])) {
+            $query .= " AND evaluator_id = :evaluator_id";
+            $params[':evaluator_id'] = $evaluatorId;
+        }
+        
+        // Pour les auto-évaluations (student), vérifier que l'évaluateur est l'étudié
+        if ($type === 'student') {
+            $query .= " AND evaluator_id = evaluatee_id";
+        }
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->execute($params);
+        
+        $count = $stmt->fetchColumn();
+        
+        // Retourner true si aucune évaluation de ce type n'existe déjà
+        return $count == 0;
+    }
+    
+    /**
+     * Vérifie les évaluations existantes pour un assignment donné
+     * 
+     * @param int $assignmentId ID de l'affectation
+     * @return array Informations sur les évaluations existantes
+     */
+    public function getEvaluationStatus($assignmentId) {
+        $query = "SELECT type, evaluator_id, COUNT(*) as count 
+                  FROM evaluations 
+                  WHERE assignment_id = :assignment_id 
+                  GROUP BY type, evaluator_id";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':assignment_id', $assignmentId, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $status = [
+            'mid_term' => false,
+            'final' => false,
+            'student' => false,
+            'can_create_mid_term' => true,
+            'can_create_final' => true,
+            'can_create_student' => true
+        ];
+        
+        foreach ($results as $result) {
+            $status[$result['type']] = true;
+            $status['can_create_' . $result['type']] = false;
+        }
+        
+        return $status;
     }
 }

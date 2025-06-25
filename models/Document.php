@@ -62,6 +62,95 @@ class Document {
             return [];
         }
     }
+    
+    /**
+     * Récupère les documents avec pagination
+     * @param int $page Numéro de page (commence à 1)
+     * @param int $perPage Nombre d'éléments par page
+     * @param string $category Catégorie pour filtrer (optionnel)
+     * @param string $search Terme de recherche (optionnel)
+     * @return array ['documents' => array, 'total' => int, 'totalPages' => int]
+     */
+    public function getAllPaginated($page = 1, $perPage = 10, $category = null, $search = null) {
+        try {
+            // Calculer l'offset
+            $offset = ($page - 1) * $perPage;
+            
+            // Construction de la requête de base
+            $baseQuery = "FROM documents d JOIN users u ON d.user_id = u.id";
+            $whereConditions = [];
+            $params = [];
+            
+            if ($category) {
+                // Si category est un array (erreur de paramètre), extraire la clé appropriée
+                if (is_array($category)) {
+                    // Ignorer ce paramètre malformé
+                    $category = null;
+                } else {
+                    $whereConditions[] = "d.type = :category";
+                    $params[':category'] = $category;
+                }
+            }
+            
+            if ($search) {
+                $whereConditions[] = "(d.title LIKE :search OR d.description LIKE :search)";
+                $params[':search'] = '%' . $search . '%';
+            }
+            
+            if (!empty($whereConditions)) {
+                $baseQuery .= " WHERE " . implode(" AND ", $whereConditions);
+            }
+            
+            // Compter le total
+            $countQuery = "SELECT COUNT(*) as total " . $baseQuery;
+            $countStmt = $this->db->prepare($countQuery);
+            foreach ($params as $key => $value) {
+                if (is_array($value)) {
+                    $countStmt->bindValue($key, implode(',', $value));
+                } else {
+                    $countStmt->bindValue($key, $value);
+                }
+            }
+            $countStmt->execute();
+            $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            
+            // Récupérer les documents
+            $query = "SELECT d.*, u.first_name, u.last_name, u.role " . $baseQuery;
+            $query .= " ORDER BY d.upload_date DESC LIMIT :limit OFFSET :offset";
+            
+            $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $value) {
+                if (is_array($value)) {
+                    $stmt->bindValue($key, implode(',', $value));
+                } else {
+                    $stmt->bindValue($key, $value);
+                }
+            }
+            $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return [
+                'documents' => $documents,
+                'total' => $total,
+                'totalPages' => ceil($total / $perPage),
+                'currentPage' => $page,
+                'perPage' => $perPage
+            ];
+            
+        } catch (PDOException $e) {
+            error_log("Erreur dans Document::getAllPaginated: " . $e->getMessage());
+            return [
+                'documents' => [],
+                'total' => 0,
+                'totalPages' => 0,
+                'currentPage' => 1,
+                'perPage' => $perPage
+            ];
+        }
+    }
 
     /**
      * Récupère tous les documents d'un utilisateur

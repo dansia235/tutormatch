@@ -57,6 +57,9 @@ foreach ($assignments as $assignment) {
 $meetingModel = new Meeting($db);
 $allMeetings = [];
 
+// Initialiser assignmentIds avec un tableau vide par défaut
+$assignmentIds = [];
+
 try {
     // Approche robuste pour récupérer toutes les réunions concernant l'étudiant
     

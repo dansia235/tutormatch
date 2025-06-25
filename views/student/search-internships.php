@@ -298,7 +298,7 @@ echo $customCSS;
                 <div class="card-body">
                     <form action="" method="GET" class="mb-3">
                         <div class="input-group">
-                            <input type="text" class="form-control" name="term" value="<?= htmlspecialchars($searchTerm) ?>" placeholder="Titre, domaine, entreprise..." aria-label="Terme de recherche" autocomplete="off" autofocus>
+                            <input type="text" class="form-control" name="term" value="<?= h($searchTerm) ?>" placeholder="Titre, domaine, entreprise..." aria-label="Terme de recherche" autocomplete="off" autofocus>
                             <button class="btn btn-primary" type="submit">
                                 <i class="bi bi-search me-1"></i> Rechercher
                             </button>
@@ -316,7 +316,7 @@ echo $customCSS;
                                 foreach($quickDomains as $domain): 
                                 ?>
                                 <a href="?term=<?= urlencode($domain) ?>" class="badge bg-light text-dark text-decoration-none p-2">
-                                    <?= htmlspecialchars($domain) ?>
+                                    <?= h($domain) ?>
                                 </a>
                                 <?php endforeach; ?>
                             </div>
@@ -328,7 +328,7 @@ echo $customCSS;
                         <h6 class="mb-3"><i class="bi bi-funnel me-1"></i>Filtres avancés</h6>
                         <form action="" method="GET" class="row g-2">
                             <?php if (!empty($searchTerm)): ?>
-                            <input type="hidden" name="term" value="<?= htmlspecialchars($searchTerm) ?>">
+                            <input type="hidden" name="term" value="<?= h($searchTerm) ?>">
                             <?php endif; ?>
                             
                             <?php if (isset($_GET['show_all'])): ?>
@@ -346,7 +346,7 @@ echo $customCSS;
                                     $domains = $internshipModel->getDomains();
                                     foreach ($domains as $d): 
                                     ?>
-                                    <option value="<?= htmlspecialchars($d) ?>" <?= $domain === $d ? 'selected' : '' ?>><?= htmlspecialchars($d) ?></option>
+                                    <option value="<?= h($d) ?>" <?= $domain === $d ? 'selected' : '' ?>><?= h($d) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -354,7 +354,7 @@ echo $customCSS;
                             <!-- Localisation -->
                             <div class="col-md-4">
                                 <label for="location" class="form-label small">Localisation</label>
-                                <input type="text" class="form-control form-control-sm" id="location" name="location" value="<?= htmlspecialchars($location) ?>" placeholder="Ville, pays...">
+                                <input type="text" class="form-control form-control-sm" id="location" name="location" value="<?= h($location) ?>" placeholder="Ville, pays...">
                             </div>
                             
                             <!-- Mode de travail -->
@@ -421,7 +421,7 @@ echo $customCSS;
                                     </div>
                                     <div>
                                         <h5 class="alert-heading">Aucun stage trouvé</h5>
-                                        <p>Aucun stage ne correspond à votre recherche<?= !empty($searchTerm) ? ' "<strong>' . htmlspecialchars($searchTerm) . '</strong>"' : '' ?>.</p>
+                                        <p>Aucun stage ne correspond à votre recherche<?= !empty($searchTerm) ? ' "<strong>' . h($searchTerm) . '</strong>"' : '' ?>.</p>
                                         <hr>
                                         <p class="mb-0">Suggestions :</p>
                                         <ul class="mb-0">
@@ -464,30 +464,30 @@ echo $customCSS;
                                     <div class="card h-100 shadow-sm <?= $highlightClass ?> hover-shadow">
                                         <div class="card-header bg-light py-2 px-3">
                                             <div class="d-flex justify-content-between align-items-center">
-                                                <span class="badge bg-primary"><?= htmlspecialchars($internship['domain']) ?></span>
-                                                <small class="text-muted"><?= htmlspecialchars($internship['work_mode']) ?></small>
+                                                <span class="badge bg-primary"><?= h($internship['domain']) ?></span>
+                                                <small class="text-muted"><?= h($internship['work_mode']) ?></small>
                                             </div>
                                         </div>
                                         <div class="card-body">
-                                            <h5 class="card-title"><?= htmlspecialchars($internship['title']) ?></h5>
+                                            <h5 class="card-title"><?= h($internship['title']) ?></h5>
                                             <h6 class="card-subtitle mb-3 d-flex align-items-center">
                                                 <?php if (!empty($internship['company_logo'])): ?>
-                                                <img src="<?= htmlspecialchars($internship['company_logo']) ?>" alt="Logo" class="me-2" style="height: 20px; width: auto;">
+                                                <img src="<?= h($internship['company_logo']) ?>" alt="Logo" class="me-2" style="height: 20px; width: auto;">
                                                 <?php else: ?>
                                                 <i class="bi bi-building me-2"></i>
                                                 <?php endif; ?>
-                                                <?= htmlspecialchars($internship['company_name']) ?>
+                                                <?= h($internship['company_name']) ?>
                                             </h6>
                                             
                                             <div class="mb-3">
-                                                <span class="badge bg-light text-dark border me-1"><?= htmlspecialchars($internship['location']) ?></span>
+                                                <span class="badge bg-light text-dark border me-1"><?= h($internship['location']) ?></span>
                                                 <?php 
                                                 // Afficher les compétences si disponibles
                                                 if (!empty($internship['skills']) && is_array($internship['skills'])):
                                                     $skills = array_slice($internship['skills'], 0, 3); // Limiter à 3 compétences
                                                     foreach ($skills as $skill):
                                                 ?>
-                                                <span class="badge bg-light text-dark border me-1"><?= htmlspecialchars($skill) ?></span>
+                                                <span class="badge bg-light text-dark border me-1"><?= h($skill) ?></span>
                                                 <?php 
                                                     endforeach;
                                                     // Indiquer s'il y a d'autres compétences
@@ -501,7 +501,7 @@ echo $customCSS;
                                             </div>
                                             
                                             <p class="card-text small mb-3">
-                                                <?= substr(htmlspecialchars($internship['description']), 0, 120) . (strlen($internship['description']) > 120 ? '...' : '') ?>
+                                                <?= substr(h($internship['description']), 0, 120) . (strlen($internship['description']) > 120 ? '...' : '') ?>
                                             </p>
                                             
                                             <div class="d-flex align-items-center mb-3 small">
@@ -526,7 +526,7 @@ echo $customCSS;
                                             </div>
                                         </div>
                                         <div class="card-footer bg-white text-end py-2 small">
-                                            <span class="text-muted">Compensation: <?= htmlspecialchars($internship['compensation'] ?: 'Non spécifiée') ?></span>
+                                            <span class="text-muted">Compensation: <?= h($internship['compensation'] ?: 'Non spécifiée') ?></span>
                                         </div>
                                     </div>
                                 </div>
@@ -649,8 +649,8 @@ echo $customCSS;
                                 <div class="list-group-item list-group-item-action d-flex align-items-center">
                                     <span class="badge bg-primary rounded-circle me-3"><?= $preference['preference_order'] ?></span>
                                     <div>
-                                        <h6 class="mb-0"><?= htmlspecialchars($preference['title']) ?></h6>
-                                        <small class="text-muted"><?= htmlspecialchars($preference['company_name']) ?></small>
+                                        <h6 class="mb-0"><?= h($preference['title']) ?></h6>
+                                        <small class="text-muted"><?= h($preference['company_name']) ?></small>
                                     </div>
                                 </div>
                             <?php endforeach; ?>

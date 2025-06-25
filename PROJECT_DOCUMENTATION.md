@@ -121,6 +121,22 @@ Le système offre des outils complets pour le suivi et l'évaluation des stages 
 - **Évaluations structurées** : Formulaires d'évaluation à mi-parcours et finaux
 - **Rapports statistiques** : Indicateurs de performance individuels et globaux
 
+#### Restrictions d'évaluation
+
+Pour garantir l'intégrité du processus d'évaluation, le système impose les restrictions suivantes :
+
+- **Évaluation mi-parcours** : 1 seule évaluation mi-parcours par tuteur/étudiant
+- **Évaluation finale** : 1 seule évaluation finale par tuteur/étudiant  
+- **Auto-évaluation** : 1 seule auto-évaluation par étudiant
+
+Ces restrictions assurent :
+- La cohérence des évaluations
+- L'équité du processus d'évaluation
+- La simplicité du calcul des moyennes
+- La prévention des doublons
+
+Le maximum théorique d'évaluations par étudiant est donc de **3 évaluations** : 1 mi-parcours + 1 finale + 1 auto-évaluation.
+
 ### Communication
 
 TutorMatch intègre des fonctionnalités de communication pour faciliter les échanges entre parties prenantes :
@@ -446,7 +462,7 @@ Le modèle de données de TutorMatch est centré autour de plusieurs entités pr
 
 - `meetings` : Réunions planifiées entre tuteurs et étudiants
 - `documents` : Documents liés aux stages (conventions, rapports, etc.)
-- `evaluations` : Évaluations des stages par les tuteurs
+- `evaluations` : Évaluations des stages par les tuteurs (avec contraintes d'unicité)
 - `messages` : Messages échangés entre utilisateurs
 - `notifications` : Notifications système pour les événements importants
 
@@ -656,6 +672,13 @@ Outils pour évaluer les performances :
    - Amélioration de la gestion des erreurs avec des messages explicites
    - Implémentation de mécanismes de secours en cas d'échec des appels API
    - Journalisation détaillée des erreurs pour faciliter le débogage
+
+5. **Restrictions d'évaluation** :
+   - Implémentation de contraintes d'unicité dans le modèle `Evaluation`
+   - Méthode `canCreateEvaluation()` pour vérifier l'éligibilité avant création
+   - Méthode `getEvaluationStatus()` pour consulter l'état des évaluations
+   - Mise à jour des interfaces utilisateur pour refléter le maximum de 3 évaluations
+   - Harmonisation du calcul des moyennes entre les vues tuteur et étudiant
 
 ### Évolutions prévues
 

@@ -11,7 +11,9 @@ session_start();
 date_default_timezone_set('Europe/Paris');
 
 // Définir l'encodage
-mb_internal_encoding('UTF-8');
+if (function_exists('mb_internal_encoding')) {
+    mb_internal_encoding('UTF-8');
+}
 
 // Afficher toutes les erreurs en développement
 ini_set('display_errors', 1);

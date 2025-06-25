@@ -16,12 +16,23 @@ requireRole(['admin', 'coordinator']);
 
 // Afficher tous les documents ou filtrer par catégorie
 $category = isset($_GET['category']) ? $_GET['category'] : null;
+// Si category est un array (erreur dans l'URL), prendre null
+if (is_array($category)) {
+    $category = null;
+}
+$search = isset($_GET['term']) ? $_GET['term'] : null;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$perPage = 10; // Nombre de documents par page
 
 // Create Document model directly
 $documentModel = new Document($db);
 
-// Récupérer les documents
-$documents = $documentModel->getAll($category);
+// Récupérer les documents avec pagination
+$result = $documentModel->getAllPaginated($page, $perPage, $category, $search);
+$documents = $result['documents'];
+$totalPages = $result['totalPages'];
+$currentPage = $result['currentPage'];
+$total = $result['total'];
 
 // Récupérer les statistiques
 $stats = $documentModel->countByCategory();
@@ -84,24 +95,24 @@ include_once __DIR__ . '/../common/header.php';
             'other' => ['name' => 'Autres', 'icon' => 'bi-file', 'color' => 'dark']
         ];
         
-        foreach ($categories as $key => $category):
+        foreach ($categories as $key => $categoryInfo):
             $count = $stats[$key] ?? 0;
         ?>
         <div class="col-md-3 col-sm-6 mb-3">
-            <div class="card border-<?php echo $category['color']; ?> h-100">
+            <div class="card border-<?php echo $categoryInfo['color']; ?> h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="rounded-circle bg-light p-3 me-3">
-                            <i class="bi <?php echo $category['icon']; ?> text-<?php echo $category['color']; ?> fs-4"></i>
+                            <i class="bi <?php echo $categoryInfo['icon']; ?> text-<?php echo $categoryInfo['color']; ?> fs-4"></i>
                         </div>
                         <div>
-                            <h5 class="card-title mb-0"><?php echo $category['name']; ?></h5>
+                            <h5 class="card-title mb-0"><?php echo $categoryInfo['name']; ?></h5>
                             <p class="text-muted mb-0"><?php echo $count; ?> document<?php echo $count > 1 ? 's' : ''; ?></p>
                         </div>
                     </div>
                 </div>
                 <div class="card-footer bg-transparent border-top-0">
-                    <a href="?category=<?php echo $key; ?>" class="btn btn-sm btn-outline-<?php echo $category['color']; ?> w-100">
+                    <a href="?category=<?php echo $key; ?>" class="btn btn-sm btn-outline-<?php echo $categoryInfo['color']; ?> w-100">
                         <i class="bi bi-eye me-2"></i>Voir
                     </a>
                 </div>
@@ -272,6 +283,31 @@ include_once __DIR__ . '/../common/header.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+            <?php endif; ?>
+            
+            <?php if ($totalPages > 1): ?>
+            <!-- Pagination -->
+            <div class="card-footer">
+                <?php 
+                // Inclure le composant de pagination
+                require_once __DIR__ . '/../../components/common/pagination.php';
+                
+                // Paramètres à conserver dans les liens
+                $queryParams = [];
+                if ($category) {
+                    $queryParams['category'] = $category;
+                }
+                if ($search) {
+                    $queryParams['term'] = $search;
+                }
+                
+                // Afficher la pagination
+                renderPagination($currentPage, $totalPages, $queryParams);
+                
+                // Afficher les informations
+                renderPaginationInfo($currentPage, $perPage, $total);
+                ?>
             </div>
             <?php endif; ?>
         </div>
