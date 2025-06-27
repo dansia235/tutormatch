@@ -482,7 +482,7 @@ include_once __DIR__ . '/../common/header.php';
         <div class="col-12">
             <div class="row g-0">
                 <div class="col-lg-8 pe-3">
-                    <div class="card">
+                    <div class="card mb-3">
                         <div class="card-body">
                             <form method="get" class="row g-3">
                                 <div class="col-md-6">
@@ -511,6 +511,90 @@ include_once __DIR__ . '/../common/header.php';
                             </form>
                         </div>
                     </div>
+                    
+                    <?php if (!$selectedStudent): ?>
+                    <!-- Section "Sélectionnez un étudiant" -->
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="text-center py-4">
+                                <i class="bi bi-clipboard-check display-4 text-muted mb-3"></i>
+                                <h4>Sélectionnez un étudiant pour commencer</h4>
+                                <p class="text-muted">Choisissez un étudiant dans la liste pour consulter ou créer des évaluations.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <!-- Informations de l'étudiant sélectionné -->
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <?php
+                                        // Générer l'avatar avec les initiales
+                                        $initials = mb_substr($selectedStudent['first_name'] ?? '', 0, 1) . mb_substr($selectedStudent['last_name'] ?? '', 0, 1);
+                                        $avatarUrl = "https://ui-avatars.com/api/?name=" . urlencode($initials) . "&background=3498db&color=fff";
+                                        ?>
+                                        <img src="<?php echo h($avatarUrl); ?>" alt="Student" class="rounded-circle me-3" width="60" height="60">
+                                        <div>
+                                            <h5 class="mb-1"><?php echo h(($selectedStudent['first_name'] ?? '') . ' ' . ($selectedStudent['last_name'] ?? '')); ?></h5>
+                                            <p class="text-muted mb-0 small"><?php echo h($selectedStudent['program'] ?? 'N/A'); ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="small">
+                                        <h6 class="text-muted mb-1 small">Stage</h6>
+                                        <p class="mb-1"><strong><?php echo h($selectedStudent['internship_title'] ?? 'N/A'); ?></strong></p>
+                                        <p class="mb-0 text-muted small"><?php echo h($selectedStudent['company_name'] ?? 'N/A'); ?></p>
+                                        <?php if (isset($selectedStudent['start_date']) && isset($selectedStudent['end_date'])): ?>
+                                        <p class="small text-muted mb-0">
+                                            <?php echo h(date('d/m/Y', strtotime($selectedStudent['start_date']))); ?> - 
+                                            <?php echo h(date('d/m/Y', strtotime($selectedStudent['end_date']))); ?>
+                                        </p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="small">
+                                        <h6 class="text-muted mb-1 small">Progression</h6>
+                                        <?php
+                                        // Calculer la progression du stage
+                                        $progress = 0;
+                                        if (isset($selectedStudent['start_date']) && isset($selectedStudent['end_date'])) {
+                                            $startDate = new DateTime($selectedStudent['start_date']);
+                                            $endDate = new DateTime($selectedStudent['end_date']);
+                                            $today = new DateTime();
+                                            
+                                            if ($today >= $startDate && $today <= $endDate) {
+                                                $totalDays = $startDate->diff($endDate)->days;
+                                                $daysElapsed = $startDate->diff($today)->days;
+                                                $progress = min(100, round(($daysElapsed / $totalDays) * 100));
+                                            } elseif ($today > $endDate) {
+                                                $progress = 100;
+                                            }
+                                        }
+                                        ?>
+                                        <div class="progress mb-2" style="height: 8px;">
+                                            <div class="progress-bar" role="progressbar" style="width: <?php echo h($progress); ?>%;" aria-valuenow="<?php echo h($progress); ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <p class="small text-muted mb-0"><?php echo h($progress); ?>% complété</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12 text-end">
+                                    <a href="/tutoring/views/tutor/documents.php?student_id=<?php echo h($selectedStudent['student_id']); ?>" class="btn btn-outline-primary btn-sm me-2">
+                                        <i class="bi bi-folder me-1"></i>Documents
+                                    </a>
+                                    <a href="/tutoring/views/tutor/meetings.php?student_id=<?php echo h($selectedStudent['student_id']); ?>" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-calendar-event me-1"></i>Réunions
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <div class="col-lg-4">
                     <div class="card h-100">
@@ -563,77 +647,8 @@ include_once __DIR__ . '/../common/header.php';
     </div>
     <?php endif; ?>
     
-    <!-- Student Information Card (if selected) -->
-    <?php if ($selectedStudent): ?>
-    <div class="row g-0 mx-0 px-4 mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <div class="d-flex align-items-center">
-                                <?php
-                                // Générer l'avatar avec les initiales
-                                $initials = mb_substr($selectedStudent['first_name'] ?? '', 0, 1) . mb_substr($selectedStudent['last_name'] ?? '', 0, 1);
-                                $avatarUrl = "https://ui-avatars.com/api/?name=" . urlencode($initials) . "&background=3498db&color=fff";
-                                ?>
-                                <img src="<?php echo h($avatarUrl); ?>" alt="Student" class="rounded-circle me-3" width="80" height="80">
-                                <div>
-                                    <h4 class="mb-1"><?php echo h(($selectedStudent['first_name'] ?? '') . ' ' . ($selectedStudent['last_name'] ?? '')); ?></h4>
-                                    <p class="text-muted mb-0"><?php echo h($selectedStudent['program'] ?? 'N/A'); ?></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <h6 class="text-muted mb-1">Stage</h6>
-                            <p class="mb-1"><strong><?php echo h($selectedStudent['internship_title'] ?? 'N/A'); ?></strong></p>
-                            <p class="mb-0"><?php echo h($selectedStudent['company_name'] ?? 'N/A'); ?></p>
-                            <?php if (isset($selectedStudent['start_date']) && isset($selectedStudent['end_date'])): ?>
-                            <p class="small text-muted mb-0">
-                                <?php echo h(date('d/m/Y', strtotime($selectedStudent['start_date']))); ?> - 
-                                <?php echo h(date('d/m/Y', strtotime($selectedStudent['end_date']))); ?>
-                            </p>
-                            <?php endif; ?>
-                        </div>
-                        <div class="col-md-2">
-                            <h6 class="text-muted mb-1">Progression</h6>
-                            <?php
-                            // Calculer la progression du stage
-                            $progress = 0;
-                            if (isset($selectedStudent['start_date']) && isset($selectedStudent['end_date'])) {
-                                $startDate = new DateTime($selectedStudent['start_date']);
-                                $endDate = new DateTime($selectedStudent['end_date']);
-                                $today = new DateTime();
-                                
-                                if ($today >= $startDate && $today <= $endDate) {
-                                    $totalDays = $startDate->diff($endDate)->days;
-                                    $daysElapsed = $startDate->diff($today)->days;
-                                    $progress = min(100, round(($daysElapsed / $totalDays) * 100));
-                                } elseif ($today > $endDate) {
-                                    $progress = 100;
-                                }
-                            }
-                            ?>
-                            <div class="progress mb-2" style="height: 10px;">
-                                <div class="progress-bar" role="progressbar" style="width: <?php echo h($progress); ?>%;" aria-valuenow="<?php echo h($progress); ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                            <p class="small text-muted mb-0"><?php echo h($progress); ?>% complété</p>
-                        </div>
-                        <div class="col-md-2 text-end">
-                            <a href="/tutoring/views/tutor/documents.php?student_id=<?php echo h($selectedStudent['student_id']); ?>" class="btn btn-outline-primary btn-sm mb-1 d-block">
-                                <i class="bi bi-folder me-1"></i>Documents
-                            </a>
-                            <a href="/tutoring/views/tutor/meetings.php?student_id=<?php echo h($selectedStudent['student_id']); ?>" class="btn btn-outline-primary btn-sm d-block">
-                                <i class="bi bi-calendar-event me-1"></i>Réunions
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Student Statistics -->
+    <?php if ($selectedStudent): ?>
     <div class="row g-0 mx-0 px-4 mb-4">
         <div class="col-12">
             <div class="card">
@@ -797,16 +812,6 @@ include_once __DIR__ . '/../common/header.php';
     <div class="row g-0 mx-0">
         <div class="col-12 px-4">
             <?php if (!$selectedStudent): ?>
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="text-center py-5">
-                        <i class="bi bi-clipboard-check display-1 text-muted mb-3"></i>
-                        <h4>Sélectionnez un étudiant pour commencer</h4>
-                        <p class="text-muted">Choisissez un étudiant dans la liste pour consulter ou créer des évaluations.</p>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Vue d'ensemble de tous les étudiants -->
             <?php if (!empty($assignments)): ?>
             <div class="card mb-4">
