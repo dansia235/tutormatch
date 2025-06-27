@@ -129,6 +129,12 @@ $avatarUrl = "https://ui-avatars.com/api/?name=" . urlencode($_SESSION['user_nam
                         Rapports
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="/tutoring/views/admin/evaluations.php" class="nav-link <?php echo isActive('evaluations'); ?>">
+                        <i class="bi bi-clipboard-check"></i>
+                        Évaluations
+                    </a>
+                </li>
                 <?php if (hasRole('admin')): ?>
                 <li class="nav-item">
                     <a href="/tutoring/views/admin/users.php" class="nav-link <?php echo isActive('users'); ?>">
