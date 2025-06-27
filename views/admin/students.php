@@ -1,9 +1,9 @@
 <?php
 /**
- * Vue d'administration pour la gestion des étudiants
+ * Vue pour la gestion des étudiants
  */
 
-// Titre de la page
+// Initialiser les variables
 $pageTitle = 'Gestion des étudiants';
 $currentPage = 'students';
 
@@ -13,66 +13,6 @@ require_once __DIR__ . '/../../includes/init.php';
 // Vérifier les permissions
 requireRole(['admin', 'coordinator']);
 
-// Instancier le contrôleur
-$studentController = new StudentController($db);
-
-// Configuration de la pagination
-$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10; // Nombre d'éléments par page
-$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-
-// Traiter la recherche ou afficher tous les étudiants
-if (isset($_GET['search'])) {
-    $term = isset($_GET['term']) ? $_GET['term'] : '';
-    $status = isset($_GET['status']) ? $_GET['status'] : null;
-    $program = isset($_GET['program']) ? $_GET['program'] : null;
-    $level = isset($_GET['level']) ? $_GET['level'] : null;
-    
-    $allStudents = $studentController->search($term, $status);
-    
-    // Filtrage supplémentaire côté PHP si nécessaire
-    if ($program || $level) {
-        $allStudents = array_filter($allStudents, function($student) use ($program, $level) {
-            $matchProgram = !$program || $student['program'] === $program;
-            $matchLevel = !$level || $student['level'] === $level;
-            return $matchProgram && $matchLevel;
-        });
-    }
-} else {
-    // Afficher tous les étudiants ou filtrer par statut
-    $status = isset($_GET['status']) ? $_GET['status'] : null;
-    $allStudents = $studentController->getStudents($status);
-}
-
-// Compter le total
-$totalStudents = count($allStudents);
-
-// Calculer les informations de pagination
-$totalPages = ceil($totalStudents / $itemsPerPage);
-$offset = ($currentPage - 1) * $itemsPerPage;
-$showingFrom = $totalStudents > 0 ? $offset + 1 : 0;
-$showingTo = min($offset + $itemsPerPage, $totalStudents);
-
-// Extraire les étudiants pour la page courante
-$students = array_slice($allStudents, $offset, $itemsPerPage);
-
-// Préparer les données pour les statistiques (sur tous les étudiants, pas seulement la page courante)
-$activeStudents = count(array_filter($allStudents, function($student) {
-    return $student['status'] === 'active';
-}));
-$graduatedStudents = count(array_filter($allStudents, function($student) {
-    return $student['status'] === 'graduated';
-}));
-$suspendedStudents = count(array_filter($allStudents, function($student) {
-    return $student['status'] === 'suspended';
-}));
-
-// Extraire les programmes et niveaux uniques pour les filtres
-$programs = array_unique(array_column($allStudents, 'program'));
-$levels = array_unique(array_column($allStudents, 'level'));
-
-// Définir le filtre actif
-$activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
-
 // Inclure l'en-tête
 include_once __DIR__ . '/../common/header.php';
 ?>
@@ -81,1200 +21,373 @@ include_once __DIR__ . '/../common/header.php';
     <!-- Header section -->
     <div class="row mb-4">
         <div class="col-12">
-            <h2><i class="bi bi-mortarboard me-2"></i>Gestion des étudiants</h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Étudiants</li>
-                </ol>
-            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="bi bi-mortarboard me-2"></i>Gestion des Étudiants</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/tutoring/views/admin/dashboard.php">Tableau de bord</a></li>
+                            <li class="breadcrumb-item active">Étudiants</li>
+                        </ol>
+                    </nav>
+                </div>
+                <?php if (hasRole(['admin'])): ?>
+                <a href="/tutoring/views/admin/student/create.php" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Ajouter un étudiant
+                </a>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
-
-    <!-- Content section -->
-    <div class="row">
-        <!-- Main content - Student list -->
-        <div class="col-lg-9">
-            <!-- Statistics cards -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card stat-card">
-                        <div class="value"><?php echo $totalStudents; ?></div>
-                        <div class="label">Étudiants total</div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
+    
+    <!-- Statistics cards -->
+    <div class="row mb-4" id="statisticsCards">
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="value" id="totalStudents">-</div>
+                <div class="label">Total Étudiants</div>
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: 100%;"></div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card stat-card">
-                        <div class="value"><?php echo $activeStudents; ?></div>
-                        <div class="label">Étudiants actifs</div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($totalStudents > 0) ? ($activeStudents / $totalStudents * 100) : 0; ?>%;" aria-valuenow="<?php echo ($totalStudents > 0) ? ($activeStudents / $totalStudents * 100) : 0; ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card stat-card">
-                        <div class="value"><?php echo $graduatedStudents; ?></div>
-                        <div class="label">Diplômés</div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo ($totalStudents > 0) ? ($graduatedStudents / $totalStudents * 100) : 0; ?>%;" aria-valuenow="<?php echo ($totalStudents > 0) ? ($graduatedStudents / $totalStudents * 100) : 0; ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card stat-card">
-                        <div class="value"><?php echo $suspendedStudents; ?></div>
-                        <div class="label">Suspendus</div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar bg-warning" role="progressbar" style="width: <?php echo ($totalStudents > 0) ? ($suspendedStudents / $totalStudents * 100) : 0; ?>%;" aria-valuenow="<?php echo ($totalStudents > 0) ? ($suspendedStudents / $totalStudents * 100) : 0; ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                    </div>
-                </div>
+                <small class="text-muted">Tous statuts</small>
             </div>
-
-            <!-- Search and filter section -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <form action="" method="GET" class="row g-3">
-                        <div class="col-lg-4 col-md-6">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control" name="term" placeholder="Rechercher..." value="<?php echo isset($_GET['term']) ? h($_GET['term']) : ''; ?>">
-                            </div>
-                        </div>
-                        <div class="col-lg-2 col-md-6">
-                            <select class="form-select" name="program">
-                                <option value="">Tous les programmes</option>
-                                <?php foreach($programs as $program): ?>
-                                <option value="<?php echo h($program); ?>" <?php echo (isset($_GET['program']) && $_GET['program'] === $program) ? 'selected' : ''; ?>>
-                                    <?php echo h($program); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-lg-2 col-md-6">
-                            <select class="form-select" name="level">
-                                <option value="">Tous les niveaux</option>
-                                <?php foreach($levels as $level): ?>
-                                <option value="<?php echo h($level); ?>" <?php echo (isset($_GET['level']) && $_GET['level'] === $level) ? 'selected' : ''; ?>>
-                                    <?php echo h($level); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-lg-2 col-md-6">
-                            <select class="form-select" name="status">
-                                <option value="">Tous les statuts</option>
-                                <option value="active" <?php echo $activeFilter === 'active' ? 'selected' : ''; ?>>Actifs</option>
-                                <option value="graduated" <?php echo $activeFilter === 'graduated' ? 'selected' : ''; ?>>Diplômés</option>
-                                <option value="suspended" <?php echo $activeFilter === 'suspended' ? 'selected' : ''; ?>>Suspendus</option>
-                            </select>
-                        </div>
-                        <div class="col-lg-2 col-md-6">
-                            <button type="submit" name="search" value="1" class="btn btn-primary w-100">Filtrer</button>
-                        </div>
-                        
-                        <!-- Sélecteur du nombre d'éléments par page -->
-                        <div class="col-lg-12 mt-3">
-                            <div class="d-flex justify-content-end align-items-center">
-                                <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher par page:</label>
-                                <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
-                                    <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
-                                    <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
-                                    <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
-                                    <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
-                                </select>
-                            </div>
-                        </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="value" id="activeStudents">-</div>
+                <div class="label">Étudiants Actifs</div>
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" id="activeProgress"></div>
+                </div>
+                <small class="text-muted" id="activePercent">-% des étudiants</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="value" id="assignedStudents">-</div>
+                <div class="label">Avec Affectations</div>
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: 0%;" id="assignedProgress"></div>
+                </div>
+                <small class="text-muted" id="assignedPercent">-% des étudiants</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card">
+                <div class="value" id="graduatedStudents">-</div>
+                <div class="label">Diplômés</div>
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 0%;" id="graduatedProgress"></div>
+                </div>
+                <small class="text-muted" id="graduatedPercent">-% des étudiants</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtres et recherche -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <form id="searchForm" class="d-flex">
+                        <input type="text" name="term" class="form-control me-2" placeholder="Rechercher un étudiant...">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-search"></i>
+                        </button>
                     </form>
                 </div>
-            </div>
-
-            <!-- Students list -->
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0">
-                        <i class="bi bi-list me-2"></i>Liste des étudiants
-                        <span class="badge bg-primary ms-2">
-                            <?php if ($totalStudents > 0): ?>
-                                <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> sur <?php echo $totalStudents; ?>
-                            <?php else: ?>
-                                0 étudiants
-                            <?php endif; ?>
-                        </span>
-                    </h5>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
-                            <i class="bi bi-upload me-1"></i>Importer
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#exportModal">
-                            <i class="bi bi-download me-1"></i>Exporter
-                        </button>
-                        <div class="btn-group" role="group">
-                            <button id="btnGroupViews" type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-grid me-1"></i>Vue
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="btnGroupViews">
-                                <li><a class="dropdown-item active" href="#" data-view="table"><i class="bi bi-table me-2"></i>Tableau</a></li>
-                                <li><a class="dropdown-item" href="#" data-view="cards"><i class="bi bi-grid-3x3-gap me-2"></i>Cartes</a></li>
-                                <li><a class="dropdown-item" href="#" data-view="list"><i class="bi bi-list-ul me-2"></i>Liste</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <?php if (empty($students)): ?>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>Aucun étudiant trouvé.
-                    </div>
-                    <?php else: ?>
-                    <!-- Table View (Default) -->
-                    <div id="tableView" class="view-content">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th scope="col">#</th>
-                                        <th scope="col">Étudiant</th>
-                                        <th scope="col">Numéro</th>
-                                        <th scope="col">Programme</th>
-                                        <th scope="col">Niveau</th>
-                                        <th scope="col">Département</th>
-                                        <th scope="col">Statut</th>
-                                        <th scope="col">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach($students as $index => $student): ?>
-                                    <tr>
-                                        <td><?php echo $offset + $index + 1; ?></td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <?php if (!empty($student['profile_image'])): ?>
-                                                <img src="<?php echo h($student['profile_image']); ?>" alt="Profile" class="rounded-circle me-3" width="40" height="40">
-                                                <?php else: ?>
-                                                <div class="avatar me-3" style="width: 40px; height: 40px; background-color: #6c757d; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                                                    <?php echo strtoupper(substr($student['first_name'], 0, 1) . substr($student['last_name'], 0, 1)); ?>
-                                                </div>
-                                                <?php endif; ?>
-                                                <div>
-                                                    <div class="fw-bold"><?php echo h($student['first_name'] . ' ' . $student['last_name']); ?></div>
-                                                    <div class="text-muted small"><?php echo h($student['email']); ?></div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><?php echo h($student['student_number']); ?></td>
-                                        <td><?php echo h($student['program']); ?></td>
-                                        <td><?php echo h($student['level']); ?></td>
-                                        <td><?php echo h($student['department']); ?></td>
-                                        <td>
-                                            <?php
-                                            $statusBadge = [
-                                                'active' => '<span class="badge bg-success">Actif</span>',
-                                                'graduated' => '<span class="badge bg-info">Diplômé</span>',
-                                                'suspended' => '<span class="badge bg-warning">Suspendu</span>'
-                                            ];
-                                            echo $statusBadge[$student['status']] ?? '<span class="badge bg-secondary">Inconnu</span>';
-                                            ?>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <a href="/tutoring/views/admin/students/show.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
-                                                <a href="/tutoring/views/admin/students/edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Modifier">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <?php if (hasRole(['admin'])): ?>
-                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $student['id']; ?>" title="Supprimer">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <?php endif; ?>
-                                            </div>
-                                            
-                                            <!-- Modal de confirmation de suppression -->
-                                            <div class="modal fade" id="deleteModal<?php echo $student['id']; ?>" tabindex="-1" aria-labelledby="deleteModalLabel<?php echo $student['id']; ?>" aria-hidden="true">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="deleteModalLabel<?php echo $student['id']; ?>">Confirmer la suppression</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <p>Êtes-vous sûr de vouloir supprimer l'étudiant <strong><?php echo h($student['first_name'] . ' ' . $student['last_name']); ?></strong> ?</p>
-                                                            <p class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Cette action est irréversible et supprimera également toutes les données associées à cet étudiant.</p>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                                            <form action="/tutoring/admin/students/delete.php" method="POST">
-                                                                <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
-                                                                <input type="hidden" name="id" value="<?php echo $student['id']; ?>">
-                                                                <button type="submit" class="btn btn-danger">Supprimer</button>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <!-- Pagination -->
-                        <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Navigation des pages d'étudiants" class="mt-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-muted">
-                                    <?php if ($totalStudents > 0): ?>
-                                        Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalStudents; ?> résultats
-                                    <?php endif; ?>
-                                </div>
-                                
-                                <ul class="pagination pagination-sm mb-0">
-                                    <!-- Bouton Précédent -->
-                                    <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
-                                        <?php if ($currentPage > 1): ?>
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="page-link" aria-label="Précédent">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </span>
-                                        <?php endif; ?>
-                                    </li>
-                                    
-                                    <?php
-                                    // Logique d'affichage des numéros de page
-                                    $startPage = max(1, $currentPage - 2);
-                                    $endPage = min($totalPages, $currentPage + 2);
-                                    
-                                    // Afficher la première page si elle n'est pas dans la plage
-                                    if ($startPage > 1): ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
-                                        </li>
-                                        <?php if ($startPage > 2): ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                    
-                                    <!-- Pages dans la plage -->
-                                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                        <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
-                                            <?php if ($i == $currentPage): ?>
-                                                <span class="page-link"><?php echo $i; ?></span>
-                                            <?php else: ?>
-                                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                            <?php endif; ?>
-                                        </li>
-                                    <?php endfor; ?>
-                                    
-                                    <!-- Afficher la dernière page si elle n'est pas dans la plage -->
-                                    <?php if ($endPage < $totalPages): ?>
-                                        <?php if ($endPage < $totalPages - 1): ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                        <?php endif; ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
-                                        </li>
-                                    <?php endif; ?>
-                                    
-                                    <!-- Bouton Suivant -->
-                                    <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
-                                        <?php if ($currentPage < $totalPages): ?>
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="page-link" aria-label="Suivant">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </span>
-                                        <?php endif; ?>
-                                    </li>
-                                </ul>
-                            </div>
-                        </nav>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <!-- Card View (Hidden by default) -->
-                    <div id="cardsView" class="view-content" style="display: none;">
-                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                            <?php foreach($students as $student): ?>
-                            <div class="col">
-                                <div class="card h-100">
-                                    <div class="card-body">
-                                        <div class="text-center mb-3">
-                                            <?php if (!empty($student['profile_image'])): ?>
-                                            <img src="<?php echo h($student['profile_image']); ?>" alt="Profile" class="rounded-circle" width="80" height="80">
-                                            <?php else: ?>
-                                            <div class="avatar mx-auto" style="width: 80px; height: 80px; background-color: #6c757d; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                                                <?php echo strtoupper(substr($student['first_name'], 0, 1) . substr($student['last_name'], 0, 1)); ?>
-                                            </div>
-                                            <?php endif; ?>
-                                            <h5 class="card-title mt-3"><?php echo h($student['first_name'] . ' ' . $student['last_name']); ?></h5>
-                                            <p class="text-muted"><?php echo h($student['email']); ?></p>
-                                            <?php
-                                            $statusBadge = [
-                                                'active' => '<span class="badge bg-success">Actif</span>',
-                                                'graduated' => '<span class="badge bg-info">Diplômé</span>',
-                                                'suspended' => '<span class="badge bg-warning">Suspendu</span>'
-                                            ];
-                                            echo $statusBadge[$student['status']] ?? '<span class="badge bg-secondary">Inconnu</span>';
-                                            ?>
-                                        </div>
-                                        <ul class="list-group list-group-flush">
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <span>Numéro d'étudiant:</span>
-                                                <span class="text-muted"><?php echo h($student['student_number']); ?></span>
-                                            </li>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <span>Programme:</span>
-                                                <span class="text-muted"><?php echo h($student['program']); ?></span>
-                                            </li>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <span>Niveau:</span>
-                                                <span class="text-muted"><?php echo h($student['level']); ?></span>
-                                            </li>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                <span>Département:</span>
-                                                <span class="text-muted"><?php echo h($student['department']); ?></span>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="card-footer bg-transparent border-top-0">
-                                        <div class="d-flex justify-content-center">
-                                            <a href="/tutoring/views/admin/students/show.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-primary me-2">
-                                                <i class="bi bi-eye me-1"></i>Détails
-                                            </a>
-                                            <a href="/tutoring/views/admin/students/edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-secondary me-2">
-                                                <i class="bi bi-pencil me-1"></i>Modifier
-                                            </a>
-                                            <?php if (hasRole(['admin'])): ?>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $student['id']; ?>">
-                                                <i class="bi bi-trash me-1"></i>Supprimer
-                                            </button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        
-                        <!-- Pagination pour la vue carte -->
-                        <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Navigation des pages d'étudiants" class="mt-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-muted">
-                                    <?php if ($totalStudents > 0): ?>
-                                        Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalStudents; ?> résultats
-                                    <?php endif; ?>
-                                </div>
-                                
-                                <ul class="pagination pagination-sm mb-0">
-                                    <!-- Bouton Précédent -->
-                                    <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
-                                        <?php if ($currentPage > 1): ?>
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="page-link" aria-label="Précédent">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </span>
-                                        <?php endif; ?>
-                                    </li>
-                                    
-                                    <?php
-                                    // Logique d'affichage des numéros de page
-                                    $startPage = max(1, $currentPage - 2);
-                                    $endPage = min($totalPages, $currentPage + 2);
-                                    
-                                    // Afficher la première page si elle n'est pas dans la plage
-                                    if ($startPage > 1): ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
-                                        </li>
-                                        <?php if ($startPage > 2): ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                    
-                                    <!-- Pages dans la plage -->
-                                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                        <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
-                                            <?php if ($i == $currentPage): ?>
-                                                <span class="page-link"><?php echo $i; ?></span>
-                                            <?php else: ?>
-                                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                            <?php endif; ?>
-                                        </li>
-                                    <?php endfor; ?>
-                                    
-                                    <!-- Afficher la dernière page si elle n'est pas dans la plage -->
-                                    <?php if ($endPage < $totalPages): ?>
-                                        <?php if ($endPage < $totalPages - 1): ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                        <?php endif; ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
-                                        </li>
-                                    <?php endif; ?>
-                                    
-                                    <!-- Bouton Suivant -->
-                                    <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
-                                        <?php if ($currentPage < $totalPages): ?>
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="page-link" aria-label="Suivant">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </span>
-                                        <?php endif; ?>
-                                    </li>
-                                </ul>
-                            </div>
-                        </nav>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <!-- List View (Hidden by default) -->
-                    <div id="listView" class="view-content" style="display: none;">
-                        <ul class="list-group">
-                            <?php foreach($students as $student): ?>
-                            <li class="list-group-item">
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="d-flex align-items-center">
-                                            <?php if (!empty($student['profile_image'])): ?>
-                                            <img src="<?php echo h($student['profile_image']); ?>" alt="Profile" class="rounded-circle me-3" width="50" height="50">
-                                            <?php else: ?>
-                                            <div class="avatar me-3" style="width: 50px; height: 50px; background-color: #6c757d; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
-                                                <?php echo strtoupper(substr($student['first_name'], 0, 1) . substr($student['last_name'], 0, 1)); ?>
-                                            </div>
-                                            <?php endif; ?>
-                                            <div>
-                                                <h6 class="mb-0"><?php echo h($student['first_name'] . ' ' . $student['last_name']); ?></h6>
-                                                <div class="text-muted small"><?php echo h($student['email']); ?></div>
-                                                <div class="text-muted small">
-                                                    Programme: <?php echo h($student['program']); ?> | 
-                                                    Niveau: <?php echo h($student['level']); ?> |
-                                                    <?php
-                                                    $statusBadge = [
-                                                        'active' => '<span class="badge bg-success">Actif</span>',
-                                                        'graduated' => '<span class="badge bg-info">Diplômé</span>',
-                                                        'suspended' => '<span class="badge bg-warning">Suspendu</span>'
-                                                    ];
-                                                    echo $statusBadge[$student['status']] ?? '<span class="badge bg-secondary">Inconnu</span>';
-                                                    ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                        <a href="/tutoring/views/admin/students/show.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-primary me-1">
-                                            <i class="bi bi-eye me-1"></i>Détails
-                                        </a>
-                                        <a href="/tutoring/views/admin/students/edit.php?id=<?php echo $student['id']; ?>" class="btn btn-sm btn-outline-secondary me-1">
-                                            <i class="bi bi-pencil me-1"></i>Modifier
-                                        </a>
-                                        <?php if (hasRole(['admin'])): ?>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $student['id']; ?>">
-                                            <i class="bi bi-trash me-1"></i>Supprimer
-                                        </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </li>
-                            <?php endforeach; ?>
-                        </ul>
-                        
-                        <!-- Pagination pour la vue liste -->
-                        <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Navigation des pages d'étudiants" class="mt-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-muted">
-                                    <?php if ($totalStudents > 0): ?>
-                                        Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalStudents; ?> résultats
-                                    <?php endif; ?>
-                                </div>
-                                
-                                <ul class="pagination pagination-sm mb-0">
-                                    <!-- Bouton Précédent -->
-                                    <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
-                                        <?php if ($currentPage > 1): ?>
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="page-link" aria-label="Précédent">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </span>
-                                        <?php endif; ?>
-                                    </li>
-                                    
-                                    <?php
-                                    // Logique d'affichage des numéros de page
-                                    $startPage = max(1, $currentPage - 2);
-                                    $endPage = min($totalPages, $currentPage + 2);
-                                    
-                                    // Afficher la première page si elle n'est pas dans la plage
-                                    if ($startPage > 1): ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
-                                        </li>
-                                        <?php if ($startPage > 2): ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                    
-                                    <!-- Pages dans la plage -->
-                                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                        <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
-                                            <?php if ($i == $currentPage): ?>
-                                                <span class="page-link"><?php echo $i; ?></span>
-                                            <?php else: ?>
-                                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                            <?php endif; ?>
-                                        </li>
-                                    <?php endfor; ?>
-                                    
-                                    <!-- Afficher la dernière page si elle n'est pas dans la plage -->
-                                    <?php if ($endPage < $totalPages): ?>
-                                        <?php if ($endPage < $totalPages - 1): ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                        <?php endif; ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
-                                        </li>
-                                    <?php endif; ?>
-                                    
-                                    <!-- Bouton Suivant -->
-                                    <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
-                                        <?php if ($currentPage < $totalPages): ?>
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="page-link" aria-label="Suivant">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </span>
-                                        <?php endif; ?>
-                                    </li>
-                                </ul>
-                            </div>
-                        </nav>
-                        <?php endif; ?>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar - Quick actions and statistics -->
-        <div class="col-lg-3">
-            <!-- Quick Actions Card -->
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0 font-weight-bold">Actions rapides</h5>
-                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#quickActionsCollapse" aria-expanded="true" aria-controls="quickActionsCollapse">
-                        <i class="bi bi-chevron-down"></i>
-                    </button>
-                </div>
-                <div class="collapse show" id="quickActionsCollapse">
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <a href="/tutoring/views/admin/students/create.php" class="btn btn-primary">
-                                <i class="bi bi-person-plus me-2"></i>Ajouter un étudiant
-                            </a>
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">
-                                <i class="bi bi-upload me-2"></i>Importer des étudiants
-                            </button>
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
-                                <i class="bi bi-download me-2"></i>Exporter les données
-                            </button>
-                            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filtersModal">
-                                <i class="bi bi-funnel me-2"></i>Filtres avancés
-                            </button>
-                            <a href="/tutoring/views/admin/reports.php?type=students" class="btn btn-outline-info">
-                                <i class="bi bi-graph-up me-2"></i>Rapports sur les étudiants
-                            </a>
-                        </div>
-                        
-                        <hr>
-                        
-                        <h6 class="mb-3">Statistiques</h6>
-                        <div class="mb-3">
-                            <label class="form-label d-flex justify-content-between">
-                                <span>Étudiants actifs</span>
-                                <span><?php echo $activeStudents; ?>/<?php echo $totalStudents; ?></span>
-                            </label>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo ($totalStudents > 0) ? ($activeStudents / $totalStudents * 100) : 0; ?>%" aria-valuenow="<?php echo $activeStudents; ?>" aria-valuemin="0" aria-valuemax="<?php echo $totalStudents; ?>"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label d-flex justify-content-between">
-                                <span>Étudiants diplômés</span>
-                                <span><?php echo $graduatedStudents; ?>/<?php echo $totalStudents; ?></span>
-                            </label>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar bg-info" role="progressbar" style="width: <?php echo ($totalStudents > 0) ? ($graduatedStudents / $totalStudents * 100) : 0; ?>%" aria-valuenow="<?php echo $graduatedStudents; ?>" aria-valuemin="0" aria-valuemax="<?php echo $totalStudents; ?>"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label d-flex justify-content-between">
-                                <span>Étudiants suspendus</span>
-                                <span><?php echo $suspendedStudents; ?>/<?php echo $totalStudents; ?></span>
-                            </label>
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar bg-warning" role="progressbar" style="width: <?php echo ($totalStudents > 0) ? ($suspendedStudents / $totalStudents * 100) : 0; ?>%" aria-valuenow="<?php echo $suspendedStudents; ?>" aria-valuemin="0" aria-valuemax="<?php echo $totalStudents; ?>"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Latest Updates Card -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="m-0">Dernières mises à jour</h5>
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">Nouvel étudiant inscrit</h6>
-                                <small class="text-muted">Aujourd'hui</small>
-                            </div>
-                            <p class="mb-1">Julie Martin s'est inscrite au programme d'informatique.</p>
-                        </li>
-                        <li class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">Affectation complétée</h6>
-                                <small class="text-muted">Hier</small>
-                            </div>
-                            <p class="mb-1">15 étudiants ont été affectés à leurs tuteurs.</p>
-                        </li>
-                        <li class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">Mise à jour des programmes</h6>
-                                <small class="text-muted">3 jours</small>
-                            </div>
-                            <p class="mb-1">Les programmes d'études ont été mis à jour pour la session d'automne.</p>
-                        </li>
-                    </ul>
-                </div>
-                <div class="card-footer text-end">
-                    <a href="#" class="btn btn-sm btn-outline-secondary">Voir tous les événements</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Import Modal -->
-<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="importModalLabel">Importer des étudiants</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Importez une liste d'étudiants à partir d'un fichier CSV. Le fichier doit contenir les colonnes suivantes:</p>
-                <ul class="mb-4">
-                    <li>Prénom</li>
-                    <li>Nom</li>
-                    <li>Email</li>
-                    <li>Numéro d'étudiant</li>
-                    <li>Programme</li>
-                    <li>Niveau</li>
-                    <li>Département (optionnel)</li>
-                    <li>Statut (optionnel, par défaut "active")</li>
-                </ul>
-                <form id="importForm">
-                    <div class="mb-3">
-                        <label for="importFile" class="form-label">Fichier CSV</label>
-                        <input class="form-control" type="file" id="importFile" accept=".csv">
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="headerRow" checked>
-                            <label class="form-check-label" for="headerRow">
-                                Le fichier contient une ligne d'en-tête
-                            </label>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="delimiter" class="form-label">Délimiteur</label>
-                        <select class="form-select" id="delimiter">
-                            <option value="," selected>Virgule (,)</option>
-                            <option value=";">Point-virgule (;)</option>
-                            <option value="\t">Tabulation</option>
-                        </select>
-                    </div>
-                </form>
-                
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <span>Téléchargez un <a href="#" class="alert-link">modèle de fichier CSV</a> pour vous assurer que votre format est correct.</span>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-primary">Importer</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Export Modal -->
-<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exportModalLabel">Exporter les données</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="exportForm" action="/tutoring/api/export/students.php" method="GET" target="_blank">
-                    <div class="mb-3">
-                        <label class="form-label">Format d'exportation</label>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="format" id="formatCSV" value="csv" checked>
-                            <label class="btn btn-outline-primary" for="formatCSV">CSV</label>
+                <div class="col-md-8 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3 flex-wrap">
+                        <!-- Filtres par programme -->
+                        <div class="btn-group" role="group" aria-label="Filtres par programme">
+                            <input type="radio" class="btn-check" name="programFilter" id="program-all" value="" checked>
+                            <label class="btn btn-outline-primary" for="program-all">Tous</label>
                             
-                            <input type="radio" class="btn-check" name="format" id="formatExcel" value="excel">
-                            <label class="btn btn-outline-primary" for="formatExcel">Excel</label>
+                            <input type="radio" class="btn-check" name="programFilter" id="program-info" value="Informatique">
+                            <label class="btn btn-outline-primary" for="program-info">Informatique</label>
                             
-                            <input type="radio" class="btn-check" name="format" id="formatPDF" value="pdf">
-                            <label class="btn btn-outline-primary" for="formatPDF">PDF</label>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Options de filtrage</label>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input export-filter" type="radio" name="exportFilter" id="exportAll" value="all" checked>
-                            <label class="form-check-label" for="exportAll">
-                                Exporter tous les étudiants
-                            </label>
+                            <input type="radio" class="btn-check" name="programFilter" id="program-genie" value="Génie Logiciel">
+                            <label class="btn btn-outline-primary" for="program-genie">Génie</label>
+                            
+                            <input type="radio" class="btn-check" name="programFilter" id="program-reseaux" value="Réseaux et Télécommunications">
+                            <label class="btn btn-outline-primary" for="program-reseaux">Réseaux</label>
                         </div>
                         
-                        <div class="form-check mb-2">
-                            <input class="form-check-input export-filter" type="radio" name="exportFilter" id="exportFiltered" value="filtered">
-                            <label class="form-check-label" for="exportFiltered">
-                                Exporter uniquement les étudiants filtrés
-                            </label>
-                        </div>
-                        
-                        <!-- Champs cachés pour les filtres actuels -->
-                        <?php if (isset($_GET['term'])): ?>
-                            <input type="hidden" name="term" id="exportTerm" value="<?php echo h($_GET['term']); ?>">
-                        <?php endif; ?>
-                        
-                        <?php if (isset($_GET['program'])): ?>
-                            <input type="hidden" name="program" id="exportProgram" value="<?php echo h($_GET['program']); ?>">
-                        <?php endif; ?>
-                        
-                        <?php if (isset($_GET['level'])): ?>
-                            <input type="hidden" name="level" id="exportLevel" value="<?php echo h($_GET['level']); ?>">
-                        <?php endif; ?>
-                        
-                        <?php if (isset($_GET['status'])): ?>
-                            <input type="hidden" name="status" id="exportStatus" value="<?php echo h($_GET['status']); ?>">
-                        <?php endif; ?>
-                        
-                        <input type="hidden" name="exportAll" id="exportAllInput" value="true">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Colonnes à exporter</label>
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colFirstName" value="first_name" checked>
-                                    <label class="form-check-label" for="colFirstName">Prénom</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colLastName" value="last_name" checked>
-                                    <label class="form-check-label" for="colLastName">Nom</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colEmail" value="email" checked>
-                                    <label class="form-check-label" for="colEmail">Email</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colStudentNum" value="student_number" checked>
-                                    <label class="form-check-label" for="colStudentNum">Numéro d'étudiant</label>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colProgram" value="program" checked>
-                                    <label class="form-check-label" for="colProgram">Programme</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colLevel" value="level" checked>
-                                    <label class="form-check-label" for="colLevel">Niveau</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colDept" value="department" checked>
-                                    <label class="form-check-label" for="colDept">Département</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input export-column" type="checkbox" name="columns[]" id="colStatus" value="status" checked>
-                                    <label class="form-check-label" for="colStatus">Statut</label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Message d'erreur pour les colonnes -->
-                        <div id="columnsError" class="text-danger mt-2" style="display: none;">
-                            Veuillez sélectionner au moins une colonne à exporter.
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-primary" id="exportSubmitBtn">Exporter</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Advanced Filters Modal -->
-<div class="modal fade" id="filtersModal" tabindex="-1" aria-labelledby="filtersModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filtersModalLabel">Filtres avancés</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="advancedFiltersForm" action="" method="GET">
-                    <div class="mb-3">
-                        <label for="afProgram" class="form-label">Programme</label>
-                        <select class="form-select" id="afProgram" name="program">
-                            <option value="">Tous les programmes</option>
-                            <?php foreach($programs as $program): ?>
-                            <option value="<?php echo h($program); ?>"><?php echo h($program); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="afLevel" class="form-label">Niveau d'études</label>
-                        <select class="form-select" id="afLevel" name="level">
+                        <!-- Filtre par niveau -->
+                        <select id="levelFilter" class="form-select" style="width: auto;">
                             <option value="">Tous les niveaux</option>
-                            <?php foreach($levels as $level): ?>
-                            <option value="<?php echo h($level); ?>"><?php echo h($level); ?></option>
-                            <?php endforeach; ?>
+                            <option value="L1">L1</option>
+                            <option value="L2">L2</option>
+                            <option value="L3">L3</option>
+                            <option value="M1">M1</option>
+                            <option value="M2">M2</option>
                         </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="afStatus" class="form-label">Statut</label>
-                        <select class="form-select" id="afStatus" name="status">
-                            <option value="">Tous les statuts</option>
-                            <option value="active">Actif</option>
-                            <option value="graduated">Diplômé</option>
-                            <option value="suspended">Suspendu</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="afDepartment" class="form-label">Département</label>
-                        <input type="text" class="form-control" id="afDepartment" name="department">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Affectation</label>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="assignment" id="afAssignmentAll" value="" checked>
-                            <label class="form-check-label" for="afAssignmentAll">
-                                Tous les étudiants
-                            </label>
-                        </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="assignment" id="afAssignmentAssigned" value="assigned">
-                            <label class="form-check-label" for="afAssignmentAssigned">
-                                Étudiants avec tuteur
-                            </label>
-                        </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="assignment" id="afAssignmentUnassigned" value="unassigned">
-                            <label class="form-check-label" for="afAssignmentUnassigned">
-                                Étudiants sans tuteur
-                            </label>
+                        
+                        <!-- Sélecteur du nombre d'éléments par page -->
+                        <div class="d-flex align-items-center">
+                            <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
                         </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Date d'inscription</label>
-                        <div class="input-group mb-3">
-                            <span class="input-group-text">De</span>
-                            <input type="date" class="form-control" name="date_from">
-                        </div>
-                        <div class="input-group">
-                            <span class="input-group-text">À</span>
-                            <input type="date" class="form-control" name="date_to">
-                        </div>
-                    </div>
-                    
-                    <input type="hidden" name="search" value="1">
-                </form>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-outline-secondary" id="resetFilters">Réinitialiser</button>
-                <button type="button" class="btn btn-primary" id="applyFilters">Appliquer</button>
+        </div>
+    </div>
+    
+    <!-- Liste des étudiants -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-list me-2"></i>
+                Liste des Étudiants
+            </h5>
+            <span class="badge bg-primary" id="studentCount">
+                Chargement...
+            </span>
+        </div>
+        <div class="card-body p-0" id="studentsTableContainer">
+            <!-- Le contenu sera chargé dynamiquement -->
+            <div class="text-center p-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-/* Animation pour le fade-in */
-.fade-in {
-    opacity: 0;
-    transform: translateY(20px);
-    animation: fadeInUp 0.5s ease forwards;
-}
+<script src="/tutoring/assets/js/admin-table.js"></script>
+<script>
+// Configuration de la table des étudiants
+const studentTableConfig = {
+    apiEndpoint: '/tutoring/api/students/admin-list.php',
+    tableContainer: '#studentsTableContainer',
+    searchForm: '#searchForm',
+    defaultSort: 'name',
+    columns: [
+        { key: 'name', label: 'Étudiant', sortable: true },
+        { key: 'student_number', label: 'Numéro', sortable: true },
+        { key: 'email', label: 'Email', sortable: true },
+        { key: 'program', label: 'Programme', sortable: true },
+        { key: 'level', label: 'Niveau', sortable: true },
+        { key: 'enrollment_year', label: 'Année', sortable: true },
+        { key: 'actions', label: 'Actions', sortable: false }
+    ],
+    renderRow: function(student) {
+        const initials = (student.first_name?.charAt(0) || '') + (student.last_name?.charAt(0) || '');
+        
+        return `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle me-3">
+                            ${initials}
+                        </div>
+                        <div>
+                            <div class="fw-bold">${student.full_name || ''}</div>
+                            <div class="text-muted small">ID: ${student.id}</div>
+                            ${student.current_internship_title ? `<div class="text-muted small"><i class="bi bi-briefcase me-1"></i>${student.current_internship_title}</div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-light text-dark">${student.student_number || 'Non défini'}</span>
+                </td>
+                <td>
+                    <div>
+                        <div>${student.email}</div>
+                        ${student.phone ? `<div class="text-muted small"><i class="bi bi-telephone me-1"></i>${student.phone}</div>` : ''}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-info">${student.program || 'Non spécifié'}</span>
+                </td>
+                <td>
+                    <span class="badge bg-secondary">${student.level || 'Non spécifié'}</span>
+                </td>
+                <td>
+                    ${student.enrollment_year || '<span class="text-muted">Non défini</span>'}
+                </td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewStudent(${student.id})" 
+                                data-bs-toggle="tooltip" title="Voir les détails">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="editStudent(${student.id})" 
+                                data-bs-toggle="tooltip" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        ${hasAdminRole ? `
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                onclick="confirmDeleteStudent(${student.id}, '${student.full_name || (student.first_name + ' ' + student.last_name)}')" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    },
+    onDataLoaded: function(data) {
+        updateStudentStats(data);
+        updateStudentCount(data.pagination);
+    }
+};
 
-@keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
+// Variables globales
+const hasAdminRole = <?php echo hasRole(['admin']) ? 'true' : 'false'; ?>;
+let adminTable;
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    adminTable = new AdminTable(studentTableConfig);
+    
+    // Gestion des filtres par programme
+    document.querySelectorAll('input[name="programFilter"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            adminTable.setFilter('program', this.value);
+        });
+    });
+    
+    // Gestion du filtre par niveau
+    document.getElementById('levelFilter').addEventListener('change', function() {
+        adminTable.setFilter('level', this.value);
+    });
+});
+
+// Fonctions utilitaires
+function updateStudentStats(data) {
+    if (!data.students) return;
+    
+    const stats = {
+        total: data.pagination.total_items,
+        active: 0,
+        assigned: 0,
+        graduated: 0
+    };
+    
+    data.students.forEach(student => {
+        if (student.current_assignments_count > 0) stats.assigned++;
+        // Note: Ajouter logique pour actifs et diplômés selon vos critères
+        stats.active = stats.total; // Supposer tous actifs pour l'instant
+    });
+    
+    // Mettre à jour les cartes
+    document.getElementById('totalStudents').textContent = stats.total;
+    document.getElementById('activeStudents').textContent = stats.active;
+    document.getElementById('assignedStudents').textContent = stats.assigned;
+    document.getElementById('graduatedStudents').textContent = stats.graduated;
+    
+    if (stats.total > 0) {
+        // Pourcentages
+        const activePercent = Math.round((stats.active / stats.total) * 100);
+        const assignedPercent = Math.round((stats.assigned / stats.total) * 100);
+        const graduatedPercent = Math.round((stats.graduated / stats.total) * 100);
+        
+        // Barres de progression
+        document.getElementById('activeProgress').style.width = activePercent + '%';
+        document.getElementById('assignedProgress').style.width = assignedPercent + '%';
+        document.getElementById('graduatedProgress').style.width = graduatedPercent + '%';
+        
+        // Textes de pourcentage
+        document.getElementById('activePercent').textContent = activePercent + '% des étudiants';
+        document.getElementById('assignedPercent').textContent = assignedPercent + '% des étudiants';
+        document.getElementById('graduatedPercent').textContent = graduatedPercent + '% des étudiants';
     }
 }
 
-/* Délais pour l'animation */
-.delay-1 { animation-delay: 0.1s; }
-.delay-2 { animation-delay: 0.2s; }
-.delay-3 { animation-delay: 0.3s; }
-.delay-4 { animation-delay: 0.4s; }
-
-/* Styles améliorés pour la pagination */
-.pagination .page-item.active .page-link {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: white !important;
-    font-weight: 500;
-    box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+function updateStudentCount(pagination) {
+    const countBadge = document.getElementById('studentCount');
+    if (pagination.total_items > 0) {
+        countBadge.textContent = `${pagination.showing_from}-${pagination.showing_to} sur ${pagination.total_items} étudiants`;
+    } else {
+        countBadge.textContent = '0 étudiants';
+    }
 }
 
-.pagination .page-link {
-    color: #495057;
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    transition: all 0.2s ease-in-out;
+function viewStudent(id) {
+    window.location.href = `/tutoring/views/admin/student/show.php?id=${id}`;
 }
 
-.pagination .page-link:hover {
-    background-color: #e9ecef;
-    border-color: #dee2e6;
-    color: #0d6efd;
+function editStudent(id) {
+    window.location.href = `/tutoring/views/admin/student/edit.php?id=${id}`;
 }
 
-.pagination .page-item.disabled .page-link {
-    color: #6c757d;
-    pointer-events: none;
-    background-color: #fff;
-    border-color: #dee2e6;
+function confirmDeleteStudent(id, name) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer l'étudiant "${name}" ?\n\nCette action est irréversible et supprimera toutes les données associées.`)) {
+        deleteStudent(id);
+    }
 }
 
-/* Style pour les cartes de statistiques */
+async function deleteStudent(id) {
+    try {
+        const response = await fetch(`/tutoring/api/students/delete.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id: id })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            adminTable.loadData(); // Recharger les données
+            alert('Étudiant supprimé avec succès');
+        } else {
+            alert('Erreur lors de la suppression: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la suppression');
+    }
+}
+</script>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 .stat-card {
-    padding: 20px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    height: 100%;
 }
 
 .stat-card .value {
     font-size: 2.5rem;
     font-weight: 700;
-    color: var(--primary-color);
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
 }
 
 .stat-card .label {
     color: #7f8c8d;
     font-size: 0.9rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* Style pour les avatar */
-.avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
 }
 </style>
-
-<script>
-// Fonction pour changer le nombre d'éléments par page
-function changeItemsPerPage(value) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('per_page', value);
-    url.searchParams.set('page', '1'); // Réinitialiser à la première page
-    window.location.href = url.toString();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser les tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // Gestion des vues (tableau, cartes, liste)
-    const viewButtons = document.querySelectorAll('[data-view]');
-    const viewContents = document.querySelectorAll('.view-content');
-    
-    viewButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Retirer la classe active de tous les boutons
-            viewButtons.forEach(btn => btn.classList.remove('active'));
-            
-            // Ajouter la classe active au bouton cliqué
-            this.classList.add('active');
-            
-            // Masquer toutes les vues
-            viewContents.forEach(content => {
-                content.style.display = 'none';
-            });
-            
-            // Afficher la vue sélectionnée
-            const viewToShow = this.getAttribute('data-view');
-            document.getElementById(viewToShow + 'View').style.display = 'block';
-        });
-    });
-    
-    // Gestion des filtres avancés
-    const applyFiltersBtn = document.getElementById('applyFilters');
-    const resetFiltersBtn = document.getElementById('resetFilters');
-    const advancedFiltersForm = document.getElementById('advancedFiltersForm');
-    
-    if (applyFiltersBtn) {
-        applyFiltersBtn.addEventListener('click', function() {
-            advancedFiltersForm.submit();
-        });
-    }
-    
-    if (resetFiltersBtn) {
-        resetFiltersBtn.addEventListener('click', function() {
-            const inputs = advancedFiltersForm.querySelectorAll('input:not([type="hidden"]), select');
-            inputs.forEach(input => {
-                if (input.type === 'radio') {
-                    if (input.value === '') input.checked = true;
-                    else input.checked = false;
-                } else if (input.type === 'checkbox') {
-                    input.checked = false;
-                } else {
-                    input.value = '';
-                }
-            });
-        });
-    }
-    
-    // Gestion de l'exportation
-    const exportForm = document.getElementById('exportForm');
-    const exportSubmitBtn = document.getElementById('exportSubmitBtn');
-    const exportFilterRadios = document.querySelectorAll('.export-filter');
-    const exportAllInput = document.getElementById('exportAllInput');
-    const exportColumns = document.querySelectorAll('.export-column');
-    const columnsError = document.getElementById('columnsError');
-    
-    if (exportSubmitBtn && exportForm) {
-        // Gestion de l'option de filtrage
-        exportFilterRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (this.value === 'all') {
-                    exportAllInput.value = 'true';
-                } else {
-                    exportAllInput.value = 'false';
-                }
-            });
-        });
-        
-        // Soumission du formulaire d'exportation
-        exportSubmitBtn.addEventListener('click', function() {
-            // Vérifier qu'au moins une colonne est sélectionnée
-            const selectedColumns = Array.from(exportColumns).filter(checkbox => checkbox.checked);
-            
-            if (selectedColumns.length === 0) {
-                columnsError.style.display = 'block';
-                return;
-            } else {
-                columnsError.style.display = 'none';
-            }
-            
-            // Soumettre le formulaire
-            exportForm.submit();
-            
-            // Fermer la modale
-            const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
-            modal.hide();
-        });
-        
-        // Réinitialiser l'erreur des colonnes quand une est cochée
-        exportColumns.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const anyChecked = Array.from(exportColumns).some(cb => cb.checked);
-                if (anyChecked) {
-                    columnsError.style.display = 'none';
-                }
-            });
-        });
-    }
-    
-    // Animation pour les cartes statistiques
-    const statCards = document.querySelectorAll('.stat-card');
-    statCards.forEach((card, index) => {
-        card.classList.add('fade-in', `delay-${index + 1}`);
-    });
-});
-
-// Fonction pour changer le nombre d'éléments par page
-function changeItemsPerPage(value) {
-    const url = new URL(window.location);
-    url.searchParams.set('per_page', value);
-    url.searchParams.set('page', '1'); // Retourner à la première page
-    window.location.href = url.toString();
-}
-</script>
 
 <?php
 // Inclure le pied de page
