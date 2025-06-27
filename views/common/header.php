@@ -140,6 +140,12 @@ if ($userTheme === 'dark') {
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="/tutoring/views/admin/evaluations.php" class="nav-link <?php echo isActive('evaluations'); ?>">
+                        <i class="bi bi-clipboard-check"></i>
+                        Évaluations
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="/tutoring/views/admin/messages.php" class="nav-link <?php echo isActive('messages'); ?>">
                         <i class="bi bi-chat-left-text"></i>
                         Messagerie
