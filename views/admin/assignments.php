@@ -19,31 +19,46 @@ $assignmentController = new AssignmentController($db);
 // Créer une instance du modèle Assignment
 $assignmentModel = new Assignment($db);
 
+// Configuration de la pagination
+$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10; // Nombre d'éléments par page
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($currentPage - 1) * $itemsPerPage;
+
 // Traiter la recherche ou afficher toutes les affectations
 if (isset($_GET['search'])) {
     $term = isset($_GET['term']) ? $_GET['term'] : '';
     $status = isset($_GET['status']) ? $_GET['status'] : null;
     
-    // Utiliser la méthode search du modèle
-    $assignments = $assignmentModel->search($term, $status);
+    // Compter le total d'abord pour la pagination
+    $allAssignments = $assignmentModel->search($term, $status);
+    $totalAssignments = count($allAssignments);
+    
+    // Récupérer les affectations avec pagination
+    $assignments = array_slice($allAssignments, $offset, $itemsPerPage);
 } else {
     // Afficher toutes les affectations ou filtrer par statut
     $status = isset($_GET['status']) ? $_GET['status'] : null;
     
-    // Utiliser la méthode getAll du modèle
-    $assignments = $assignmentModel->getAll($status);
+    // Compter le total d'abord pour la pagination
+    $allAssignments = $assignmentModel->getAll($status);
+    $totalAssignments = count($allAssignments);
+    
+    // Récupérer les affectations avec pagination
+    $assignments = array_slice($allAssignments, $offset, $itemsPerPage);
 }
 
-// Récupérer les statistiques
-$totalAssignments = count($assignments);
+// Calculer les informations de pagination
+$totalPages = ceil($totalAssignments / $itemsPerPage);
+$showingFrom = $totalAssignments > 0 ? $offset + 1 : 0;
+$showingTo = min($offset + $itemsPerPage, $totalAssignments);
 
-// Calculer les statistiques par statut
+// Calculer les statistiques par statut (sur toutes les affectations, pas seulement la page courante)
 $pendingCount = 0;
 $confirmedCount = 0;
 $rejectedCount = 0;
 $completedCount = 0;
 
-foreach ($assignments as $assignment) {
+foreach ($allAssignments as $assignment) {
     if ($assignment['status'] === 'pending') {
         $pendingCount++;
     } elseif ($assignment['status'] === 'confirmed') {
@@ -356,12 +371,25 @@ $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
                     </div>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                    <div class="filter-tabs">
-                        <a href="?<?php echo isset($_GET['term']) ? 'term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === '' ? 'active' : ''; ?>">Toutes</a>
-                        <a href="?status=pending<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'pending' ? 'active' : ''; ?>">En attente</a>
-                        <a href="?status=confirmed<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'confirmed' ? 'active' : ''; ?>">Confirmées</a>
-                        <a href="?status=rejected<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'rejected' ? 'active' : ''; ?>">Rejetées</a>
-                        <a href="?status=completed<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'completed' ? 'active' : ''; ?>">Terminées</a>
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        <div class="filter-tabs">
+                            <a href="?<?php echo isset($_GET['term']) ? 'term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === '' ? 'active' : ''; ?>">Toutes</a>
+                            <a href="?status=pending<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'pending' ? 'active' : ''; ?>">En attente</a>
+                            <a href="?status=confirmed<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'confirmed' ? 'active' : ''; ?>">Confirmées</a>
+                            <a href="?status=rejected<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'rejected' ? 'active' : ''; ?>">Rejetées</a>
+                            <a href="?status=completed<?php echo isset($_GET['term']) ? '&term='.h($_GET['term']).'&search=1' : ''; ?>" class="filter-tab <?php echo $activeFilter === 'completed' ? 'active' : ''; ?>">Terminées</a>
+                        </div>
+                        
+                        <!-- Sélecteur du nombre d'éléments par page -->
+                        <div class="d-flex align-items-center">
+                            <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                                <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
+                                <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
+                                <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
+                                <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -416,7 +444,13 @@ $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
         <div class="card-body p-4">
             <div class="list-header">
                 <h4><i class="bi bi-list me-2"></i>Liste des affectations</h4>
-                <span class="count-badge"><?php echo $totalAssignments; ?> affectations</span>
+                <span class="count-badge">
+                    <?php if ($totalAssignments > 0): ?>
+                        <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> sur <?php echo $totalAssignments; ?> affectations
+                    <?php else: ?>
+                        0 affectations
+                    <?php endif; ?>
+                </span>
             </div>
             
             <?php if (empty($assignments)): ?>
@@ -577,6 +611,87 @@ $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            <?php if ($totalPages > 1): ?>
+            <nav aria-label="Navigation des pages d'affectations" class="mt-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted">
+                        <?php if ($totalAssignments > 0): ?>
+                            Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalAssignments; ?> résultats
+                        <?php endif; ?>
+                    </div>
+                    
+                    <ul class="pagination pagination-sm mb-0">
+                        <!-- Bouton Précédent -->
+                        <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                            <?php if ($currentPage > 1): ?>
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            <?php else: ?>
+                                <span class="page-link" aria-label="Précédent">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </span>
+                            <?php endif; ?>
+                        </li>
+                        
+                        <?php
+                        // Logique d'affichage des numéros de page
+                        $startPage = max(1, $currentPage - 2);
+                        $endPage = min($totalPages, $currentPage + 2);
+                        
+                        // Afficher la première page si elle n'est pas dans la plage
+                        if ($startPage > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                            </li>
+                            <?php if ($startPage > 2): ?>
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <!-- Pages dans la plage -->
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                <?php if ($i == $currentPage): ?>
+                                    <span class="page-link"><?php echo $i; ?></span>
+                                <?php else: ?>
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                <?php endif; ?>
+                            </li>
+                        <?php endfor; ?>
+                        
+                        <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                        <?php if ($endPage < $totalPages): ?>
+                            <?php if ($endPage < $totalPages - 1): ?>
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            <?php endif; ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                            </li>
+                        <?php endif; ?>
+                        
+                        <!-- Bouton Suivant -->
+                        <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                            <?php if ($currentPage < $totalPages): ?>
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            <?php else: ?>
+                                <span class="page-link" aria-label="Suivant">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </span>
+                            <?php endif; ?>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -590,6 +705,14 @@ $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
     });
+    
+    // Fonction pour changer le nombre d'éléments par page
+    function changeItemsPerPage(value) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', value);
+        url.searchParams.set('page', '1'); // Retourner à la première page
+        window.location.href = url.toString();
+    }
 </script>
 
 <?php

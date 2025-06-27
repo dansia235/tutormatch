@@ -16,6 +16,10 @@ requireRole(['admin', 'coordinator']);
 // Instancier le contrôleur
 $studentController = new StudentController($db);
 
+// Configuration de la pagination
+$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10; // Nombre d'éléments par page
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+
 // Traiter la recherche ou afficher tous les étudiants
 if (isset($_GET['search'])) {
     $term = isset($_GET['term']) ? $_GET['term'] : '';
@@ -23,11 +27,11 @@ if (isset($_GET['search'])) {
     $program = isset($_GET['program']) ? $_GET['program'] : null;
     $level = isset($_GET['level']) ? $_GET['level'] : null;
     
-    $students = $studentController->search($term, $status);
+    $allStudents = $studentController->search($term, $status);
     
     // Filtrage supplémentaire côté PHP si nécessaire
     if ($program || $level) {
-        $students = array_filter($students, function($student) use ($program, $level) {
+        $allStudents = array_filter($allStudents, function($student) use ($program, $level) {
             $matchProgram = !$program || $student['program'] === $program;
             $matchLevel = !$level || $student['level'] === $level;
             return $matchProgram && $matchLevel;
@@ -36,37 +40,35 @@ if (isset($_GET['search'])) {
 } else {
     // Afficher tous les étudiants ou filtrer par statut
     $status = isset($_GET['status']) ? $_GET['status'] : null;
-    $students = $studentController->getStudents($status);
+    $allStudents = $studentController->getStudents($status);
 }
 
-// Pagination des résultats
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$perPage = 10; // Nombre d'étudiants par page
-$totalStudents = count($students);
-$totalPages = ceil($totalStudents / $perPage);
+// Compter le total
+$totalStudents = count($allStudents);
 
-// S'assurer que la page demandée est valide
-if ($page < 1) $page = 1;
-if ($page > $totalPages && $totalPages > 0) $page = $totalPages;
+// Calculer les informations de pagination
+$totalPages = ceil($totalStudents / $itemsPerPage);
+$offset = ($currentPage - 1) * $itemsPerPage;
+$showingFrom = $totalStudents > 0 ? $offset + 1 : 0;
+$showingTo = min($offset + $itemsPerPage, $totalStudents);
 
 // Extraire les étudiants pour la page courante
-$offset = ($page - 1) * $perPage;
-$paginatedStudents = array_slice($students, $offset, $perPage);
+$students = array_slice($allStudents, $offset, $itemsPerPage);
 
-// Préparer les données pour les statistiques
-$activeStudents = count(array_filter($students, function($student) {
+// Préparer les données pour les statistiques (sur tous les étudiants, pas seulement la page courante)
+$activeStudents = count(array_filter($allStudents, function($student) {
     return $student['status'] === 'active';
 }));
-$graduatedStudents = count(array_filter($students, function($student) {
+$graduatedStudents = count(array_filter($allStudents, function($student) {
     return $student['status'] === 'graduated';
 }));
-$suspendedStudents = count(array_filter($students, function($student) {
+$suspendedStudents = count(array_filter($allStudents, function($student) {
     return $student['status'] === 'suspended';
 }));
 
 // Extraire les programmes et niveaux uniques pour les filtres
-$programs = array_unique(array_column($students, 'program'));
-$levels = array_unique(array_column($students, 'level'));
+$programs = array_unique(array_column($allStudents, 'program'));
+$levels = array_unique(array_column($allStudents, 'level'));
 
 // Définir le filtre actif
 $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
@@ -174,6 +176,19 @@ include_once __DIR__ . '/../common/header.php';
                         <div class="col-lg-2 col-md-6">
                             <button type="submit" name="search" value="1" class="btn btn-primary w-100">Filtrer</button>
                         </div>
+                        
+                        <!-- Sélecteur du nombre d'éléments par page -->
+                        <div class="col-lg-12 mt-3">
+                            <div class="d-flex justify-content-end align-items-center">
+                                <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher par page:</label>
+                                <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                                    <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
+                                    <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
+                                    <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
+                                    <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                                </select>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -181,7 +196,16 @@ include_once __DIR__ . '/../common/header.php';
             <!-- Students list -->
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0"><i class="bi bi-list me-2"></i>Liste des étudiants</h5>
+                    <h5 class="m-0">
+                        <i class="bi bi-list me-2"></i>Liste des étudiants
+                        <span class="badge bg-primary ms-2">
+                            <?php if ($totalStudents > 0): ?>
+                                <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> sur <?php echo $totalStudents; ?>
+                            <?php else: ?>
+                                0 étudiants
+                            <?php endif; ?>
+                        </span>
+                    </h5>
                     <div class="btn-group">
                         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
                             <i class="bi bi-upload me-1"></i>Importer
@@ -224,7 +248,7 @@ include_once __DIR__ . '/../common/header.php';
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach($paginatedStudents as $index => $student): ?>
+                                    <?php foreach($students as $index => $student): ?>
                                     <tr>
                                         <td><?php echo $offset + $index + 1; ?></td>
                                         <td>
@@ -303,63 +327,82 @@ include_once __DIR__ . '/../common/header.php';
                         
                         <!-- Pagination -->
                         <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Page navigation" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                <?php
-                                // Construire la query string pour les liens de pagination
-                                $queryParams = $_GET;
+                        <nav aria-label="Navigation des pages d'étudiants" class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted">
+                                    <?php if ($totalStudents > 0): ?>
+                                        Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalStudents; ?> résultats
+                                    <?php endif; ?>
+                                </div>
                                 
-                                // Bouton précédent
-                                echo '<li class="page-item' . ($page <= 1 ? ' disabled' : '') . '">';
-                                if ($page > 1) {
-                                    $queryParams['page'] = $page - 1;
-                                    echo '<a class="page-link" href="?' . http_build_query($queryParams) . '">Précédent</a>';
-                                } else {
-                                    echo '<a class="page-link" href="#" tabindex="-1" aria-disabled="true">Précédent</a>';
-                                }
-                                echo '</li>';
-                                
-                                // Pages individuelles
-                                $startPage = max(1, $page - 2);
-                                $endPage = min($totalPages, $page + 2);
-                                
-                                // Toujours afficher la première page
-                                if ($startPage > 1) {
-                                    $queryParams['page'] = 1;
-                                    echo '<li class="page-item"><a class="page-link" href="?' . http_build_query($queryParams) . '">1</a></li>';
-                                    if ($startPage > 2) {
-                                        echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
-                                    }
-                                }
-                                
-                                // Pages centrales
-                                for ($i = $startPage; $i <= $endPage; $i++) {
-                                    $queryParams['page'] = $i;
-                                    echo '<li class="page-item' . ($i == $page ? ' active' : '') . '">';
-                                    echo '<a class="page-link' . ($i == $page ? ' text-white' : '') . '" href="?' . http_build_query($queryParams) . '">' . $i . '</a>';
-                                    echo '</li>';
-                                }
-                                
-                                // Toujours afficher la dernière page
-                                if ($endPage < $totalPages) {
-                                    if ($endPage < $totalPages - 1) {
-                                        echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
-                                    }
-                                    $queryParams['page'] = $totalPages;
-                                    echo '<li class="page-item"><a class="page-link" href="?' . http_build_query($queryParams) . '">' . $totalPages . '</a></li>';
-                                }
-                                
-                                // Bouton suivant
-                                echo '<li class="page-item' . ($page >= $totalPages ? ' disabled' : '') . '">';
-                                if ($page < $totalPages) {
-                                    $queryParams['page'] = $page + 1;
-                                    echo '<a class="page-link" href="?' . http_build_query($queryParams) . '">Suivant</a>';
-                                } else {
-                                    echo '<a class="page-link" href="#" tabindex="-1" aria-disabled="true">Suivant</a>';
-                                }
-                                echo '</li>';
-                                ?>
-                            </ul>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Bouton Précédent -->
+                                    <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                        <?php if ($currentPage > 1): ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="page-link" aria-label="Précédent">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </span>
+                                        <?php endif; ?>
+                                    </li>
+                                    
+                                    <?php
+                                    // Logique d'affichage des numéros de page
+                                    $startPage = max(1, $currentPage - 2);
+                                    $endPage = min($totalPages, $currentPage + 2);
+                                    
+                                    // Afficher la première page si elle n'est pas dans la plage
+                                    if ($startPage > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                        </li>
+                                        <?php if ($startPage > 2): ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Pages dans la plage -->
+                                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                        <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                            <?php if ($i == $currentPage): ?>
+                                                <span class="page-link"><?php echo $i; ?></span>
+                                            <?php else: ?>
+                                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endfor; ?>
+                                    
+                                    <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                                    <?php if ($endPage < $totalPages): ?>
+                                        <?php if ($endPage < $totalPages - 1): ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        <?php endif; ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                        </li>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Bouton Suivant -->
+                                    <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                        <?php if ($currentPage < $totalPages): ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="page-link" aria-label="Suivant">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </span>
+                                        <?php endif; ?>
+                                    </li>
+                                </ul>
+                            </div>
                         </nav>
                         <?php endif; ?>
                     </div>
@@ -367,7 +410,7 @@ include_once __DIR__ . '/../common/header.php';
                     <!-- Card View (Hidden by default) -->
                     <div id="cardsView" class="view-content" style="display: none;">
                         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                            <?php foreach($paginatedStudents as $student): ?>
+                            <?php foreach($students as $student): ?>
                             <div class="col">
                                 <div class="card h-100">
                                     <div class="card-body">
@@ -431,63 +474,82 @@ include_once __DIR__ . '/../common/header.php';
                         
                         <!-- Pagination pour la vue carte -->
                         <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Page navigation" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                <?php
-                                // Construire la query string pour les liens de pagination
-                                $queryParams = $_GET;
+                        <nav aria-label="Navigation des pages d'étudiants" class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted">
+                                    <?php if ($totalStudents > 0): ?>
+                                        Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalStudents; ?> résultats
+                                    <?php endif; ?>
+                                </div>
                                 
-                                // Bouton précédent
-                                echo '<li class="page-item' . ($page <= 1 ? ' disabled' : '') . '">';
-                                if ($page > 1) {
-                                    $queryParams['page'] = $page - 1;
-                                    echo '<a class="page-link" href="?' . http_build_query($queryParams) . '">Précédent</a>';
-                                } else {
-                                    echo '<a class="page-link" href="#" tabindex="-1" aria-disabled="true">Précédent</a>';
-                                }
-                                echo '</li>';
-                                
-                                // Pages individuelles
-                                $startPage = max(1, $page - 2);
-                                $endPage = min($totalPages, $page + 2);
-                                
-                                // Toujours afficher la première page
-                                if ($startPage > 1) {
-                                    $queryParams['page'] = 1;
-                                    echo '<li class="page-item"><a class="page-link" href="?' . http_build_query($queryParams) . '">1</a></li>';
-                                    if ($startPage > 2) {
-                                        echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
-                                    }
-                                }
-                                
-                                // Pages centrales
-                                for ($i = $startPage; $i <= $endPage; $i++) {
-                                    $queryParams['page'] = $i;
-                                    echo '<li class="page-item' . ($i == $page ? ' active' : '') . '">';
-                                    echo '<a class="page-link' . ($i == $page ? ' text-white' : '') . '" href="?' . http_build_query($queryParams) . '">' . $i . '</a>';
-                                    echo '</li>';
-                                }
-                                
-                                // Toujours afficher la dernière page
-                                if ($endPage < $totalPages) {
-                                    if ($endPage < $totalPages - 1) {
-                                        echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
-                                    }
-                                    $queryParams['page'] = $totalPages;
-                                    echo '<li class="page-item"><a class="page-link" href="?' . http_build_query($queryParams) . '">' . $totalPages . '</a></li>';
-                                }
-                                
-                                // Bouton suivant
-                                echo '<li class="page-item' . ($page >= $totalPages ? ' disabled' : '') . '">';
-                                if ($page < $totalPages) {
-                                    $queryParams['page'] = $page + 1;
-                                    echo '<a class="page-link" href="?' . http_build_query($queryParams) . '">Suivant</a>';
-                                } else {
-                                    echo '<a class="page-link" href="#" tabindex="-1" aria-disabled="true">Suivant</a>';
-                                }
-                                echo '</li>';
-                                ?>
-                            </ul>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Bouton Précédent -->
+                                    <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                        <?php if ($currentPage > 1): ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="page-link" aria-label="Précédent">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </span>
+                                        <?php endif; ?>
+                                    </li>
+                                    
+                                    <?php
+                                    // Logique d'affichage des numéros de page
+                                    $startPage = max(1, $currentPage - 2);
+                                    $endPage = min($totalPages, $currentPage + 2);
+                                    
+                                    // Afficher la première page si elle n'est pas dans la plage
+                                    if ($startPage > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                        </li>
+                                        <?php if ($startPage > 2): ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Pages dans la plage -->
+                                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                        <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                            <?php if ($i == $currentPage): ?>
+                                                <span class="page-link"><?php echo $i; ?></span>
+                                            <?php else: ?>
+                                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endfor; ?>
+                                    
+                                    <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                                    <?php if ($endPage < $totalPages): ?>
+                                        <?php if ($endPage < $totalPages - 1): ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        <?php endif; ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                        </li>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Bouton Suivant -->
+                                    <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                        <?php if ($currentPage < $totalPages): ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="page-link" aria-label="Suivant">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </span>
+                                        <?php endif; ?>
+                                    </li>
+                                </ul>
+                            </div>
                         </nav>
                         <?php endif; ?>
                     </div>
@@ -495,7 +557,7 @@ include_once __DIR__ . '/../common/header.php';
                     <!-- List View (Hidden by default) -->
                     <div id="listView" class="view-content" style="display: none;">
                         <ul class="list-group">
-                            <?php foreach($paginatedStudents as $student): ?>
+                            <?php foreach($students as $student): ?>
                             <li class="list-group-item">
                                 <div class="row align-items-center">
                                     <div class="col-md-8">
@@ -545,63 +607,82 @@ include_once __DIR__ . '/../common/header.php';
                         
                         <!-- Pagination pour la vue liste -->
                         <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Page navigation" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                <?php
-                                // Construire la query string pour les liens de pagination
-                                $queryParams = $_GET;
+                        <nav aria-label="Navigation des pages d'étudiants" class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted">
+                                    <?php if ($totalStudents > 0): ?>
+                                        Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalStudents; ?> résultats
+                                    <?php endif; ?>
+                                </div>
                                 
-                                // Bouton précédent
-                                echo '<li class="page-item' . ($page <= 1 ? ' disabled' : '') . '">';
-                                if ($page > 1) {
-                                    $queryParams['page'] = $page - 1;
-                                    echo '<a class="page-link" href="?' . http_build_query($queryParams) . '">Précédent</a>';
-                                } else {
-                                    echo '<a class="page-link" href="#" tabindex="-1" aria-disabled="true">Précédent</a>';
-                                }
-                                echo '</li>';
-                                
-                                // Pages individuelles
-                                $startPage = max(1, $page - 2);
-                                $endPage = min($totalPages, $page + 2);
-                                
-                                // Toujours afficher la première page
-                                if ($startPage > 1) {
-                                    $queryParams['page'] = 1;
-                                    echo '<li class="page-item"><a class="page-link" href="?' . http_build_query($queryParams) . '">1</a></li>';
-                                    if ($startPage > 2) {
-                                        echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
-                                    }
-                                }
-                                
-                                // Pages centrales
-                                for ($i = $startPage; $i <= $endPage; $i++) {
-                                    $queryParams['page'] = $i;
-                                    echo '<li class="page-item' . ($i == $page ? ' active' : '') . '">';
-                                    echo '<a class="page-link' . ($i == $page ? ' text-white' : '') . '" href="?' . http_build_query($queryParams) . '">' . $i . '</a>';
-                                    echo '</li>';
-                                }
-                                
-                                // Toujours afficher la dernière page
-                                if ($endPage < $totalPages) {
-                                    if ($endPage < $totalPages - 1) {
-                                        echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
-                                    }
-                                    $queryParams['page'] = $totalPages;
-                                    echo '<li class="page-item"><a class="page-link" href="?' . http_build_query($queryParams) . '">' . $totalPages . '</a></li>';
-                                }
-                                
-                                // Bouton suivant
-                                echo '<li class="page-item' . ($page >= $totalPages ? ' disabled' : '') . '">';
-                                if ($page < $totalPages) {
-                                    $queryParams['page'] = $page + 1;
-                                    echo '<a class="page-link" href="?' . http_build_query($queryParams) . '">Suivant</a>';
-                                } else {
-                                    echo '<a class="page-link" href="#" tabindex="-1" aria-disabled="true">Suivant</a>';
-                                }
-                                echo '</li>';
-                                ?>
-                            </ul>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Bouton Précédent -->
+                                    <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                        <?php if ($currentPage > 1): ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="page-link" aria-label="Précédent">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </span>
+                                        <?php endif; ?>
+                                    </li>
+                                    
+                                    <?php
+                                    // Logique d'affichage des numéros de page
+                                    $startPage = max(1, $currentPage - 2);
+                                    $endPage = min($totalPages, $currentPage + 2);
+                                    
+                                    // Afficher la première page si elle n'est pas dans la plage
+                                    if ($startPage > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                        </li>
+                                        <?php if ($startPage > 2): ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Pages dans la plage -->
+                                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                        <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                            <?php if ($i == $currentPage): ?>
+                                                <span class="page-link"><?php echo $i; ?></span>
+                                            <?php else: ?>
+                                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endfor; ?>
+                                    
+                                    <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                                    <?php if ($endPage < $totalPages): ?>
+                                        <?php if ($endPage < $totalPages - 1): ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        <?php endif; ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                        </li>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Bouton Suivant -->
+                                    <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                        <?php if ($currentPage < $totalPages): ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="page-link" aria-label="Suivant">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </span>
+                                        <?php endif; ?>
+                                    </li>
+                                </ul>
+                            </div>
                         </nav>
                         <?php endif; ?>
                     </div>
@@ -1061,6 +1142,14 @@ include_once __DIR__ . '/../common/header.php';
 </style>
 
 <script>
+// Fonction pour changer le nombre d'éléments par page
+function changeItemsPerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', '1'); // Réinitialiser à la première page
+    window.location.href = url.toString();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialiser les tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -1177,6 +1266,14 @@ document.addEventListener('DOMContentLoaded', function() {
         card.classList.add('fade-in', `delay-${index + 1}`);
     });
 });
+
+// Fonction pour changer le nombre d'éléments par page
+function changeItemsPerPage(value) {
+    const url = new URL(window.location);
+    url.searchParams.set('per_page', value);
+    url.searchParams.set('page', '1'); // Retourner à la première page
+    window.location.href = url.toString();
+}
 </script>
 
 <?php

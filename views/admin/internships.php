@@ -25,6 +25,11 @@ $stats = $statsController->getDashboardStats();
 // Instancier le contrôleur de stages
 $internshipController = new InternshipController($db);
 
+// Configuration de la pagination
+$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10; // Nombre d'éléments par page
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($currentPage - 1) * $itemsPerPage;
+
 // Récupérer la liste des stages (avec filtres éventuels)
 $status = isset($_GET['status']) ? $_GET['status'] : null;
 $domain = isset($_GET['domain']) ? $_GET['domain'] : null;
@@ -32,11 +37,25 @@ $company = isset($_GET['company']) ? $_GET['company'] : null;
 $searchTerm = isset($_GET['term']) ? $_GET['term'] : '';
 
 if (!empty($searchTerm) || !empty($domain) || !empty($company)) {
-    $internships = $internshipController->search($searchTerm, $status);
+    // Compter le total d'abord pour la pagination
+    $allInternships = $internshipController->search($searchTerm, $status);
+    $totalInternships = count($allInternships);
+    
+    // Récupérer les stages avec pagination
+    $internships = array_slice($allInternships, $offset, $itemsPerPage);
 } else {
-    // Récupérer les stages directement depuis le modèle
-    $internships = $internshipController->getAll($status);
+    // Compter le total d'abord pour la pagination
+    $allInternships = $internshipController->getAll($status);
+    $totalInternships = count($allInternships);
+    
+    // Récupérer les stages avec pagination
+    $internships = array_slice($allInternships, $offset, $itemsPerPage);
 }
+
+// Calculer les informations de pagination
+$totalPages = ceil($totalInternships / $itemsPerPage);
+$showingFrom = $totalInternships > 0 ? $offset + 1 : 0;
+$showingTo = min($offset + $itemsPerPage, $totalInternships);
 
 // Obtenir la liste des domaines pour le filtre
 $domains = $internshipController->getDomains();
@@ -44,16 +63,13 @@ $domains = $internshipController->getDomains();
 // Obtenir la liste des compétences pour le filtre
 $skills = $internshipController->getAllSkills();
 
-// Statistiques et données pour la page
-$totalInternships = count($internships);
-
-// Calculer les statistiques par statut
+// Calculer les statistiques par statut (sur tous les stages, pas seulement la page courante)
 $statusStats = [];
 $domainsStats = [];
 $timelineStats = [];
 $currentDate = date('Y-m-d');
 
-foreach ($internships as $internship) {
+foreach ($allInternships as $internship) {
     // Statistiques par statut
     $internshipStatus = $internship['status'] ?? 'unknown';
     if (!isset($statusStats[$internshipStatus])) {
@@ -453,7 +469,18 @@ include_once __DIR__ . '/../common/header.php';
                             </form>
                         </div>
                         <div class="col-md-6">
-                            <div class="d-flex justify-content-md-end flex-wrap gap-2">
+                            <div class="d-flex justify-content-md-end flex-wrap gap-2 align-items-center">
+                                <!-- Sélecteur du nombre d'éléments par page -->
+                                <div class="d-flex align-items-center me-3">
+                                    <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                                    <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                                        <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
+                                        <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
+                                        <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
+                                        <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                                    </select>
+                                </div>
+                                
                                 <div class="dropdown me-2">
                                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="domainFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bi bi-filter me-1"></i>Domaine
@@ -510,15 +537,20 @@ include_once __DIR__ . '/../common/header.php';
                             if (!empty($domain)) $filterInfo[] = "domaine: <strong>" . h($domain) . "</strong>";
                             if (!empty($company)) $filterInfo[] = "entreprise: <strong>" . h($company) . "</strong>";
                             
-                            echo "Affichage des résultats pour " . implode(', ', $filterInfo) . " (" . count($internships) . " stages trouvés)";
+                            echo "Affichage des résultats pour " . implode(', ', $filterInfo) . " (" . $showingFrom . "-" . $showingTo . " sur " . $totalInternships . " stages trouvés)";
                             ?>
                         </span>
                         <a href="?" class="ms-2 text-decoration-none">Réinitialiser les filtres</a>
                     </div>
+                    <?php else: ?>
+                    <div class="alert alert-light border mb-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <span>Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalInternships; ?> stages</span>
+                    </div>
                     <?php endif; ?>
 
                     <!-- Internships Table -->
-                    <?php if (empty($paginatedInternships)): ?>
+                    <?php if (empty($internships)): ?>
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle me-2"></i>Aucun stage trouvé avec les critères de recherche spécifiés.
                     </div>
@@ -683,40 +715,83 @@ include_once __DIR__ . '/../common/header.php';
 
                     <!-- Pagination -->
                     <?php if ($totalPages > 1): ?>
-                    <div class="pagination-container">
-                        <nav>
-                            <ul class="pagination">
-                                <li class="page-item <?php echo $currentPage == 1 ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>">
-                                        <i class="bi bi-chevron-left"></i>
-                                    </a>
+                    <nav aria-label="Navigation des pages de stages" class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted">
+                                <?php if ($totalInternships > 0): ?>
+                                    Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalInternships; ?> résultats
+                                <?php endif; ?>
+                            </div>
+                            
+                            <ul class="pagination pagination-sm mb-0">
+                                <!-- Bouton Précédent -->
+                                <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                    <?php if ($currentPage > 1): ?>
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="page-link" aria-label="Précédent">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </span>
+                                    <?php endif; ?>
                                 </li>
                                 
                                 <?php
-                                // Afficher 5 liens de page maximum
+                                // Logique d'affichage des numéros de page
                                 $startPage = max(1, $currentPage - 2);
-                                $endPage = min($totalPages, $startPage + 4);
+                                $endPage = min($totalPages, $currentPage + 2);
                                 
-                                // Ajuster le début si on est proche de la fin
-                                if ($endPage - $startPage < 4) {
-                                    $startPage = max(1, $endPage - 4);
-                                }
+                                // Afficher la première page si elle n'est pas dans la plage
+                                if ($startPage > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                    </li>
+                                    <?php if ($startPage > 2): ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                                 
-                                for ($i = $startPage; $i <= $endPage; $i++):
-                                ?>
-                                <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                </li>
+                                <!-- Pages dans la plage -->
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                        <?php if ($i == $currentPage): ?>
+                                            <span class="page-link"><?php echo $i; ?></span>
+                                        <?php else: ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                        <?php endif; ?>
+                                    </li>
                                 <?php endfor; ?>
                                 
-                                <li class="page-item <?php echo $currentPage == $totalPages ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
+                                <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                                <?php if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Bouton Suivant -->
+                                <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                    <?php if ($currentPage < $totalPages): ?>
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="page-link" aria-label="Suivant">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </span>
+                                    <?php endif; ?>
                                 </li>
                             </ul>
-                        </nav>
-                    </div>
+                        </div>
+                    </nav>
                     <?php endif; ?>
                     <?php endif; ?>
                 </div>
@@ -763,8 +838,8 @@ include_once __DIR__ . '/../common/header.php';
                         <i class="bi bi-info-circle me-2"></i>Aucune donnée disponible.
                     </div>
                     <?php else: ?>
-                    <div class="chart-container mb-4">
-                        <canvas id="statusChart" width="100%" height="200"></canvas>
+                    <div class="chart-container mb-4" style="position: relative; height: 200px;">
+                        <canvas id="statusChart"></canvas>
                     </div>
                     <div class="mt-3">
                         <?php foreach ($statusStats as $stat => $count): ?>
@@ -786,44 +861,6 @@ include_once __DIR__ . '/../common/header.php';
                 </div>
             </div>
             
-            <!-- Timeline Distribution Card -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="m-0 font-weight-bold">Répartition temporelle</h5>
-                </div>
-                <div class="card-body">
-                    <?php if (empty($timelineStats)): ?>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>Aucune donnée disponible.
-                    </div>
-                    <?php else: ?>
-                    <div class="chart-container mb-4">
-                        <canvas id="timelineChart" width="100%" height="200"></canvas>
-                    </div>
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="timeline-indicator bg-info me-2"></span> À venir
-                            </div>
-                            <span class="badge bg-info rounded-pill"><?php echo $timelineStats['upcoming'] ?? 0; ?> stages</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="timeline-indicator bg-success me-2"></span> En cours
-                            </div>
-                            <span class="badge bg-success rounded-pill"><?php echo $timelineStats['current'] ?? 0; ?> stages</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="timeline-indicator bg-secondary me-2"></span> Terminés
-                            </div>
-                            <span class="badge bg-secondary rounded-pill"><?php echo $timelineStats['past'] ?? 0; ?> stages</span>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-            
             <!-- Domains Distribution Card -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -835,8 +872,8 @@ include_once __DIR__ . '/../common/header.php';
                         <i class="bi bi-info-circle me-2"></i>Aucune donnée disponible.
                     </div>
                     <?php else: ?>
-                    <div class="chart-container mb-4">
-                        <canvas id="domainChart" width="100%" height="200"></canvas>
+                    <div class="chart-container mb-4" style="position: relative; height: 200px;">
+                        <canvas id="domainChart"></canvas>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -993,7 +1030,124 @@ include_once __DIR__ . '/../common/header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
+// Attendre que Chart.js soit chargé
+window.addEventListener('load', function() {
+    console.log('Window fully loaded');
+    console.log('Chart.js available?', typeof Chart !== 'undefined');
+    
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js failed to load!');
+        return;
+    }
+    
+    // Créer le graphique de statut
+    const statusCanvas = document.getElementById('statusChart');
+    if (statusCanvas) {
+        console.log('Creating status chart with data:', {
+            available: <?php echo $statusStats['available'] ?? 0; ?>,
+            assigned: <?php echo $statusStats['assigned'] ?? 0; ?>,
+            completed: <?php echo $statusStats['completed'] ?? 0; ?>,
+            cancelled: <?php echo $statusStats['cancelled'] ?? 0; ?>
+        });
+        
+        try {
+            const statusChart = new Chart(statusCanvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Disponible', 'Affecté', 'Terminé', 'Annulé'],
+                    datasets: [{
+                        data: [
+                            <?php echo $statusStats['available'] ?? 0; ?>,
+                            <?php echo $statusStats['assigned'] ?? 0; ?>,
+                            <?php echo $statusStats['completed'] ?? 0; ?>,
+                            <?php echo $statusStats['cancelled'] ?? 0; ?>
+                        ],
+                        backgroundColor: [
+                            'rgba(46, 204, 113, 0.8)',
+                            'rgba(52, 152, 219, 0.8)',
+                            'rgba(23, 162, 184, 0.8)',
+                            'rgba(220, 53, 69, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            console.log('Status chart created!');
+        } catch (e) {
+            console.error('Error creating status chart:', e);
+        }
+    }
+    
+    // Créer le graphique de répartition par domaine
+    const domainCanvas = document.getElementById('domainChart');
+    if (domainCanvas) {
+        console.log('Creating domain chart with data:', <?php echo json_encode($domainsStats); ?>);
+        
+        try {
+            const domainChart = new Chart(domainCanvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode(array_keys($domainsStats)); ?>,
+                    datasets: [{
+                        label: 'Stages par domaine',
+                        data: <?php echo json_encode(array_values($domainsStats)); ?>,
+                        backgroundColor: [
+                            'rgba(46, 204, 113, 0.8)',
+                            'rgba(52, 152, 219, 0.8)',
+                            'rgba(155, 89, 182, 0.8)',
+                            'rgba(52, 73, 94, 0.8)',
+                            'rgba(243, 156, 18, 0.8)',
+                            'rgba(231, 76, 60, 0.8)',
+                            'rgba(26, 188, 156, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(46, 204, 113, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(155, 89, 182, 1)',
+                            'rgba(52, 73, 94, 1)',
+                            'rgba(243, 156, 18, 1)',
+                            'rgba(231, 76, 60, 1)',
+                            'rgba(26, 188, 156, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+            console.log('Domain chart created!');
+        } catch (e) {
+            console.error('Error creating domain chart:', e);
+        }
+    }
+});
+</script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, checking for chart elements...');
+        console.log('statusChart exists:', document.getElementById('statusChart') !== null);
+        console.log('timelineChart exists:', document.getElementById('timelineChart') !== null);
+        console.log('Chart.js loaded:', typeof Chart !== 'undefined');
+        
         // Initialisation des tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -1046,173 +1200,118 @@ include_once __DIR__ . '/../common/header.php';
             };
         };
         
-        // Chart.js pour le graphique de répartition par statut
-        if (document.getElementById('statusChart')) {
-            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+        // Chart.js pour le graphique de répartition par statut - Version simplifiée
+        setTimeout(function() {
+            console.log('Attempting to create charts...');
+            console.log('Chart.js available?', typeof Chart !== 'undefined');
             
-            // Données pour le graphique
-            const statusLabels = <?php 
-                $labels = [];
-                foreach ($statusStats as $status => $count) {
-                    $labels[] = $statusLabels[$status] ?? ucfirst($status);
-                }
-                echo json_encode($labels); 
-            ?>;
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js is not loaded!');
+                return;
+            }
             
-            const statusData = <?php echo json_encode(array_values($statusStats)); ?>;
-            const statusColors = [
-                'rgba(46, 204, 113, 0.7)',
-                'rgba(52, 152, 219, 0.7)',
-                'rgba(243, 156, 18, 0.7)',
-                'rgba(231, 76, 60, 0.7)',
-                'rgba(155, 89, 182, 0.7)',
-                'rgba(52, 73, 94, 0.7)'
-            ];
+            const statusCanvas = document.getElementById('statusChart');
+            console.log('Status canvas element:', statusCanvas);
             
-            new Chart(ctxStatus, {
-                type: 'doughnut',
-                data: {
-                    labels: statusLabels,
-                    datasets: [{
-                        data: statusData,
-                        backgroundColor: statusColors.slice(0, statusData.length),
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-                                    const percentage = Math.round((value / total) * 100);
-                                    return `${label}: ${value} stages (${percentage}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Chart.js pour le graphique de répartition temporelle
-        if (document.getElementById('timelineChart')) {
-            const ctxTimeline = document.getElementById('timelineChart').getContext('2d');
-            
-            // Données pour le graphique
-            const timelineData = [
-                <?php echo $timelineStats['upcoming'] ?? 0; ?>,
-                <?php echo $timelineStats['current'] ?? 0; ?>,
-                <?php echo $timelineStats['past'] ?? 0; ?>
-            ];
-            
-            new Chart(ctxTimeline, {
-                type: 'pie',
-                data: {
-                    labels: ['À venir', 'En cours', 'Terminés'],
-                    datasets: [{
-                        data: timelineData,
-                        backgroundColor: [
-                            'rgba(52, 152, 219, 0.7)',
-                            'rgba(46, 204, 113, 0.7)',
-                            'rgba(149, 165, 166, 0.7)'
+            if (statusCanvas) {
+                console.log('Creating status chart...');
+                
+                try {
+                    // Données simples et directes
+                    const statusChart = new Chart(statusCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [
+                            'Disponible',
+                            'Affecté',
+                            'Terminé',
+                            'Annulé'
                         ],
-                        borderColor: [
-                            'rgba(52, 152, 219, 1)',
-                            'rgba(46, 204, 113, 1)',
-                            'rgba(149, 165, 166, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-                                    const percentage = Math.round((value / total) * 100);
-                                    return `${label}: ${value} stages (${percentage}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Chart.js pour le graphique de répartition par domaine
-        if (document.getElementById('domainChart')) {
-            const ctxDomain = document.getElementById('domainChart').getContext('2d');
-            
-            // Données pour le graphique
-            const domainLabels = <?php echo json_encode(array_keys($domainsStats)); ?>;
-            const domainData = <?php echo json_encode(array_values($domainsStats)); ?>;
-            const colors = generateColors(domainLabels.length);
-            
-            new Chart(ctxDomain, {
-                type: 'bar',
-                data: {
-                    labels: domainLabels,
-                    datasets: [{
-                        label: 'Stages par domaine',
-                        data: domainData,
-                        backgroundColor: colors.bg,
-                        borderColor: colors.border,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const value = context.raw || 0;
-                                    const total = domainData.reduce((acc, val) => acc + val, 0);
-                                    const percentage = Math.round((value / total) * 100);
-                                    return `${value} stages (${percentage}%)`;
-                                }
-                            }
-                        }
+                        datasets: [{
+                            data: [
+                                <?php echo $statusStats['available'] ?? 0; ?>,
+                                <?php echo $statusStats['assigned'] ?? 0; ?>,
+                                <?php echo $statusStats['completed'] ?? 0; ?>,
+                                <?php echo $statusStats['cancelled'] ?? 0; ?>
+                            ],
+                            backgroundColor: [
+                                'rgba(46, 204, 113, 0.7)',
+                                'rgba(52, 152, 219, 0.7)',
+                                'rgba(23, 162, 184, 0.7)',
+                                'rgba(220, 53, 69, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(46, 204, 113, 1)',
+                                'rgba(52, 152, 219, 1)',
+                                'rgba(23, 162, 184, 1)',
+                                'rgba(220, 53, 69, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
                     },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
                             }
                         }
                     }
-                }
-            });
-        }
+                });
+            }
+        
+            // Chart.js pour le graphique de répartition temporelle
+            const timelineCanvas = document.getElementById('timelineChart');
+            if (timelineCanvas) {
+                console.log('Creating timeline chart...');
+                
+                const timelineChart = new Chart(timelineCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: ['À venir', 'En cours', 'Terminés'],
+                        datasets: [{
+                            data: [
+                                <?php echo $timelineStats['upcoming'] ?? 0; ?>,
+                                <?php echo $timelineStats['current'] ?? 0; ?>,
+                                <?php echo $timelineStats['past'] ?? 0; ?>
+                            ],
+                            backgroundColor: [
+                                'rgba(52, 152, 219, 0.7)',
+                                'rgba(46, 204, 113, 0.7)',
+                                'rgba(149, 165, 166, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(52, 152, 219, 1)',
+                                'rgba(46, 204, 113, 1)',
+                                'rgba(149, 165, 166, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        
+        
+        }, 100); // Délai de 100ms
     });
+    
+    // Fonction pour changer le nombre d'éléments par page
+    function changeItemsPerPage(value) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', value);
+        url.searchParams.set('page', '1'); // Retourner à la première page
+        window.location.href = url.toString();
+    }
 </script>
 
 <?php

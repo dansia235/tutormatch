@@ -21,18 +21,24 @@ if (is_array($category)) {
     $category = null;
 }
 $search = isset($_GET['term']) ? $_GET['term'] : null;
-$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$perPage = 10; // Nombre de documents par page
+
+// Configuration de la pagination
+$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10; // Nombre d'éléments par page
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($currentPage - 1) * $itemsPerPage;
 
 // Create Document model directly
 $documentModel = new Document($db);
 
 // Récupérer les documents avec pagination
-$result = $documentModel->getAllPaginated($page, $perPage, $category, $search);
+$result = $documentModel->getAllPaginated($currentPage, $itemsPerPage, $category, $search);
 $documents = $result['documents'];
 $totalPages = $result['totalPages'];
-$currentPage = $result['currentPage'];
-$total = $result['total'];
+$totalDocuments = $result['total'];
+
+// Calculer les informations de pagination
+$showingFrom = $totalDocuments > 0 ? $offset + 1 : 0;
+$showingTo = min($offset + $itemsPerPage, $totalDocuments);
 
 // Récupérer les statistiques
 $stats = $documentModel->countByCategory();
@@ -123,8 +129,28 @@ include_once __DIR__ . '/../common/header.php';
     
     <!-- Liste des documents -->
     <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Liste des documents</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <h5 class="card-title mb-0 me-2">Liste des documents</h5>
+                <span class="badge bg-primary">
+                    <?php if ($totalDocuments > 0): ?>
+                        <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> sur <?php echo $totalDocuments; ?> documents
+                    <?php else: ?>
+                        0 documents
+                    <?php endif; ?>
+                </span>
+            </div>
+            
+            <!-- Sélecteur du nombre d'éléments par page -->
+            <div class="d-flex align-items-center">
+                <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                    <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
+                    <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
+                    <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
+                    <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                </select>
+            </div>
         </div>
         <div class="card-body p-0">
             <?php if (empty($documents)): ?>
@@ -286,33 +312,153 @@ include_once __DIR__ . '/../common/header.php';
             </div>
             <?php endif; ?>
             
-            <?php if ($totalPages > 1): ?>
             <!-- Pagination -->
+            <?php if ($totalPages > 1): ?>
             <div class="card-footer">
-                <?php 
-                // Inclure le composant de pagination
-                require_once __DIR__ . '/../../components/common/pagination.php';
-                
-                // Paramètres à conserver dans les liens
-                $queryParams = [];
-                if ($category) {
-                    $queryParams['category'] = $category;
-                }
-                if ($search) {
-                    $queryParams['term'] = $search;
-                }
-                
-                // Afficher la pagination
-                renderPagination($currentPage, $totalPages, $queryParams);
-                
-                // Afficher les informations
-                renderPaginationInfo($currentPage, $perPage, $total);
-                ?>
+                <nav aria-label="Navigation des pages de documents">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            <?php if ($totalDocuments > 0): ?>
+                                Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalDocuments; ?> résultats
+                            <?php endif; ?>
+                        </div>
+                        
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- Bouton Précédent -->
+                            <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                <?php if ($currentPage > 1): ?>
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link" aria-label="Précédent">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </span>
+                                <?php endif; ?>
+                            </li>
+                            
+                            <?php
+                            // Logique d'affichage des numéros de page
+                            $startPage = max(1, $currentPage - 2);
+                            $endPage = min($totalPages, $currentPage + 2);
+                            
+                            // Afficher la première page si elle n'est pas dans la plage
+                            if ($startPage > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                </li>
+                                <?php if ($startPage > 2): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <!-- Pages dans la plage -->
+                            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                    <?php if ($i == $currentPage): ?>
+                                        <span class="page-link"><?php echo $i; ?></span>
+                                    <?php else: ?>
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endfor; ?>
+                            
+                            <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                            <?php if ($endPage < $totalPages): ?>
+                                <?php if ($endPage < $totalPages - 1): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                <?php endif; ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                </li>
+                            <?php endif; ?>
+                            
+                            <!-- Bouton Suivant -->
+                            <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                <?php if ($currentPage < $totalPages): ?>
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link" aria-label="Suivant">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </span>
+                                <?php endif; ?>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
             </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
+
+<style>
+    /* Styles améliorés pour la pagination */
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: white !important;
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+    }
+    
+    .pagination .page-link {
+        color: #495057;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #e9ecef;
+        border-color: #dee2e6;
+        color: #0d6efd;
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #fff;
+        border-color: #dee2e6;
+    }
+    
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #3498db;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser les tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+    
+    // Fonction pour changer le nombre d'éléments par page
+    function changeItemsPerPage(value) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', value);
+        url.searchParams.set('page', '1'); // Retourner à la première page
+        window.location.href = url.toString();
+    }
+</script>
 
 <?php
 // Inclure le pied de page

@@ -13,22 +13,71 @@ require_once __DIR__ . '/../../includes/init.php';
 // Vérifier les permissions
 requireRole(['admin', 'coordinator']);
 
-// Récupérer les entreprises depuis la base de données
+// Configuration de la pagination
+$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 20; // 20 éléments par page par défaut
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($currentPage - 1) * $itemsPerPage;
+
+// Traitement de la recherche
+$search = isset($_GET['term']) ? trim($_GET['term']) : '';
+$searchCondition = '';
+$searchParams = [];
+
+if (!empty($search)) {
+    $searchCondition = "WHERE (c.name LIKE :search OR c.address LIKE :search OR c.city LIKE :search OR c.contact_name LIKE :search OR c.contact_email LIKE :search OR c.description LIKE :search)";
+    $searchParams[':search'] = '%' . $search . '%';
+}
+
+// Compter le total d'entreprises (pour la pagination)
+$countQuery = "SELECT COUNT(*) as total FROM companies c $searchCondition";
+$countStmt = $db->prepare($countQuery);
+foreach ($searchParams as $key => $value) {
+    $countStmt->bindValue($key, $value);
+}
+$countStmt->execute();
+$totalCompanies = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+// Calculer les informations de pagination
+$totalPages = ceil($totalCompanies / $itemsPerPage);
+$showingFrom = $totalCompanies > 0 ? $offset + 1 : 0;
+$showingTo = min($offset + $itemsPerPage, $totalCompanies);
+
+// Récupérer toutes les entreprises pour les statistiques
+$allCompaniesQuery = "SELECT c.*, 
+          (SELECT COUNT(*) FROM internships WHERE company_id = c.id) as internship_count 
+          FROM companies c 
+          $searchCondition
+          ORDER BY c.name ASC";
+$allCompaniesStmt = $db->prepare($allCompaniesQuery);
+foreach ($searchParams as $key => $value) {
+    $allCompaniesStmt->bindValue($key, $value);
+}
+$allCompaniesStmt->execute();
+$allCompanies = $allCompaniesStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Récupérer les entreprises pour la page courante
 $query = "SELECT c.*, 
           (SELECT COUNT(*) FROM internships WHERE company_id = c.id) as internship_count 
           FROM companies c 
-          ORDER BY c.name ASC";
+          $searchCondition
+          ORDER BY c.name ASC 
+          LIMIT :limit OFFSET :offset";
 $stmt = $db->prepare($query);
+foreach ($searchParams as $key => $value) {
+    $stmt->bindValue($key, $value);
+}
+$stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $companies = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Récupérer les statistiques
-$totalCompanies = count($companies);
-$activeCompanies = array_reduce($companies, function($count, $company) {
+// Récupérer les statistiques (sur toutes les entreprises, pas seulement la page courante)
+$totalCompanies = count($allCompanies);
+$activeCompanies = array_reduce($allCompanies, function($count, $company) {
     return $count + ($company['active'] ? 1 : 0);
 }, 0);
 $inactiveCompanies = $totalCompanies - $activeCompanies;
-$companiesWithInternships = array_reduce($companies, function($count, $company) {
+$companiesWithInternships = array_reduce($allCompanies, function($count, $company) {
     return $count + ($company['internship_count'] > 0 ? 1 : 0);
 }, 0);
 
@@ -301,19 +350,33 @@ include_once __DIR__ . '/../common/header.php';
         <?php endif; ?>
     </div>
     
-    <!-- Barre de recherche -->
+    <!-- Barre de recherche et filtres -->
     <div class="card mb-4">
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
                     <div class="search-container">
-                        <form action="javascript:void(0);" onsubmit="filterCompanies()">
+                        <form action="" method="GET">
                             <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control" id="search-company" placeholder="Rechercher une entreprise..." value="">
-                            <button type="submit" class="btn btn-primary btn-search d-none">
+                            <input type="text" class="form-control" name="term" placeholder="Rechercher une entreprise..." value="<?php echo isset($_GET['term']) ? h($_GET['term']) : ''; ?>">
+                            <button type="submit" name="search" class="btn btn-primary btn-search d-none">
                                 <i class="bi bi-search"></i>
                             </button>
                         </form>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        <!-- Sélecteur du nombre d'éléments par page -->
+                        <div class="d-flex align-items-center">
+                            <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                                <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
+                                <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
+                                <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
+                                <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -368,8 +431,26 @@ include_once __DIR__ . '/../common/header.php';
         <div class="card-body p-4">
             <div class="list-header">
                 <h4><i class="bi bi-grid-3x3-gap me-2"></i>Liste des entreprises</h4>
-                <span class="count-badge"><?php echo $totalCompanies; ?> entreprises</span>
+                <span class="count-badge">
+                    <?php if ($totalCompanies > 0): ?>
+                        <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> sur <?php echo $totalCompanies; ?> entreprises
+                    <?php else: ?>
+                        0 entreprises
+                    <?php endif; ?>
+                </span>
             </div>
+            
+            <!-- Info sur les filtres actifs -->
+            <?php if (!empty($search)): ?>
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                <span>
+                    Affichage des résultats pour la recherche: <strong>"<?php echo h($search); ?>"</strong>
+                    (<?php echo $totalCompanies; ?> entreprises trouvées)
+                </span>
+                <a href="?" class="ms-2 text-decoration-none">Réinitialiser la recherche</a>
+            </div>
+            <?php endif; ?>
             
             <?php if (empty($companies)): ?>
             <div class="info-message">
@@ -476,6 +557,89 @@ include_once __DIR__ . '/../common/header.php';
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
+            
+            <!-- Pagination (seulement si plus de 20 entreprises au total) -->
+            <?php if ($totalCompanies > 20 && $totalPages > 1): ?>
+            <div class="mt-4">
+                <nav aria-label="Navigation des pages d'entreprises">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            <?php if ($totalCompanies > 0): ?>
+                                Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalCompanies; ?> résultats
+                            <?php endif; ?>
+                        </div>
+                        
+                        <ul class="pagination pagination-sm mb-0">
+                            <!-- Bouton Précédent -->
+                            <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                <?php if ($currentPage > 1): ?>
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link" aria-label="Précédent">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </span>
+                                <?php endif; ?>
+                            </li>
+                            
+                            <?php
+                            // Logique d'affichage des numéros de page
+                            $startPage = max(1, $currentPage - 2);
+                            $endPage = min($totalPages, $currentPage + 2);
+                            
+                            // Afficher la première page si elle n'est pas dans la plage
+                            if ($startPage > 1): ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                </li>
+                                <?php if ($startPage > 2): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <!-- Pages dans la plage -->
+                            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                    <?php if ($i == $currentPage): ?>
+                                        <span class="page-link"><?php echo $i; ?></span>
+                                    <?php else: ?>
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endfor; ?>
+                            
+                            <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                            <?php if ($endPage < $totalPages): ?>
+                                <?php if ($endPage < $totalPages - 1): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                <?php endif; ?>
+                                <li class="page-item">
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                </li>
+                            <?php endif; ?>
+                            
+                            <!-- Bouton Suivant -->
+                            <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                <?php if ($currentPage < $totalPages): ?>
+                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-link" aria-label="Suivant">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </span>
+                                <?php endif; ?>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -516,25 +680,13 @@ include_once __DIR__ . '/../common/header.php';
         });
     });
     
-    // Fonction pour filtrer les entreprises
-    function filterCompanies() {
-        const searchTerm = document.getElementById('search-company').value.toLowerCase();
-        const companies = document.querySelectorAll('.company-item');
-        
-        companies.forEach(company => {
-            const companyName = company.querySelector('.card-title').textContent.toLowerCase();
-            const companyDetails = company.querySelector('.company-details').textContent.toLowerCase();
-            
-            if (companyName.includes(searchTerm) || companyDetails.includes(searchTerm)) {
-                company.style.display = 'block';
-            } else {
-                company.style.display = 'none';
-            }
-        });
+    // Fonction pour changer le nombre d'éléments par page
+    function changeItemsPerPage(value) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', value);
+        url.searchParams.set('page', '1'); // Retourner à la première page
+        window.location.href = url.toString();
     }
-    
-    // Ajouter un event listener pour la recherche en temps réel
-    document.getElementById('search-company').addEventListener('keyup', filterCompanies);
     
     // Fonction pour ouvrir le modal de suppression
     function openDeleteModal(id, name) {

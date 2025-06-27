@@ -27,6 +27,10 @@ $teacherController = new TeacherController($db);
 // Instancier le modèle des affectations pour calculer la charge de travail
 $assignmentModel = new Assignment($db);
 
+// Configuration de la pagination
+$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10; // Nombre d'éléments par page
+$currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+
 // Récupérer la liste des tuteurs (avec filtres éventuels)
 $availableOnly = isset($_GET['available']) && $_GET['available'] === '1';
 $department = isset($_GET['department']) ? $_GET['department'] : null;
@@ -34,32 +38,39 @@ $searchTerm = isset($_GET['term']) ? $_GET['term'] : '';
 $specialty = isset($_GET['specialty']) ? $_GET['specialty'] : '';
 
 if (!empty($searchTerm)) {
-    $teachers = $teacherController->search($searchTerm, $availableOnly);
+    $allTeachers = $teacherController->search($searchTerm, $availableOnly);
 } else {
-    $teachers = $teacherController->getTeachers($availableOnly);
+    $allTeachers = $teacherController->getTeachers($availableOnly);
 }
 
 // Récupérer le nombre réel d'étudiants pour chaque tuteur
-foreach ($teachers as $key => $teacher) {
-    $teachers[$key]['current_students'] = $assignmentModel->countByTeacherId($teacher['id']);
+foreach ($allTeachers as $key => $teacher) {
+    $allTeachers[$key]['current_students'] = $assignmentModel->countByTeacherId($teacher['id']);
 }
 
 // Filtrer par département si nécessaire
 if (!empty($department)) {
-    $teachers = array_filter($teachers, function($teacher) use ($department) {
+    $allTeachers = array_filter($allTeachers, function($teacher) use ($department) {
         return isset($teacher['department']) && $teacher['department'] === $department;
     });
 }
 
 // Filtrer par spécialité si nécessaire
 if (!empty($specialty)) {
-    $teachers = array_filter($teachers, function($teacher) use ($specialty) {
+    $allTeachers = array_filter($allTeachers, function($teacher) use ($specialty) {
         return isset($teacher['specialty']) && stripos($teacher['specialty'], $specialty) !== false;
     });
 }
 
-// Statistiques et données pour la page
-$totalTutors = count($teachers);
+// Compter le total et calculer la pagination
+$totalTutors = count($allTeachers);
+$totalPages = ceil($totalTutors / $itemsPerPage);
+$offset = ($currentPage - 1) * $itemsPerPage;
+$showingFrom = $totalTutors > 0 ? $offset + 1 : 0;
+$showingTo = min($offset + $itemsPerPage, $totalTutors);
+
+// Extraire les tuteurs pour la page courante
+$teachers = array_slice($allTeachers, $offset, $itemsPerPage);
 
 // Liste des départements uniques pour le filtre
 $departments = [];
@@ -70,8 +81,8 @@ $workloadStats = [
     'over_capacity' => 0
 ];
 
-// Calculer les statistiques
-foreach ($teachers as $teacher) {
+// Calculer les statistiques (sur tous les tuteurs, pas seulement la page courante)
+foreach ($allTeachers as $teacher) {
     // Collecter les départements uniques
     if (!empty($teacher['department']) && !in_array($teacher['department'], $departments)) {
         $departments[] = $teacher['department'];
@@ -109,14 +120,6 @@ foreach ($teachers as $teacher) {
 sort($departments);
 sort($specialties);
 
-// Pagination
-$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$itemsPerPage = 10;
-$totalPages = ceil($totalTutors / $itemsPerPage);
-$offset = ($currentPage - 1) * $itemsPerPage;
-
-// Limiter les tuteurs pour la pagination
-$paginatedTeachers = array_slice($teachers, $offset, $itemsPerPage);
 
 // Inclure l'en-tête
 include_once __DIR__ . '/../common/header.php';
@@ -418,7 +421,16 @@ include_once __DIR__ . '/../common/header.php';
             <!-- Tutors List -->
             <div class="card mb-4 fade-in">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="m-0 font-weight-bold">Liste des Tuteurs</h5>
+                    <div class="d-flex align-items-center">
+                        <h5 class="m-0 font-weight-bold me-2">Liste des Tuteurs</h5>
+                        <span class="badge bg-primary">
+                            <?php if ($totalTutors > 0): ?>
+                                <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> sur <?php echo $totalTutors; ?> tuteurs
+                            <?php else: ?>
+                                0 tuteurs
+                            <?php endif; ?>
+                        </span>
+                    </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">
                             <i class="bi bi-upload me-1"></i>Importer
@@ -467,7 +479,7 @@ include_once __DIR__ . '/../common/header.php';
                                         <?php endforeach; ?>
                                     </ul>
                                 </div>
-                                <div class="dropdown">
+                                <div class="dropdown me-2">
                                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="specialtyFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bi bi-funnel me-1"></i>Spécialité
                                     </button>
@@ -478,6 +490,17 @@ include_once __DIR__ . '/../common/header.php';
                                         <li><a class="dropdown-item <?php echo $specialty === $spec ? 'active' : ''; ?>" href="?<?php echo http_build_query(array_merge($_GET, ['specialty' => $spec])); ?>"><?php echo h($spec); ?></a></li>
                                         <?php endforeach; ?>
                                     </ul>
+                                </div>
+                                
+                                <!-- Sélecteur du nombre d'éléments par page -->
+                                <div class="d-flex align-items-center">
+                                    <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                                    <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
+                                        <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
+                                        <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
+                                        <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
+                                        <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -495,7 +518,7 @@ include_once __DIR__ . '/../common/header.php';
                             if (!empty($specialty)) $filterInfo[] = "spécialité: <strong>" . h($specialty) . "</strong>";
                             if ($availableOnly) $filterInfo[] = "tuteurs <strong>disponibles</strong> uniquement";
                             
-                            echo "Affichage des résultats pour " . implode(', ', $filterInfo) . " (" . count($teachers) . " tuteurs trouvés)";
+                            echo "Affichage des résultats pour " . implode(', ', $filterInfo) . " (" . $totalTutors . " tuteurs trouvés)";
                             ?>
                         </span>
                         <a href="?" class="ms-2 text-decoration-none">Réinitialiser les filtres</a>
@@ -503,7 +526,7 @@ include_once __DIR__ . '/../common/header.php';
                     <?php endif; ?>
 
                     <!-- Tutors Table -->
-                    <?php if (empty($paginatedTeachers)): ?>
+                    <?php if (empty($teachers)): ?>
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle me-2"></i>Aucun tuteur trouvé avec les critères de recherche spécifiés.
                     </div>
@@ -521,7 +544,7 @@ include_once __DIR__ . '/../common/header.php';
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($paginatedTeachers as $teacher): ?>
+                                <?php foreach ($teachers as $teacher): ?>
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -664,40 +687,83 @@ include_once __DIR__ . '/../common/header.php';
 
                     <!-- Pagination -->
                     <?php if ($totalPages > 1): ?>
-                    <div class="pagination-container">
-                        <nav>
-                            <ul class="pagination">
-                                <li class="page-item <?php echo $currentPage == 1 ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>">
-                                        <i class="bi bi-chevron-left"></i>
-                                    </a>
+                    <nav aria-label="Navigation des pages de tuteurs" class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted">
+                                <?php if ($totalTutors > 0): ?>
+                                    Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalTutors; ?> résultats
+                                <?php endif; ?>
+                            </div>
+                            
+                            <ul class="pagination pagination-sm mb-0">
+                                <!-- Bouton Précédent -->
+                                <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                    <?php if ($currentPage > 1): ?>
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="page-link" aria-label="Précédent">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </span>
+                                    <?php endif; ?>
                                 </li>
                                 
                                 <?php
-                                // Afficher 5 liens de page maximum
+                                // Logique d'affichage des numéros de page
                                 $startPage = max(1, $currentPage - 2);
-                                $endPage = min($totalPages, $startPage + 4);
+                                $endPage = min($totalPages, $currentPage + 2);
                                 
-                                // Ajuster le début si on est proche de la fin
-                                if ($endPage - $startPage < 4) {
-                                    $startPage = max(1, $endPage - 4);
-                                }
+                                // Afficher la première page si elle n'est pas dans la plage
+                                if ($startPage > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                    </li>
+                                    <?php if ($startPage > 2): ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                                 
-                                for ($i = $startPage; $i <= $endPage; $i++):
-                                ?>
-                                <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                </li>
+                                <!-- Pages dans la plage -->
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
+                                        <?php if ($i == $currentPage): ?>
+                                            <span class="page-link"><?php echo $i; ?></span>
+                                        <?php else: ?>
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                        <?php endif; ?>
+                                    </li>
                                 <?php endfor; ?>
                                 
-                                <li class="page-item <?php echo $currentPage == $totalPages ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
+                                <!-- Afficher la dernière page si elle n'est pas dans la plage -->
+                                <?php if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <!-- Bouton Suivant -->
+                                <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                    <?php if ($currentPage < $totalPages): ?>
+                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="page-link" aria-label="Suivant">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </span>
+                                    <?php endif; ?>
                                 </li>
                             </ul>
-                        </nav>
-                    </div>
+                        </div>
+                    </nav>
                     <?php endif; ?>
                     <?php endif; ?>
                 </div>
@@ -777,9 +843,9 @@ include_once __DIR__ . '/../common/header.php';
                 </div>
                 <div class="card-body">
                     <?php
-                    // Calcul des statistiques par département
+                    // Calcul des statistiques par département (sur tous les tuteurs, pas seulement la page courante)
                     $departmentStats = [];
-                    foreach ($teachers as $teacher) {
+                    foreach ($allTeachers as $teacher) {
                         $dept = $teacher['department'] ?? 'Non spécifié';
                         if (!isset($departmentStats[$dept])) {
                             $departmentStats[$dept] = 0;
@@ -1335,6 +1401,14 @@ include_once __DIR__ . '/../common/header.php';
             });
         }
     });
+    
+    // Fonction pour changer le nombre d'éléments par page
+    function changeItemsPerPage(value) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', value);
+        url.searchParams.set('page', '1'); // Retourner à la première page
+        window.location.href = url.toString();
+    }
 </script>
 
 <?php
