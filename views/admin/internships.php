@@ -30,32 +30,17 @@ $itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page
 $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($currentPage - 1) * $itemsPerPage;
 
-// Récupérer la liste des stages (avec filtres éventuels)
+// Configuration pour l'affichage initial (les données seront chargées via API)
 $status = isset($_GET['status']) ? $_GET['status'] : null;
 $domain = isset($_GET['domain']) ? $_GET['domain'] : null;
 $company = isset($_GET['company']) ? $_GET['company'] : null;
 $searchTerm = isset($_GET['term']) ? $_GET['term'] : '';
 
-if (!empty($searchTerm) || !empty($domain) || !empty($company)) {
-    // Compter le total d'abord pour la pagination
-    $allInternships = $internshipController->search($searchTerm, $status);
-    $totalInternships = count($allInternships);
-    
-    // Récupérer les stages avec pagination
-    $internships = array_slice($allInternships, $offset, $itemsPerPage);
-} else {
-    // Compter le total d'abord pour la pagination
-    $allInternships = $internshipController->getAll($status);
-    $totalInternships = count($allInternships);
-    
-    // Récupérer les stages avec pagination
-    $internships = array_slice($allInternships, $offset, $itemsPerPage);
-}
+// Variables pour les statistiques uniquement
+$allInternships = $internshipController->getAll();
+$totalInternships = count($allInternships);
 
-// Calculer les informations de pagination
-$totalPages = ceil($totalInternships / $itemsPerPage);
-$showingFrom = $totalInternships > 0 ? $offset + 1 : 0;
-$showingTo = min($offset + $itemsPerPage, $totalInternships);
+// Les informations de pagination seront gérées côté client via l'API
 
 // Obtenir la liste des domaines pour le filtre
 $domains = $internshipController->getDomains();
@@ -124,14 +109,9 @@ $statusClasses = [
     'pending' => 'warning'
 ];
 
-// Pagination
+// Configuration pour la pagination (utilisée par JavaScript)
 $currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$itemsPerPage = 10;
-$totalPages = ceil($totalInternships / $itemsPerPage);
-$offset = ($currentPage - 1) * $itemsPerPage;
-
-// Limiter les stages pour la pagination
-$paginatedInternships = array_slice($internships, $offset, $itemsPerPage);
+$itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10;
 
 // Inclure l'en-tête
 include_once __DIR__ . '/../common/header.php';
@@ -364,6 +344,52 @@ include_once __DIR__ . '/../common/header.php';
         display: inline-block;
         margin-right: 5px;
     }
+    
+    /* Styles pour le tri des colonnes */
+    .table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        white-space: nowrap;
+        transition: background-color 0.2s ease;
+    }
+    
+    .table th.sortable:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .table th .d-flex {
+        align-items: center;
+        justify-content: space-between;
+        min-width: 120px;
+    }
+    
+    .sort-icon {
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+    
+    .sort-icon:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Animation pour les lignes triées */
+    tbody tr {
+        transition: all 0.3s ease;
+    }
+    
+    /* Responsive pour le tri */
+    @media (max-width: 768px) {
+        .table th .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        .sort-icon {
+            align-self: flex-end;
+        }
+    }
 </style>
 
 <div class="container-fluid">
@@ -537,7 +563,7 @@ include_once __DIR__ . '/../common/header.php';
                             if (!empty($domain)) $filterInfo[] = "domaine: <strong>" . h($domain) . "</strong>";
                             if (!empty($company)) $filterInfo[] = "entreprise: <strong>" . h($company) . "</strong>";
                             
-                            echo "Affichage des résultats pour " . implode(', ', $filterInfo) . " (" . $showingFrom . "-" . $showingTo . " sur " . $totalInternships . " stages trouvés)";
+                            echo "Filtres appliqués: " . implode(', ', $filterInfo) . " (résultats chargés dynamiquement)";
                             ?>
                         </span>
                         <a href="?" class="ms-2 text-decoration-none">Réinitialiser les filtres</a>
@@ -545,255 +571,30 @@ include_once __DIR__ . '/../common/header.php';
                     <?php else: ?>
                     <div class="alert alert-light border mb-4">
                         <i class="bi bi-info-circle me-2"></i>
-                        <span>Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalInternships; ?> stages</span>
+                        <span>Affichage de <?php echo $totalInternships; ?> stages (pagination chargée dynamiquement)</span>
                     </div>
                     <?php endif; ?>
 
                     <!-- Internships Table -->
-                    <?php if (empty($internships)): ?>
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle me-2"></i>Aucun stage trouvé avec les critères de recherche spécifiés.
-                    </div>
-                    <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col">Stage</th>
-                                    <th scope="col">Dates</th>
-                                    <th scope="col">Domaine</th>
-                                    <th scope="col">Compétences</th>
-                                    <th scope="col">Statut</th>
-                                    <th scope="col" class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($paginatedInternships as $internship): ?>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <?php if (!empty($internship['company_logo'])): ?>
-                                            <div class="company-logo me-3">
-                                                <img src="<?php echo h($internship['company_logo']); ?>" alt="<?php echo h($internship['company_name'] ?? 'Company'); ?>">
-                                            </div>
-                                            <?php else: ?>
-                                            <div class="company-logo-placeholder me-3">
-                                                <?php echo strtoupper(substr($internship['company_name'] ?? 'C', 0, 1)); ?>
-                                            </div>
-                                            <?php endif; ?>
-                                            <div>
-                                                <div class="internship-title"><?php echo h($internship['title'] ?? ''); ?></div>
-                                                <div class="company-name"><?php echo h($internship['company_name'] ?? ''); ?></div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <?php if (isset($internship['start_date']) && isset($internship['end_date'])): ?>
-                                        <div class="internship-dates">
-                                            <div class="mb-1">
-                                                <i class="bi bi-calendar-event me-1 small"></i>
-                                                <?php echo date('d/m/Y', strtotime($internship['start_date'])); ?>
-                                            </div>
-                                            <div>
-                                                <i class="bi bi-calendar-check me-1 small"></i>
-                                                <?php echo date('d/m/Y', strtotime($internship['end_date'])); ?>
-                                            </div>
-                                        </div>
-                                        <?php else: ?>
-                                        <span class="text-muted small">Non spécifié</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php echo h($internship['domain'] ?? 'Non spécifié'); ?>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex flex-wrap">
-                                            <?php
-                                            $internshipSkills = $internship['skills'] ?? [];
-                                            foreach (array_slice($internshipSkills, 0, 3) as $skill):
-                                            ?>
-                                            <span class="skill-badge"><?php echo h($skill); ?></span>
-                                            <?php endforeach; ?>
-                                            <?php if (count($internshipSkills) > 3): ?>
-                                            <span class="skill-badge bg-light text-dark">+<?php echo count($internshipSkills) - 3; ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $internshipStatus = $internship['status'] ?? 'unknown';
-                                        $statusClass = 'bg-' . ($statusClasses[$internshipStatus] ?? 'secondary');
-                                        $statusLabel = $statusLabels[$internshipStatus] ?? 'Inconnu';
-                                        ?>
-                                        <span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusLabel; ?></span>
-                                        
-                                        <?php
-                                        // Afficher l'indicateur de timeline
-                                        if (isset($internship['start_date']) && isset($internship['end_date'])):
-                                            $timelineIndicatorClass = '';
-                                            $timelineLabel = '';
-                                            
-                                            if ($internship['start_date'] > $currentDate) {
-                                                $timelineIndicatorClass = 'bg-info';
-                                                $timelineLabel = 'À venir';
-                                            } elseif ($internship['end_date'] < $currentDate) {
-                                                $timelineIndicatorClass = 'bg-secondary';
-                                                $timelineLabel = 'Terminé';
-                                            } else {
-                                                $timelineIndicatorClass = 'bg-success';
-                                                $timelineLabel = 'En cours';
-                                            }
-                                        ?>
-                                        <div class="mt-1 d-flex align-items-center">
-                                            <span class="timeline-indicator <?php echo $timelineIndicatorClass; ?>"></span>
-                                            <small><?php echo $timelineLabel; ?></small>
-                                        </div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="btn-group">
-                                            <a href="/tutoring/views/admin/internships/show.php?id=<?php echo $internship['id']; ?>" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <a href="/tutoring/views/admin/internships/edit.php?id=<?php echo $internship['id']; ?>" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Modifier">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <?php if (hasRole('admin')): ?>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal<?php echo $internship['id']; ?>" title="Supprimer">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                            
-                                            <!-- Modal de confirmation de suppression -->
-                                            <div class="modal fade" id="deleteModal<?php echo $internship['id']; ?>" tabindex="-1" aria-labelledby="deleteModalLabel<?php echo $internship['id']; ?>" aria-hidden="true">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="deleteModalLabel<?php echo $internship['id']; ?>">Confirmer la suppression</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <div class="text-center mb-3">
-                                                                <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3rem;"></i>
-                                                            </div>
-                                                            <p class="text-center">Êtes-vous sûr de vouloir supprimer le stage <strong><?php echo h($internship['title'] ?? ''); ?></strong> ?</p>
-                                                            <p class="text-danger text-center">
-                                                                <small>Cette action est irréversible et supprimera également toutes les données associées à ce stage.</small>
-                                                            </p>
-                                                            
-                                                            <?php
-                                                            // Vérifier si le stage est affecté
-                                                            $isAssigned = isset($internship['status']) && $internship['status'] === 'assigned';
-                                                            if ($isAssigned):
-                                                            ?>
-                                                            <div class="alert alert-warning text-center">
-                                                                <i class="bi bi-exclamation-circle me-2"></i>
-                                                                Ce stage est actuellement affecté à un étudiant. La suppression annulera cette affectation.
-                                                            </div>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                        <div class="modal-footer justify-content-center">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                                            <form action="/tutoring/views/admin/internships/delete.php" method="POST">
-                                                                <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
-                                                                <input type="hidden" name="id" value="<?php echo $internship['id']; ?>">
-                                                                <button type="submit" class="btn btn-danger">
-                                                                    <i class="bi bi-trash me-1"></i>Supprimer
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <?php if ($totalPages > 1): ?>
-                    <nav aria-label="Navigation des pages de stages" class="mt-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="text-muted">
-                                <?php if ($totalInternships > 0): ?>
-                                    Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalInternships; ?> résultats
-                                <?php endif; ?>
+                    <div id="internshipsTableContainer">
+                        <!-- Le contenu sera chargé dynamiquement -->
+                        <div class="text-center p-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Chargement...</span>
                             </div>
-                            
-                            <ul class="pagination pagination-sm mb-0">
-                                <!-- Bouton Précédent -->
-                                <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
-                                    <?php if ($currentPage > 1): ?>
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="page-link" aria-label="Précédent">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </span>
-                                    <?php endif; ?>
-                                </li>
-                                
-                                <?php
-                                // Logique d'affichage des numéros de page
-                                $startPage = max(1, $currentPage - 2);
-                                $endPage = min($totalPages, $currentPage + 2);
-                                
-                                // Afficher la première page si elle n'est pas dans la plage
-                                if ($startPage > 1): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
-                                    </li>
-                                    <?php if ($startPage > 2): ?>
-                                        <li class="page-item disabled">
-                                            <span class="page-link">...</span>
-                                        </li>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                                
-                                <!-- Pages dans la plage -->
-                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                    <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
-                                        <?php if ($i == $currentPage): ?>
-                                            <span class="page-link"><?php echo $i; ?></span>
-                                        <?php else: ?>
-                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                        <?php endif; ?>
-                                    </li>
-                                <?php endfor; ?>
-                                
-                                <!-- Afficher la dernière page si elle n'est pas dans la plage -->
-                                <?php if ($endPage < $totalPages): ?>
-                                    <?php if ($endPage < $totalPages - 1): ?>
-                                        <li class="page-item disabled">
-                                            <span class="page-link">...</span>
-                                        </li>
-                                    <?php endif; ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
-                                    </li>
-                                <?php endif; ?>
-                                
-                                <!-- Bouton Suivant -->
-                                <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
-                                    <?php if ($currentPage < $totalPages): ?>
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </a>
-                                    <?php else: ?>
-                                        <span class="page-link" aria-label="Suivant">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </span>
-                                    <?php endif; ?>
-                                </li>
-                            </ul>
                         </div>
-                    </nav>
-                    <?php endif; ?>
-                    <?php endif; ?>
+                    </div>
+                    
+                    <!-- Template pour affichage vide (caché initialement) -->
+                    <div id="emptyStateTemplate" style="display: none;">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Aucun stage trouvé avec les critères de recherche spécifiés.
+                        </div>
+                    </div>
+                    <!-- Template pour le tableau (caché initialement) -->
+                    <div id="tableTemplate" style="display: none;">
+                        <!-- Le contenu du tableau sera inséré ici via JavaScript -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -1312,6 +1113,355 @@ window.addEventListener('load', function() {
         url.searchParams.set('page', '1'); // Retourner à la première page
         window.location.href = url.toString();
     }
+    
+    }, 1000);
+
+// Nouvelle fonction de tri fluide basée sur l'API
+let currentPageInternships = <?php echo $currentPage; ?>;
+let itemsPerPageInternships = <?php echo $itemsPerPage; ?>;
+let statusFilterInternships = '<?php echo $status ?? ''; ?>';
+let domainFilterInternships = '<?php echo $domain ?? ''; ?>';
+let searchTermInternships = '<?php echo $searchTerm; ?>';
+let sortByInternships = 'title';
+let sortOrderInternships = 'desc';
+
+// Fonction pour charger les stages
+async function loadInternships() {
+    try {
+        const params = new URLSearchParams({
+            page: currentPageInternships,
+            per_page: itemsPerPageInternships,
+            sort: sortByInternships,
+            order: sortOrderInternships
+        });
+        
+        if (statusFilterInternships) params.append('status', statusFilterInternships);
+        if (domainFilterInternships) params.append('domain', domainFilterInternships);
+        if (searchTermInternships) params.append('term', searchTermInternships);
+
+        const response = await fetch(`/tutoring/api/internships/admin-list.php?${params}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            renderInternships(data.data.internships, data.data.pagination);
+        } else {
+            console.error('Erreur lors du chargement des stages:', data.error);
+            showErrorInternships('Erreur lors du chargement des stages.');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showErrorInternships('Erreur de connexion lors du chargement des stages.');
+    }
+}
+
+// Fonction pour afficher les stages
+function renderInternships(internships, pagination) {
+    const container = document.getElementById('internshipsTableContainer');
+    
+    if (internships.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>Aucun stage trouvé avec les critères de recherche spécifiés.
+            </div>
+        `;
+        return;
+    }
+
+    // Construire le tableau
+    let tableHTML = `
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="sortable" data-column="title">
+                            Stage
+                            <i class="bi bi-arrow-down-up ms-1 sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="start_date">
+                            Dates
+                            <i class="bi bi-arrow-down-up ms-1 sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="domain">
+                            Domaine
+                            <i class="bi bi-arrow-down-up ms-1 sort-icon"></i>
+                        </th>
+                        <th data-column="skills">
+                            Compétences
+                        </th>
+                        <th class="sortable" data-column="status">
+                            Statut
+                            <i class="bi bi-arrow-down-up ms-1 sort-icon"></i>
+                        </th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    internships.forEach(internship => {
+        const statusClasses = {
+            'available': 'success',
+            'assigned': 'primary',
+            'completed': 'info',
+            'cancelled': 'danger'
+        };
+        const statusLabels = {
+            'available': 'Disponible',
+            'assigned': 'Affecté',
+            'completed': 'Terminé',
+            'cancelled': 'Annulé'
+        };
+        
+        const statusClass = 'bg-' + (statusClasses[internship.status] || 'secondary');
+        const statusLabel = statusLabels[internship.status] || 'Inconnu';
+        
+        let skillsHTML = '<span class="text-muted small">Non spécifiées</span>';
+        if (internship.skills_required && internship.skills_required.trim()) {
+            // Assuming skills are stored as comma-separated string
+            const skills = internship.skills_required.split(',').map(s => s.trim()).filter(s => s);
+            if (skills.length > 0) {
+                skillsHTML = '';
+                skills.slice(0, 3).forEach(skill => {
+                    skillsHTML += `<span class="skill-badge">${escapeHtmlInternships(skill)}</span>`;
+                });
+                if (skills.length > 3) {
+                    skillsHTML += `<span class="skill-badge bg-light text-dark">+${skills.length - 3}</span>`;
+                }
+            }
+        }
+        
+        let datesHTML = '<span class="text-muted small">Non spécifié</span>';
+        if (internship.start_date && internship.end_date) {
+            const startDate = new Date(internship.start_date).toLocaleDateString('fr-FR');
+            const endDate = new Date(internship.end_date).toLocaleDateString('fr-FR');
+            datesHTML = `
+                <div class="internship-dates">
+                    <div class="mb-1">
+                        <i class="bi bi-calendar-event me-1 small"></i>
+                        ${startDate}
+                    </div>
+                    <div>
+                        <i class="bi bi-calendar-check me-1 small"></i>
+                        ${endDate}
+                    </div>
+                </div>
+            `;
+        }
+        
+        tableHTML += `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="company-logo-placeholder me-3">
+                            ${(internship.company_name || 'C').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="internship-title">${escapeHtmlInternships(internship.title || '')}</div>
+                            <div class="company-name">${escapeHtmlInternships(internship.company_name || '')}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>${datesHTML}</td>
+                <td>${escapeHtmlInternships(internship.domain || 'Non spécifié')}</td>
+                <td><div class="d-flex flex-wrap">${skillsHTML}</div></td>
+                <td>
+                    <span class="status-badge ${statusClass}">${statusLabel}</span>
+                </td>
+                <td class="text-end">
+                    <div class="btn-group">
+                        <a href="/tutoring/views/admin/internships/show.php?id=${internship.id}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="/tutoring/views/admin/internships/edit.php?id=${internship.id}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDeleteInternship(${internship.id})" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    // Ajouter la pagination si nécessaire
+    if (pagination.total_pages > 1) {
+        tableHTML += renderPaginationInternships(pagination);
+    }
+
+    container.innerHTML = tableHTML;
+    
+    // Mettre à jour les icônes de tri
+    updateSortIconsInternships();
+    
+    // Ajouter les événements de tri
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.dataset.column;
+            handleSortInternships(column);
+        });
+    });
+    
+    // Initialiser les tooltips
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(element => {
+        new bootstrap.Tooltip(element);
+    });
+}
+
+// Fonction pour afficher la pagination
+function renderPaginationInternships(pagination) {
+    let paginationHTML = `
+        <nav aria-label="Navigation des pages de stages" class="mt-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    Affichage de ${pagination.showing_from} à ${pagination.showing_to} sur ${pagination.total_items} résultats
+                </div>
+                <ul class="pagination pagination-sm mb-0">
+    `;
+
+    // Bouton précédent
+    paginationHTML += `
+        <li class="page-item ${pagination.current_page <= 1 ? 'disabled' : ''}">
+            ${pagination.current_page > 1 ? 
+                `<a class="page-link" href="#" onclick="changePageInternships(${pagination.current_page - 1})" aria-label="Précédent"><span aria-hidden="true">&laquo;</span></a>` :
+                `<span class="page-link" aria-label="Précédent"><span aria-hidden="true">&laquo;</span></span>`
+            }
+        </li>
+    `;
+
+    // Pages
+    const startPage = Math.max(1, pagination.current_page - 2);
+    const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+
+    if (startPage > 1) {
+        paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="changePageInternships(1)">1</a></li>`;
+        if (startPage > 2) {
+            paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+            <li class="page-item ${i === pagination.current_page ? 'active' : ''}">
+                ${i === pagination.current_page ? 
+                    `<span class="page-link">${i}</span>` :
+                    `<a class="page-link" href="#" onclick="changePageInternships(${i})">${i}</a>`
+                }
+            </li>
+        `;
+    }
+
+    if (endPage < pagination.total_pages) {
+        if (endPage < pagination.total_pages - 1) {
+            paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="changePageInternships(${pagination.total_pages})">${pagination.total_pages}</a></li>`;
+    }
+
+    // Bouton suivant
+    paginationHTML += `
+        <li class="page-item ${pagination.current_page >= pagination.total_pages ? 'disabled' : ''}">
+            ${pagination.current_page < pagination.total_pages ? 
+                `<a class="page-link" href="#" onclick="changePageInternships(${pagination.current_page + 1})" aria-label="Suivant"><span aria-hidden="true">&raquo;</span></a>` :
+                `<span class="page-link" aria-label="Suivant"><span aria-hidden="true">&raquo;</span></span>`
+            }
+        </li>
+    `;
+
+    paginationHTML += `
+                </ul>
+            </div>
+        </nav>
+    `;
+
+    return paginationHTML;
+}
+
+// Fonction pour gérer le tri
+function handleSortInternships(column) {
+    // Animation visuelle
+    const header = document.querySelector(`[data-column="${column}"]`);
+    if (header) {
+        header.classList.add('sorting');
+        setTimeout(() => header.classList.remove('sorting'), 300);
+    }
+    
+    if (sortByInternships === column) {
+        // Inverser l'ordre si on clique sur la même colonne
+        sortOrderInternships = sortOrderInternships === 'asc' ? 'desc' : 'asc';
+    } else {
+        // Nouvelle colonne, commencer par desc
+        sortByInternships = column;
+        sortOrderInternships = 'desc';
+    }
+    
+    // Revenir à la première page lors du tri
+    currentPageInternships = 1;
+    loadInternships();
+}
+
+// Fonction pour mettre à jour les icônes de tri
+function updateSortIconsInternships() {
+    // Réinitialiser toutes les icônes
+    document.querySelectorAll('.sort-icon').forEach(icon => {
+        icon.className = 'bi bi-arrow-down-up ms-1 sort-icon text-muted';
+    });
+    
+    // Mettre en évidence la colonne active
+    const activeHeader = document.querySelector(`[data-column="${sortByInternships}"]`);
+    if (activeHeader) {
+        const icon = activeHeader.querySelector('.sort-icon');
+        if (icon) {
+            icon.className = `bi bi-arrow-${sortOrderInternships === 'asc' ? 'up' : 'down'} ms-1 sort-icon text-primary`;
+        }
+    }
+}
+
+// Fonctions utilitaires
+function changePageInternships(page) {
+    currentPageInternships = page;
+    loadInternships();
+}
+
+function showErrorInternships(message) {
+    const container = document.getElementById('internshipsTableContainer');
+    container.innerHTML = `
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-circle me-2"></i>${message}
+        </div>
+    `;
+}
+
+function escapeHtmlInternships(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function confirmDeleteInternship(id) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce stage ? Cette action est irréversible.')) {
+        // Ici vous pouvez implémenter la suppression via API
+        alert('Suppression du stage #' + id + ' - Fonctionnalité à implémenter');
+    }
+}
+
+// Charger les stages au chargement de la page
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        loadInternships();
+    }, 1000);
+});
 </script>
 
 <?php
