@@ -40,7 +40,6 @@ try {
         'program' => 's.program',
         'level' => 's.level',
         'enrollment_year' => 's.enrollment_year',
-        'is_active' => 'u.is_active',
         'created_at' => 's.created_at'
     ];
     
@@ -102,7 +101,7 @@ try {
     
     // Récupérer les étudiants avec pagination
     $query = "
-        SELECT s.*, u.first_name, u.last_name, u.email, u.department, u.phone, u.is_active, u.created_at as user_created_at,
+        SELECT s.*, u.first_name, u.last_name, u.email, u.department, u.created_at as user_created_at,
                CONCAT(u.first_name, ' ', u.last_name) as full_name,
                (SELECT COUNT(*) FROM assignments a WHERE a.student_id = s.id AND a.status IN ('confirmed', 'active')) as current_assignments_count,
                (SELECT COUNT(*) FROM evaluations e WHERE e.evaluatee_id = s.id) as evaluations_count,

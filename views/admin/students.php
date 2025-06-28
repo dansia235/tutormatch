@@ -175,7 +175,7 @@ const studentTableConfig = {
         { key: 'email', label: 'Email', sortable: true },
         { key: 'program', label: 'Programme', sortable: true },
         { key: 'level', label: 'Niveau', sortable: true },
-        { key: 'created_at', label: 'Date inscription', sortable: true },
+        { key: 'enrollment_year', label: 'Année', sortable: true },
         { key: 'actions', label: 'Actions', sortable: false }
     ],
     renderRow: function(student) {
@@ -211,7 +211,7 @@ const studentTableConfig = {
                     <span class="badge bg-secondary">${student.level || 'Non spécifié'}</span>
                 </td>
                 <td>
-                    ${AdminTable.formatDate(student.created_at)}
+                    ${student.enrollment_year || '<span class="text-muted">Non défini</span>'}
                 </td>
                 <td>
                     <div class="btn-group" role="group">
