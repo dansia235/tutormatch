@@ -35,8 +35,8 @@ try {
         'title' => 'd.title',
         'type' => 'd.type',
         'file_size' => 'd.file_size',
-        'created_at' => 'd.created_at',
-        'updated_at' => 'd.updated_at',
+        'created_at' => 'd.upload_date',
+        'updated_at' => 'd.upload_date',
         'user_name' => 'CONCAT(u.first_name, " ", u.last_name)',
         'visibility' => 'd.visibility'
     ];
@@ -55,7 +55,7 @@ try {
     if (!empty($searchTerm)) {
         $whereConditions[] = "(d.title LIKE :search 
                               OR d.description LIKE :search 
-                              OR d.original_name LIKE :search
+                              OR d.file_path LIKE :search
                               OR CONCAT(u.first_name, ' ', u.last_name) LIKE :search)";
         $params[':search'] = '%' . $searchTerm . '%';
     }
@@ -120,16 +120,15 @@ try {
             'file_type' => $document['file_type'],
             'file_size' => $document['file_size'],
             'file_size_formatted' => formatFileSize($document['file_size']),
-            'original_name' => $document['original_name'],
             'file_path' => $document['file_path'],
             'visibility' => $document['visibility'],
             'user_id' => $document['user_id'],
             'user_name' => $document['user_full_name'],
             'user_email' => $document['email'],
-            'created_at' => $document['created_at'],
-            'updated_at' => $document['updated_at'],
-            'created_at_formatted' => date('d/m/Y H:i', strtotime($document['created_at'])),
-            'updated_at_formatted' => $document['updated_at'] ? date('d/m/Y H:i', strtotime($document['updated_at'])) : null
+            'created_at' => $document['upload_date'],
+            'updated_at' => $document['upload_date'],
+            'created_at_formatted' => date('d/m/Y H:i', strtotime($document['upload_date'])),
+            'updated_at_formatted' => date('d/m/Y H:i', strtotime($document['upload_date']))
         ];
     }
     
