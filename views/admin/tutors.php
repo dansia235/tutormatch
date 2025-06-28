@@ -346,6 +346,52 @@ include_once __DIR__ . '/../common/header.php';
         text-align: center;
         color: #6c757d;
     }
+    
+    /* Styles pour le tri des colonnes */
+    .table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        white-space: nowrap;
+        transition: background-color 0.2s ease;
+    }
+    
+    .table th.sortable:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .table th .d-flex {
+        align-items: center;
+        justify-content: space-between;
+        min-width: 120px;
+    }
+    
+    .sort-icon {
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+    
+    .sort-icon:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Animation pour les lignes triées */
+    tbody tr {
+        transition: all 0.3s ease;
+    }
+    
+    /* Responsive pour le tri */
+    @media (max-width: 768px) {
+        .table th .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        .sort-icon {
+            align-self: flex-end;
+        }
+    }
 </style>
 
 <div class="container-fluid">
@@ -531,16 +577,47 @@ include_once __DIR__ . '/../common/header.php';
                         <i class="bi bi-exclamation-triangle me-2"></i>Aucun tuteur trouvé avec les critères de recherche spécifiés.
                     </div>
                     <?php else: ?>
-                    <div class="table-responsive">
+                    <div class="table-responsive" id="tutorsTableContainer">
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col">Tuteur</th>
-                                    <th scope="col">Département</th>
-                                    <th scope="col">Spécialité</th>
-                                    <th scope="col">Charge de travail</th>
-                                    <th scope="col">Disponibilité</th>
-                                    <th scope="col" class="text-end">Actions</th>
+                                    <th scope="col" data-column="name" class="sortable">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span>Tuteur</span>
+                                            <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par nom"></i>
+                                        </div>
+                                    </th>
+                                    <th scope="col" data-column="email" class="sortable">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span>Email</span>
+                                            <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par email"></i>
+                                        </div>
+                                    </th>
+                                    <th scope="col" data-column="department" class="sortable">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span>Département</span>
+                                            <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par département"></i>
+                                        </div>
+                                    </th>
+                                    <th scope="col" data-column="specialty" class="sortable">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span>Spécialité</span>
+                                            <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par spécialité"></i>
+                                        </div>
+                                    </th>
+                                    <th scope="col" data-column="workload" class="sortable">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span>Charge</span>
+                                            <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par charge de travail"></i>
+                                        </div>
+                                    </th>
+                                    <th scope="col" data-column="availability" class="sortable">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span>Disponibilité</span>
+                                            <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par disponibilité"></i>
+                                        </div>
+                                    </th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -562,13 +639,21 @@ include_once __DIR__ . '/../common/header.php';
                                                     <?php endif; ?>
                                                     <?php echo h(($teacher['first_name'] ?? '') . ' ' . ($teacher['last_name'] ?? '')); ?>
                                                 </div>
-                                                <div class="text-muted small"><?php echo h($teacher['email'] ?? ''); ?></div>
+                                                <div class="text-muted small">ID: <?php echo $teacher['id']; ?></div>
                                             </div>
                                         </div>
                                     </td>
+                                    <td>
+                                        <div><?php echo h($teacher['email'] ?? ''); ?></div>
+                                    </td>
                                     <td><?php echo h($teacher['department'] ?? ''); ?></td>
                                     <td>
-                                        <span class="tutor-specialty"><?php echo h($teacher['specialty'] ?? ''); ?></span>
+                                        <?php if (!empty($teacher['specialty'])): ?>
+                                            <span class="tutor-specialty"><?php echo h($teacher['specialty']); ?></span>
+                                        <?php else: ?>
+                                            <span class="text-muted"><em>Non renseignée</em></span>
+                                        <?php endif; ?>
+                                        
                                         <?php if (!empty($teacher['expertise'])): ?>
                                         <div class="expertise-tags mt-1">
                                             <?php
@@ -1240,6 +1325,99 @@ include_once __DIR__ . '/../common/header.php';
                 }
             });
         }
+        
+        // Gestion du tri des colonnes
+        let currentSort = { column: 'name', order: 'asc' };
+        
+        // Fonction pour trier le tableau
+        function sortTable(column, order) {
+            const tbody = document.querySelector('#tutorsTableContainer tbody');
+            if (!tbody) return;
+            
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                let aValue, bValue;
+                
+                switch (column) {
+                    case 'name':
+                        aValue = a.cells[0].textContent.trim().toLowerCase();
+                        bValue = b.cells[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'email':
+                        aValue = a.cells[0].querySelector('.text-muted')?.textContent.trim().toLowerCase() || '';
+                        bValue = b.cells[0].querySelector('.text-muted')?.textContent.trim().toLowerCase() || '';
+                        break;
+                    case 'department':
+                        aValue = a.cells[1].textContent.trim().toLowerCase();
+                        bValue = b.cells[1].textContent.trim().toLowerCase();
+                        break;
+                    case 'specialty':
+                        aValue = a.cells[2].textContent.trim().toLowerCase();
+                        bValue = b.cells[2].textContent.trim().toLowerCase();
+                        break;
+                    case 'workload':
+                        const aProgressBar = a.cells[3].querySelector('.progress-bar');
+                        const bProgressBar = b.cells[3].querySelector('.progress-bar');
+                        aValue = aProgressBar ? parseFloat(aProgressBar.getAttribute('aria-valuenow')) : -1;
+                        bValue = bProgressBar ? parseFloat(bProgressBar.getAttribute('aria-valuenow')) : -1;
+                        break;
+                    case 'availability':
+                        const aAvailable = a.cells[4].querySelector('.bg-success') !== null;
+                        const bAvailable = b.cells[4].querySelector('.bg-success') !== null;
+                        aValue = aAvailable ? 1 : 0;
+                        bValue = bAvailable ? 1 : 0;
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (typeof aValue === 'string') {
+                    return order === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+                } else {
+                    return order === 'asc' ? aValue - bValue : bValue - aValue;
+                }
+            });
+            
+            // Réorganiser les lignes dans le DOM
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Mettre à jour les indicateurs visuels
+            updateSortIndicators(column, order);
+        }
+        
+        // Fonction pour mettre à jour les indicateurs de tri
+        function updateSortIndicators(activeColumn, order) {
+            // Réinitialiser tous les indicateurs
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.className = 'bi bi-arrow-down-up sort-icon text-muted';
+            });
+            
+            // Mettre à jour l'indicateur actif
+            const activeHeader = document.querySelector(`th[data-column="${activeColumn}"] .sort-icon`);
+            if (activeHeader) {
+                activeHeader.className = `bi bi-arrow-${order === 'asc' ? 'up' : 'down'} sort-icon text-primary`;
+            }
+        }
+        
+        // Gérer les clics sur les en-têtes de colonne
+        document.querySelectorAll('th.sortable').forEach(header => {
+            header.addEventListener('click', function() {
+                const column = this.getAttribute('data-column');
+                let order = 'asc';
+                
+                // Si on clique sur la même colonne, inverser l'ordre
+                if (currentSort.column === column) {
+                    order = currentSort.order === 'asc' ? 'desc' : 'asc';
+                }
+                
+                currentSort = { column, order };
+                sortTable(column, order);
+            });
+        });
+        
+        // Appliquer le tri initial
+        sortTable(currentSort.column, currentSort.order);
         
         // Fonctionnalité d'autocomplétion pour la recherche de tuteurs
         const tutorSearch = document.getElementById('tutorSearch');
