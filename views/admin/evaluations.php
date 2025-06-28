@@ -165,6 +165,46 @@ include_once __DIR__ . '/../common/header.php';
     border-color: #0d6efd !important;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
 }
+
+/* Styles pour la modal de suppression */
+.modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-footer {
+    border-radius: 0 0 15px 15px;
+}
+
+/* Animation pour les alertes */
+.alert {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Couleur purple pour les badges superviseur */
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
 </style>
 
 <div class="container-fluid">
@@ -267,6 +307,62 @@ include_once __DIR__ . '/../common/header.php';
                 <div class="spinner-border" role="status">
                     <span class="visually-hidden">Chargement...</span>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteEvaluationModal" tabindex="-1" aria-labelledby="deleteEvaluationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title text-danger" id="deleteEvaluationModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                        <i class="bi bi-trash3 text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+                
+                <div class="text-center mb-4">
+                    <h6 class="fw-bold mb-2">Êtes-vous sûr de vouloir supprimer cette évaluation ?</h6>
+                    <p class="text-muted mb-0">Cette action est <strong>irréversible</strong> et supprimera définitivement :</p>
+                </div>
+                
+                <div id="evaluationDetailsToDelete" class="mb-4">
+                    <!-- Les détails seront remplis dynamiquement -->
+                </div>
+                
+                <div class="alert alert-warning d-flex align-items-start" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2 mt-1"></i>
+                    <div>
+                        <strong>Attention !</strong><br>
+                        <small>Tous les documents et données associés à cette évaluation seront également supprimés.</small>
+                    </div>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="confirmDeleteCheckbox">
+                    <label class="form-check-label text-muted" for="confirmDeleteCheckbox">
+                        Je comprends que cette action est irréversible
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-1"></i>
+                    Annuler
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                    <i class="bi bi-trash3 me-1"></i>
+                    <span id="deleteButtonText">Supprimer définitivement</span>
+                </button>
             </div>
         </div>
     </div>
@@ -702,11 +798,169 @@ include_once __DIR__ . '/../common/header.php';
         alert('Modifier l\'évaluation #' + id + ' - Fonctionnalité à implémenter');
     }
 
+    // Variables globales pour la suppression
+    let evaluationToDelete = null;
+
     function confirmDelete(id) {
-        if (confirm('Êtes-vous sûr de vouloir supprimer cette évaluation ? Cette action est irréversible.')) {
-            // Ici vous pouvez implémenter la suppression via API
-            alert('Suppression de l\'évaluation #' + id + ' - Fonctionnalité à implémenter');
+        // Trouver les détails de l'évaluation dans le tableau actuel
+        const evaluation = findEvaluationById(id);
+        if (!evaluation) {
+            showAlert('Erreur : Évaluation non trouvée', 'danger');
+            return;
         }
+        
+        evaluationToDelete = evaluation;
+        
+        // Remplir les détails dans la modal
+        populateDeleteModal(evaluation);
+        
+        // Réinitialiser le formulaire
+        document.getElementById('confirmDeleteCheckbox').checked = false;
+        document.getElementById('confirmDeleteBtn').disabled = true;
+        document.getElementById('deleteButtonText').textContent = 'Supprimer définitivement';
+        
+        // Afficher la modal
+        const modal = new bootstrap.Modal(document.getElementById('deleteEvaluationModal'));
+        modal.show();
+    }
+    
+    function findEvaluationById(id) {
+        // Rechercher l'évaluation dans le DOM du tableau
+        const rows = document.querySelectorAll('#evaluationsTableContainer tbody tr');
+        for (let row of rows) {
+            const deleteBtn = row.querySelector('button[onclick*="confirmDelete(' + id + ')"]');
+            if (deleteBtn) {
+                // Extraire les informations de la ligne
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 6) {
+                    return {
+                        id: id,
+                        evaluator_name: cells[0].querySelector('.fw-bold')?.textContent.trim() || 'N/A',
+                        evaluatee_name: cells[1].querySelector('.fw-bold')?.textContent.trim() || 'N/A',
+                        type: cells[2].querySelector('.badge')?.textContent.trim() || 'N/A',
+                        status: cells[4].textContent.replace(/\s+/g, ' ').trim() || 'N/A',
+                        date: cells[5].querySelector('div')?.textContent.trim() || 'Non soumise'
+                    };
+                }
+            }
+        }
+        return null;
+    }
+    
+    function populateDeleteModal(evaluation) {
+        const detailsContainer = document.getElementById('evaluationDetailsToDelete');
+        const typeLabels = {
+            'Mi-parcours': { icon: 'bi-hourglass-split', color: 'info' },
+            'Finale': { icon: 'bi-check-circle', color: 'success' },
+            'Auto-éval.': { icon: 'bi-person', color: 'warning' },
+            'Superviseur': { icon: 'bi-building', color: 'purple' },
+            'Enseignant': { icon: 'bi-mortarboard', color: 'primary' }
+        };
+        
+        const typeInfo = typeLabels[evaluation.type] || { icon: 'bi-file-text', color: 'secondary' };
+        
+        detailsContainer.innerHTML = `
+            <div class="card border-0 bg-light">
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="${typeInfo.icon} text-${typeInfo.color} me-2"></i>
+                                <span class="fw-bold">Évaluation #${evaluation.id}</span>
+                                <span class="badge bg-${typeInfo.color} ms-2">${evaluation.type}</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Évaluateur</small>
+                            <strong>${evaluation.evaluator_name}</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Évalué</small>
+                            <strong>${evaluation.evaluatee_name}</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Statut</small>
+                            <span>${evaluation.status}</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted d-block">Date</small>
+                            <span>${evaluation.date}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    async function deleteEvaluation() {
+        if (!evaluationToDelete) return;
+        
+        const deleteBtn = document.getElementById('confirmDeleteBtn');
+        const deleteButtonText = document.getElementById('deleteButtonText');
+        
+        // Désactiver le bouton et afficher le spinner
+        deleteBtn.disabled = true;
+        deleteButtonText.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Suppression...';
+        
+        try {
+            const response = await fetch('/tutoring/api/evaluations/delete.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: evaluationToDelete.id
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Fermer la modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteEvaluationModal'));
+                modal.hide();
+                
+                // Afficher un message de succès
+                showAlert(`Évaluation #${evaluationToDelete.id} supprimée avec succès`, 'success');
+                
+                // Recharger la liste des évaluations
+                loadEvaluations();
+                
+                // Recharger les statistiques
+                loadStatistics();
+                
+                evaluationToDelete = null;
+            } else {
+                throw new Error(result.error || 'Erreur lors de la suppression');
+            }
+        } catch (error) {
+            console.error('Erreur lors de la suppression:', error);
+            showAlert('Erreur lors de la suppression : ' + error.message, 'danger');
+            
+            // Réactiver le bouton
+            deleteBtn.disabled = false;
+            deleteButtonText.textContent = 'Supprimer définitivement';
+        }
+    }
+    
+    function showAlert(message, type = 'info') {
+        // Créer et afficher une alerte temporaire
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Retirer automatiquement après 5 secondes
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
     }
 
     // Initialisation au chargement de la page
@@ -731,6 +985,28 @@ include_once __DIR__ . '/../common/header.php';
                 }, 500); // Délai de 500ms
             });
         }
+        
+        // Gestion de la modal de suppression
+        const deleteCheckbox = document.getElementById('confirmDeleteCheckbox');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        
+        // Activer/désactiver le bouton de suppression selon la checkbox
+        deleteCheckbox.addEventListener('change', function() {
+            confirmDeleteBtn.disabled = !this.checked;
+        });
+        
+        // Gérer le clic sur le bouton de confirmation de suppression
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteEvaluation();
+        });
+        
+        // Réinitialiser la modal quand elle se ferme
+        document.getElementById('deleteEvaluationModal').addEventListener('hidden.bs.modal', function() {
+            evaluationToDelete = null;
+            deleteCheckbox.checked = false;
+            confirmDeleteBtn.disabled = true;
+            document.getElementById('deleteButtonText').textContent = 'Supprimer définitivement';
+        });
     });
 </script>
 
