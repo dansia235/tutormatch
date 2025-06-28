@@ -343,7 +343,7 @@ include_once __DIR__ . '/../common/header.php';
                     <i class="bi bi-exclamation-triangle-fill text-warning me-2 mt-1"></i>
                     <div>
                         <strong>Attention !</strong><br>
-                        <small>Tous les documents et données associés à cette évaluation seront également supprimés.</small>
+                        <small>Toutes les données de cette évaluation (scores, commentaires, critères) seront définitivement perdues.</small>
                     </div>
                 </div>
                 

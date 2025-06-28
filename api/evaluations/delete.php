@@ -69,40 +69,29 @@ try {
         $warnings[] = 'Cette évaluation est complétée et sa suppression pourrait affecter les statistiques';
     }
     
-    // Vérifier s'il y a des documents associés
-    $documentsQuery = "SELECT COUNT(*) as count FROM evaluation_documents WHERE evaluation_id = :id";
-    $documentsStmt = $db->prepare($documentsQuery);
-    $documentsStmt->bindValue(':id', $evaluationId, PDO::PARAM_INT);
-    $documentsStmt->execute();
-    $documentsCount = $documentsStmt->fetch(PDO::FETCH_ASSOC)['count'];
+    // Vérifier s'il y a des données importantes dans l'évaluation
+    if (!empty($evaluation['criteria_scores'])) {
+        $warnings[] = 'Cette évaluation contient des scores détaillés par critères qui seront perdus';
+    }
     
-    if ($documentsCount > 0) {
-        $warnings[] = "Cette évaluation contient {$documentsCount} document(s) qui seront également supprimé(s)";
+    if (!empty($evaluation['comments'])) {
+        $warnings[] = 'Cette évaluation contient des commentaires qui seront perdus';
     }
     
     // Commencer la transaction pour assurer la cohérence
     $db->beginTransaction();
     
     try {
-        // Supprimer les documents associés d'abord
-        if ($documentsCount > 0) {
-            $deleteDocumentsQuery = "DELETE FROM evaluation_documents WHERE evaluation_id = :id";
-            $deleteDocumentsStmt = $db->prepare($deleteDocumentsQuery);
-            $deleteDocumentsStmt->bindValue(':id', $evaluationId, PDO::PARAM_INT);
-            $deleteDocumentsStmt->execute();
-        }
-        
-        // Supprimer les réponses aux critères d'évaluation
-        $deleteCriteriaQuery = "DELETE FROM evaluation_criteria_responses WHERE evaluation_id = :id";
-        $deleteCriteriaStmt = $db->prepare($deleteCriteriaQuery);
-        $deleteCriteriaStmt->bindValue(':id', $evaluationId, PDO::PARAM_INT);
-        $deleteCriteriaStmt->execute();
-        
-        // Supprimer l'évaluation elle-même
+        // Supprimer l'évaluation directement (structure simple sans tables liées)
         $deleteEvaluationQuery = "DELETE FROM evaluations WHERE id = :id";
         $deleteEvaluationStmt = $db->prepare($deleteEvaluationQuery);
         $deleteEvaluationStmt->bindValue(':id', $evaluationId, PDO::PARAM_INT);
-        $deleteEvaluationStmt->execute();
+        $result = $deleteEvaluationStmt->execute();
+        
+        // Vérifier que la suppression a bien eu lieu
+        if ($deleteEvaluationStmt->rowCount() === 0) {
+            throw new Exception('Aucune évaluation supprimée - ID peut-être déjà supprimé');
+        }
         
         // Valider la transaction
         $db->commit();
@@ -117,7 +106,8 @@ try {
                 'evaluator_name' => trim($evaluation['evaluator_first_name'] . ' ' . $evaluation['evaluator_last_name']),
                 'evaluatee_name' => trim($evaluation['evaluatee_first_name'] . ' ' . $evaluation['evaluatee_last_name']),
                 'type' => $evaluation['type'],
-                'deleted_documents' => $documentsCount,
+                'score' => $evaluation['score'],
+                'status' => $evaluation['status'],
                 'warnings' => $warnings
             ]
         ]);

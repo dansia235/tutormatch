@@ -34,7 +34,7 @@ echo "<ul>";
 echo "<li>✓ Accepter uniquement les requêtes POST</li>";
 echo "<li>✓ Vérifier les permissions (admin/coordinator)</li>";
 echo "<li>✓ Valider l'ID de l'évaluation</li>";
-echo "<li>✓ Supprimer en cascade (documents, critères, évaluation)</li>";
+echo "<li>✓ Supprimer l'évaluation (structure simplifiée sans tables liées)</li>";
 echo "<li>✓ Utiliser des transactions pour la cohérence</li>";
 echo "<li>✓ Retourner une réponse JSON structurée</li>";
 echo "</ul>";
