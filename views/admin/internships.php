@@ -1104,6 +1104,8 @@ window.addEventListener('load', function() {
         
         
         }, 100); // Délai de 100ms
+        
+        // Les stages seront chargés par le script séparé
     });
     
     // Fonction pour changer le nombre d'éléments par page
@@ -1116,7 +1118,10 @@ window.addEventListener('load', function() {
     
     }, 1000);
 
-// Nouvelle fonction de tri fluide basée sur l'API
+</script>
+
+<script>
+// Variables globales pour les stages (définies avant les fonctions)
 let currentPageInternships = <?php echo $currentPage; ?>;
 let itemsPerPageInternships = <?php echo $itemsPerPage; ?>;
 let statusFilterInternships = '<?php echo $status ?? ''; ?>';
@@ -1127,6 +1132,16 @@ let sortOrderInternships = 'desc';
 
 // Fonction pour charger les stages
 async function loadInternships() {
+    console.log('🔄 Loading internships...');
+    const container = document.getElementById('internshipsTableContainer');
+    
+    if (!container) {
+        console.error('❌ Container not found');
+        return;
+    }
+    
+    container.innerHTML = '<div class="text-center p-4"><div class="spinner-border" role="status"><span class="visually-hidden">Chargement...</span></div></div>';
+    
     try {
         const params = new URLSearchParams({
             page: currentPageInternships,
@@ -1143,14 +1158,15 @@ async function loadInternships() {
         const data = await response.json();
         
         if (data.success) {
+            console.log('✅ Loaded', data.data.internships.length, 'internships');
             renderInternships(data.data.internships, data.data.pagination);
         } else {
-            console.error('Erreur lors du chargement des stages:', data.error);
-            showErrorInternships('Erreur lors du chargement des stages.');
+            console.error('❌ API error:', data.error);
+            showErrorInternships('Erreur lors du chargement des stages: ' + (data.error || 'Erreur inconnue'));
         }
     } catch (error) {
-        console.error('Erreur:', error);
-        showErrorInternships('Erreur de connexion lors du chargement des stages.');
+        console.error('❌ Error:', error);
+        showErrorInternships('Erreur de connexion lors du chargement des stages: ' + error.message);
     }
 }
 
@@ -1456,11 +1472,14 @@ function confirmDeleteInternship(id) {
     }
 }
 
-// Charger les stages au chargement de la page
-window.addEventListener('load', function() {
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Internships script loaded, calling loadInternships');
+    
+    // Attendre un petit délai pour s'assurer que tout est prêt
     setTimeout(() => {
         loadInternships();
-    }, 1000);
+    }, 100);
 });
 </script>
 

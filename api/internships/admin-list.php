@@ -100,8 +100,8 @@ try {
     $query = "
         SELECT i.*, 
                c.name as company_name,
-               c.sector as company_sector,
-               c.size as company_size,
+               c.description as company_description,
+               c.city as company_city,
                (SELECT COUNT(*) FROM assignments a WHERE a.internship_id = i.id AND a.status != 'cancelled') as assignments_count
         FROM internships i
         LEFT JOIN companies c ON i.company_id = c.id
@@ -119,12 +119,41 @@ try {
     $stmt->execute();
     $internships = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Formatter les données pour l'affichage
+    $formattedInternships = [];
+    foreach ($internships as $internship) {
+        $formattedInternships[] = [
+            'id' => $internship['id'],
+            'title' => $internship['title'],
+            'description' => $internship['description'],
+            'requirements' => $internship['requirements'],
+            'start_date' => $internship['start_date'],
+            'end_date' => $internship['end_date'],
+            'start_date_formatted' => date('d/m/Y', strtotime($internship['start_date'])),
+            'end_date_formatted' => date('d/m/Y', strtotime($internship['end_date'])),
+            'location' => $internship['location'],
+            'work_mode' => $internship['work_mode'],
+            'compensation' => $internship['compensation'],
+            'domain' => $internship['domain'],
+            'status' => $internship['status'],
+            'company_id' => $internship['company_id'],
+            'company_name' => $internship['company_name'],
+            'company_description' => $internship['company_description'],
+            'company_city' => $internship['company_city'],
+            'assignments_count' => $internship['assignments_count'],
+            'created_at' => $internship['created_at'],
+            'updated_at' => $internship['updated_at'],
+            'created_at_formatted' => date('d/m/Y H:i', strtotime($internship['created_at'])),
+            'updated_at_formatted' => date('d/m/Y H:i', strtotime($internship['updated_at']))
+        ];
+    }
+    
     // Retourner les données
     header('Content-Type: application/json');
     echo json_encode([
         'success' => true,
         'data' => [
-            'internships' => $internships,
+            'internships' => $formattedInternships,
             'pagination' => [
                 'current_page' => $currentPage,
                 'total_pages' => $totalPages,
