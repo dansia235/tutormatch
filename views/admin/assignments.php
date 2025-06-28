@@ -327,6 +327,52 @@ $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
         background-color: #fff;
         border-color: #dee2e6;
     }
+    
+    /* Styles pour le tri des colonnes */
+    .table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        white-space: nowrap;
+        transition: background-color 0.2s ease;
+    }
+    
+    .table th.sortable:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .table th .d-flex {
+        align-items: center;
+        justify-content: space-between;
+        min-width: 120px;
+    }
+    
+    .sort-icon {
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+    
+    .sort-icon:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Animation pour les lignes triées */
+    tbody tr {
+        transition: all 0.3s ease;
+    }
+    
+    /* Responsive pour le tri */
+    @media (max-width: 768px) {
+        .table th .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        .sort-icon {
+            align-self: flex-end;
+        }
+    }
 </style>
 
 <div class="container-fluid mt-4">
@@ -459,17 +505,47 @@ $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
                 <span>Aucune affectation trouvée.</span>
             </div>
             <?php else: ?>
-            <div class="table-responsive">
+            <div class="table-responsive" id="assignmentsTableContainer">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Étudiant</th>
-                            <th>Tuteur</th>
-                            <th>Stage</th>
-                            <th>Date</th>
-                            <th>Statut</th>
-                            <th>Scores</th>
-                            <th>Actions</th>
+                            <th scope="col" data-column="student" class="sortable">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Étudiant</span>
+                                    <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par étudiant"></i>
+                                </div>
+                            </th>
+                            <th scope="col" data-column="teacher" class="sortable">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Tuteur</span>
+                                    <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par tuteur"></i>
+                                </div>
+                            </th>
+                            <th scope="col" data-column="internship" class="sortable">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Stage</span>
+                                    <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par stage"></i>
+                                </div>
+                            </th>
+                            <th scope="col" data-column="date" class="sortable">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Date</span>
+                                    <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par date"></i>
+                                </div>
+                            </th>
+                            <th scope="col" data-column="status" class="sortable">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Statut</span>
+                                    <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par statut"></i>
+                                </div>
+                            </th>
+                            <th scope="col" data-column="compatibility" class="sortable">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Scores</span>
+                                    <i class="bi bi-arrow-down-up sort-icon text-muted" role="button" title="Trier par compatibilité"></i>
+                                </div>
+                            </th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -704,6 +780,111 @@ $activeFilter = isset($_GET['status']) ? $_GET['status'] : '';
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
+        
+        // Gestion du tri des colonnes
+        let currentSort = { column: 'date', order: 'desc' };
+        
+        // Fonction pour trier le tableau
+        function sortTable(column, order) {
+            const tbody = document.querySelector('#assignmentsTableContainer tbody');
+            if (!tbody) return;
+            
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                let aValue, bValue;
+                
+                switch (column) {
+                    case 'student':
+                        aValue = a.cells[0].textContent.trim().toLowerCase();
+                        bValue = b.cells[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'teacher':
+                        aValue = a.cells[1].textContent.trim().toLowerCase();
+                        bValue = b.cells[1].textContent.trim().toLowerCase();
+                        break;
+                    case 'internship':
+                        aValue = a.cells[2].textContent.trim().toLowerCase();
+                        bValue = b.cells[2].textContent.trim().toLowerCase();
+                        break;
+                    case 'date':
+                        // Extraire la date d'affectation (première date)
+                        const aDateText = a.cells[3].querySelector('span')?.textContent || '';
+                        const bDateText = b.cells[3].querySelector('span')?.textContent || '';
+                        const aDateMatch = aDateText.match(/(\d{2}\/\d{2}\/\d{4})/);
+                        const bDateMatch = bDateText.match(/(\d{2}\/\d{2}\/\d{4})/);
+                        
+                        if (aDateMatch && bDateMatch) {
+                            const aDate = new Date(aDateMatch[1].split('/').reverse().join('-'));
+                            const bDate = new Date(bDateMatch[1].split('/').reverse().join('-'));
+                            aValue = aDate.getTime();
+                            bValue = bDate.getTime();
+                        } else {
+                            aValue = aDateText;
+                            bValue = bDateText;
+                        }
+                        break;
+                    case 'status':
+                        aValue = a.cells[4].textContent.trim().toLowerCase();
+                        bValue = b.cells[4].textContent.trim().toLowerCase();
+                        break;
+                    case 'compatibility':
+                        // Extraire le score de compatibilité
+                        const aScore = a.cells[5].querySelector('.score-value')?.textContent || '0';
+                        const bScore = b.cells[5].querySelector('.score-value')?.textContent || '0';
+                        aValue = parseFloat(aScore);
+                        bValue = parseFloat(bScore);
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (typeof aValue === 'string') {
+                    return order === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+                } else {
+                    return order === 'asc' ? aValue - bValue : bValue - aValue;
+                }
+            });
+            
+            // Réorganiser les lignes dans le DOM
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Mettre à jour les indicateurs visuels
+            updateSortIndicators(column, order);
+        }
+        
+        // Fonction pour mettre à jour les indicateurs de tri
+        function updateSortIndicators(activeColumn, order) {
+            // Réinitialiser tous les indicateurs
+            document.querySelectorAll('.sort-icon').forEach(icon => {
+                icon.className = 'bi bi-arrow-down-up sort-icon text-muted';
+            });
+            
+            // Mettre à jour l'indicateur actif
+            const activeHeader = document.querySelector(`th[data-column="${activeColumn}"] .sort-icon`);
+            if (activeHeader) {
+                activeHeader.className = `bi bi-arrow-${order === 'asc' ? 'up' : 'down'} sort-icon text-primary`;
+            }
+        }
+        
+        // Gérer les clics sur les en-têtes de colonne
+        document.querySelectorAll('th.sortable').forEach(header => {
+            header.addEventListener('click', function() {
+                const column = this.getAttribute('data-column');
+                let order = 'asc';
+                
+                // Si on clique sur la même colonne, inverser l'ordre
+                if (currentSort.column === column) {
+                    order = currentSort.order === 'asc' ? 'desc' : 'asc';
+                }
+                
+                currentSort = { column, order };
+                sortTable(column, order);
+            });
+        });
+        
+        // Appliquer le tri initial
+        sortTable(currentSort.column, currentSort.order);
     });
     
     // Fonction pour changer le nombre d'éléments par page
