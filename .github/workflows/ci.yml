@@ -1,0 +1,178 @@
+name: TutorMatch CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: tutoring_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    strategy:
+      matrix:
+        php-version: [8.0, 8.1, 8.2]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, redis
+        coverage: xdebug
+    
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+    
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-
+    
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress
+    
+    - name: Create test database
+      run: |
+        mysql -h 127.0.0.1 -u root -ppassword -e "CREATE DATABASE IF NOT EXISTS tutoring_test;"
+        mysql -h 127.0.0.1 -u root -ppassword tutoring_test < database/tutoring_system.sql
+    
+    - name: Copy environment file
+      run: cp .env.example .env
+    
+    - name: Set environment variables
+      run: |
+        echo "DB_HOST=127.0.0.1" >> .env
+        echo "DB_DATABASE=tutoring_test" >> .env
+        echo "DB_USERNAME=root" >> .env
+        echo "DB_PASSWORD=password" >> .env
+        echo "REDIS_HOST=127.0.0.1" >> .env
+        echo "REDIS_PORT=6379" >> .env
+        echo "APP_ENV=testing" >> .env
+    
+    - name: Run PHPUnit tests
+      run: |
+        mkdir -p tests/coverage
+        vendor/bin/phpunit --configuration phpunit.xml --coverage-clover tests/coverage/clover.xml
+    
+    - name: Run PHP Code Sniffer
+      run: vendor/bin/phpcs --standard=PSR12 src/ models/ controllers/
+      continue-on-error: true
+    
+    - name: Run PHPStan static analysis
+      run: vendor/bin/phpstan analyse src/ models/ controllers/ --level=5
+      continue-on-error: true
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: tests/coverage/clover.xml
+        flags: unittests
+        name: codecov-umbrella
+    
+    - name: Generate test report
+      run: |
+        echo "## Test Results" > test-report.md
+        echo "PHP Version: ${{ matrix.php-version }}" >> test-report.md
+        echo "Tests completed successfully" >> test-report.md
+    
+    - name: Archive test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-php${{ matrix.php-version }}
+        path: |
+          tests/coverage/
+          test-report.md
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run security scan
+      uses: securecodewarrior/github-action-add-sarif@v1
+      with:
+        sarif-file: security-scan.sarif
+      continue-on-error: true
+    
+    - name: Check for known vulnerabilities
+      run: |
+        composer audit
+      continue-on-error: true
+
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.1
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql
+    
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-dev
+    
+    - name: Run performance benchmarks
+      run: |
+        php benchmarks/benchmark_runner.php
+        echo "Performance tests completed"
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [test, security-scan]
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment"
+        # Add actual deployment steps here
+    
+    - name: Run smoke tests
+      run: |
+        echo "Running smoke tests on staging"
+        # Add smoke tests here
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [test, security-scan, performance-test]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment"
+        # Add actual deployment steps here
+    
+    - name: Run health checks
+      run: |
+        echo "Running production health checks"
+        # Add health check scripts here
