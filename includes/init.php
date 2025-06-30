@@ -22,9 +22,18 @@ error_reporting(E_ALL);
 
 // Chemin racine du système
 define('ROOT_PATH', dirname(__DIR__));
+define('ROOT_DIR', dirname(__DIR__)); // Alias pour compatibilité
 
 // Inclure les fichiers de configuration
 require_once ROOT_PATH . '/config/database.php';
+
+// Inclure les systèmes de logging, monitoring et cache
+require_once ROOT_PATH . '/includes/Logger.php';
+require_once ROOT_PATH . '/includes/Monitor.php';
+require_once ROOT_PATH . '/includes/Cache.php';
+
+// Initialiser le monitoring automatique des requêtes API
+monitor_api_request();
 
 // Fonction d'autoloading des classes
 spl_autoload_register(function ($class_name) {
