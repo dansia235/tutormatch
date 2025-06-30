@@ -1,12 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
-         verbose="true">
+         verbose="true"
+         testdox="true">
     <testsuites>
+        <testsuite name="Unit Tests">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration Tests">
+            <directory>tests/Integration</directory>
+        </testsuite>
         <testsuite name="Algorithm Tests">
             <directory>tests/Algorithm</directory>
         </testsuite>
+        <testsuite name="API Tests">
+            <directory>tests/API</directory>
+        </testsuite>
     </testsuites>
+    
+    <coverage includeUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">src/</directory>
+            <directory suffix=".php">models/</directory>
+            <directory suffix=".php">controllers/</directory>
+        </include>
+        <exclude>
+            <directory>vendor/</directory>
+            <directory>tests/</directory>
+            <directory>backups/</directory>
+            <file>config/database.php</file>
+        </exclude>
+    </coverage>
+    
+    <logging>
+        <log type="coverage-html" target="tests/coverage/html"/>
+        <log type="coverage-clover" target="tests/coverage/clover.xml"/>
+        <log type="junit" target="tests/coverage/junit.xml"/>
+    </logging>
+    
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+    </php>
 </phpunit>
