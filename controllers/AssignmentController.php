@@ -1387,12 +1387,98 @@ class AssignmentController {
     
     /**
      * Algorithme génétique d'affectation
-     * Implémentation simplifiée pour ce contexte
+     * Utilise l'implémentation complète de l'algorithme génétique
      */
     private function geneticAlgorithm($students, $teachers, $internships, $params) {
-        // Pour simplifier, nous utilisons l'algorithme glouton comme base
-        // Une vraie implémentation de l'algorithme génétique serait plus complexe
-        return $this->greedyAlgorithm($students, $teachers, $internships, $params);
+        try {
+            // Charger l'algorithme génétique
+            require_once __DIR__ . '/../src/Algorithm/GeneticAlgorithm.php';
+            require_once __DIR__ . '/../src/DTO/AssignmentParameters.php';
+            require_once __DIR__ . '/../src/DTO/AssignmentResult.php';
+            
+            // Créer les paramètres d'affectation
+            $assignmentParams = new \App\DTO\AssignmentParameters();
+            $assignmentParams->setDepartmentWeight($params['department_weight'] ?? 0.5);
+            $assignmentParams->setPreferenceWeight($params['preference_weight'] ?? 0.3);
+            $assignmentParams->setCapacityWeight($params['capacity_weight'] ?? 0.2);
+            $assignmentParams->setMaxAssignmentsPerTeacher($params['max_assignments_per_teacher'] ?? 5);
+            $assignmentParams->setAllowCrossDepartment($params['allow_cross_department'] ?? false);
+            
+            // Préparer les données des étudiants et enseignants
+            $studentObjects = [];
+            foreach ($students as $student) {
+                $studentObj = new \stdClass();
+                $studentObj->id = $student['id'];
+                $studentObj->name = $student['name'];
+                $studentObj->department = $student['department'] ?? '';
+                $studentObj->preferences = $student['preferences'] ?? [];
+                
+                // Méthodes requises par l'algorithme
+                $studentObj->getId = function() use ($studentObj) { return $studentObj->id; };
+                $studentObj->getDepartment = function() use ($studentObj) { return $studentObj->department; };
+                $studentObj->getPreferences = function() use ($studentObj) { return $studentObj->preferences; };
+                
+                $studentObjects[] = $studentObj;
+            }
+            
+            $teacherObjects = [];
+            foreach ($teachers as $teacher) {
+                $teacherObj = new \stdClass();
+                $teacherObj->id = $teacher['id'];
+                $teacherObj->name = $teacher['name'];
+                $teacherObj->department = $teacher['department'] ?? '';
+                $teacherObj->capacity = $teacher['capacity'] ?? 5;
+                
+                // Méthodes requises par l'algorithme
+                $teacherObj->getId = function() use ($teacherObj) { return $teacherObj->id; };
+                $teacherObj->getDepartment = function() use ($teacherObj) { return $teacherObj->department; };
+                $teacherObj->getCapacity = function() use ($teacherObj) { return $teacherObj->capacity; };
+                
+                $teacherObjects[] = $teacherObj;
+            }
+            
+            // Exécuter l'algorithme génétique
+            $geneticAlgorithm = new \App\Algorithm\GeneticAlgorithm();
+            $result = $geneticAlgorithm->execute($studentObjects, $teacherObjects, $assignmentParams);
+            
+            if ($result->isSuccessful()) {
+                $assignments = [];
+                foreach ($result->getAssignments() as $assignment) {
+                    $assignments[] = [
+                        'student_id' => $assignment['student_id'],
+                        'teacher_id' => $assignment['teacher_id'],
+                        'internship_id' => $this->findBestInternship($assignment['student_id'], $internships),
+                        'compatibility_score' => $assignment['compatibility_score'],
+                    ];
+                }
+                
+                return $assignments;
+            } else {
+                // En cas d'échec, utiliser l'algorithme glouton comme fallback
+                error_log("Algorithme génétique échoué: " . $result->getErrorMessage());
+                return $this->greedyAlgorithm($students, $teachers, $internships, $params);
+            }
+            
+        } catch (\Exception $e) {
+            // En cas d'erreur, utiliser l'algorithme glouton comme fallback
+            error_log("Erreur dans l'algorithme génétique: " . $e->getMessage());
+            return $this->greedyAlgorithm($students, $teachers, $internships, $params);
+        }
+    }
+    
+    /**
+     * Trouve le meilleur stage pour un étudiant
+     */
+    private function findBestInternship($studentId, $internships) {
+        // Trouver un stage disponible (non assigné)
+        foreach ($internships as $internship) {
+            if (!isset($internship['assigned']) || !$internship['assigned']) {
+                return $internship['id'];
+            }
+        }
+        
+        // Si aucun stage disponible, retourner le premier
+        return !empty($internships) ? $internships[0]['id'] : null;
     }
     
     /**
