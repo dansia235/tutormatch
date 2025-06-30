@@ -6,6 +6,8 @@
 // Initialiser les variables
 $pageTitle = 'Gestion des réunions';
 $currentPage = 'meetings';
+$extraStyles = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">';
+$extraScripts = '<script src="/tutoring/assets/js/admin-table.js"></script>';
 
 // Inclure le fichier d'initialisation
 require_once __DIR__ . '/../../includes/init.php';
@@ -541,187 +543,37 @@ include_once __DIR__ . '/../common/header.php';
         <div class="col-lg-8">
             <!-- Meetings List -->
             <div class="card mb-4 fade-in">
-                <div class="card-header">
-                    <span>Liste des réunions</span>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <h5 class="card-title mb-0 me-2">
+                            <i class="bi bi-calendar-event me-2"></i>
+                            Liste des réunions
+                        </h5>
+                        <span class="badge bg-primary" id="meetingCount">
+                            Chargement...
+                        </span>
+                    </div>
+                    
+                    <!-- Sélecteur du nombre d'éléments par page -->
+                    <div class="d-flex align-items-center">
+                        <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                        <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;">
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <?php if (empty($filteredMeetings)): ?>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i> Aucune réunion ne correspond à vos critères de recherche. Ajustez vos filtres ou créez une nouvelle réunion.
+                <div class="card-body p-0" id="meetingsTableContainer">
+                    <!-- Le contenu sera chargé dynamiquement -->
+                    <div class="text-center p-4">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
                     </div>
-                    <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Étudiant</th>
-                                    <th>Sujet</th>
-                                    <th>Type</th>
-                                    <th>Lieu</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php 
-                                // Trier les réunions par date (les plus récentes d'abord)
-                                usort($filteredMeetings, function($a, $b) {
-                                    // Déterminer la date de chaque réunion en fonction des clés disponibles
-                                    $dateA = null;
-                                    if (isset($a['meeting_date'])) {
-                                        $dateA = $a['meeting_date'];
-                                    } elseif (isset($a['date_time'])) {
-                                        $dateA = $a['date_time'];
-                                    } elseif (isset($a['date'])) {
-                                        $dateA = $a['date'] . (isset($a['start_time']) ? ' ' . $a['start_time'] : '');
-                                    } else {
-                                        return 0; // Si pas de date, considérer égal
-                                    }
-                                    
-                                    $dateB = null;
-                                    if (isset($b['meeting_date'])) {
-                                        $dateB = $b['meeting_date'];
-                                    } elseif (isset($b['date_time'])) {
-                                        $dateB = $b['date_time'];
-                                    } elseif (isset($b['date'])) {
-                                        $dateB = $b['date'] . (isset($b['start_time']) ? ' ' . $b['start_time'] : '');
-                                    } else {
-                                        return 0; // Si pas de date, considérer égal
-                                    }
-                                    
-                                    return strtotime($dateB) - strtotime($dateA);
-                                });
-                                
-                                foreach ($filteredMeetings as $meeting): 
-                                    // Déterminer la date de la réunion
-                                    if (isset($meeting['date_time'])) {
-                                        $meetingDate = new DateTime($meeting['date_time']);
-                                    } elseif (isset($meeting['meeting_date'])) {
-                                        $meetingDate = new DateTime($meeting['meeting_date']);
-                                    } elseif (isset($meeting['date'])) {
-                                        // Si on a date et start_time séparés
-                                        if (isset($meeting['start_time'])) {
-                                            $meetingDate = new DateTime($meeting['date'] . ' ' . $meeting['start_time']);
-                                        } else {
-                                            $meetingDate = new DateTime($meeting['date']);
-                                        }
-                                    } else {
-                                        // Fallback à la date actuelle si aucune date n'est disponible
-                                        $meetingDate = new DateTime();
-                                    }
-                                    
-                                    // Déterminer la durée et calculer l'heure de fin
-                                    $duration = $meeting['duration'] ?? 60; // 60 minutes par défaut
-                                    $endDate = clone $meetingDate;
-                                    $endDate->modify("+{$duration} minutes");
-                                    
-                                    // Récupérer les informations de l'étudiant
-                                    $studentName = 'Étudiant inconnu';
-                                    
-                                    // Déterminer l'ID de l'étudiant à partir des données disponibles
-                                    $meetingStudentId = null;
-                                    
-                                    // Essayer différentes sources pour trouver l'ID de l'étudiant
-                                    if (isset($meeting['student_id'])) {
-                                        $meetingStudentId = $meeting['student_id'];
-                                    } elseif (isset($meeting['assignment_id'])) {
-                                        // Rechercher l'étudiant par l'ID d'affectation
-                                        foreach ($assignments as $a) {
-                                            if (isset($a['id']) && $a['id'] == $meeting['assignment_id']) {
-                                                $meetingStudentId = $a['student_id'];
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Si on a trouvé un ID d'étudiant, rechercher son nom
-                                    if ($meetingStudentId) {
-                                        foreach ($assignments as $assignment) {
-                                            if ($assignment['student_id'] == $meetingStudentId) {
-                                                $studentName = $assignment['student_first_name'] . ' ' . $assignment['student_last_name'];
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Déterminer la classe CSS pour le statut
-                                    $statusClass = match($meeting['status']) {
-                                        'pending' => 'bg-warning',
-                                        'confirmed' => 'bg-primary',
-                                        'completed' => 'bg-success',
-                                        'cancelled' => 'bg-danger',
-                                        default => 'bg-secondary'
-                                    };
-                                    
-                                    // Traduire le statut en français
-                                    $statusLabel = match($meeting['status']) {
-                                        'pending' => 'En attente',
-                                        'confirmed' => 'Confirmée',
-                                        'completed' => 'Terminée',
-                                        'cancelled' => 'Annulée',
-                                        'scheduled' => 'Planifiée',
-                                        default => ucfirst($meeting['status'])
-                                    };
-                                    
-                                    // Déterminer si c'est une réunion passée
-                                    $isPast = $meetingDate < new DateTime();
-                                ?>
-                                <tr <?php echo $isPast ? 'style="opacity: 0.7;"' : ''; ?>>
-                                    <td>
-                                        <strong><?php echo $meetingDate->format('d/m/Y'); ?></strong><br>
-                                        <small><?php echo $meetingDate->format('H:i') . ' - ' . $endDate->format('H:i'); ?></small>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <?php
-                                            // Générer l'avatar avec les initiales
-                                            $names = explode(' ', $studentName);
-                                            $initials = '';
-                                            if (count($names) >= 2) {
-                                                $initials = substr($names[0], 0, 1) . substr($names[1], 0, 1);
-                                            } else {
-                                                $initials = substr($studentName, 0, 2);
-                                            }
-                                            $avatarUrl = "https://ui-avatars.com/api/?name=" . urlencode($initials) . "&background=f39c12&color=fff";
-                                            ?>
-                                            <img src="<?php echo h($avatarUrl); ?>" alt="Student" class="rounded-circle me-2" width="24" height="24">
-                                            <?php echo h($studentName); ?>
-                                        </div>
-                                    </td>
-                                    <td><?php echo h($meeting['title'] ?? 'Réunion'); ?></td>
-                                    <td><?php echo h($meeting['meeting_type'] ?? 'Non spécifié'); ?></td>
-                                    <td><?php echo h($meeting['location'] ?? 'Non spécifié'); ?></td>
-                                    <td>
-                                        <span class="badge <?php echo $statusClass; ?> rounded-pill">
-                                            <?php echo $statusLabel; ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary view-meeting" data-meeting-id="<?php echo $meeting['id']; ?>">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <?php if ($meeting['status'] !== 'cancelled' && $meeting['status'] !== 'completed'): ?>
-                                            <button class="btn btn-sm btn-outline-success" onclick="completeMeeting(<?php echo $meeting['id']; ?>)">
-                                                <i class="bi bi-check2-circle"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="confirmCancel(<?php echo $meeting['id']; ?>)">
-                                                <i class="bi bi-x-circle"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
-        
         <!-- Right Column -->
         <div class="col-lg-4">
             <!-- Quick Actions -->
@@ -1023,6 +875,74 @@ include_once __DIR__ . '/../common/header.php';
     </div>
 </div>
 
+<style>
+/* Styles pour les colonnes triables */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: #e9ecef !important;
+}
+
+.sort-icon {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.sortable:hover .sort-icon {
+    opacity: 1;
+}
+
+.sort-icon.text-primary {
+    opacity: 1;
+    font-weight: bold;
+}
+
+/* Animation pour le tri */
+@keyframes sortHighlight {
+    0% { background-color: #e3f2fd; }
+    100% { background-color: transparent; }
+}
+
+.sortable.sorting {
+    animation: sortHighlight 0.3s ease;
+}
+
+/* Pagination améliorée */
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white !important;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+}
+
+.pagination .page-link {
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #0d6efd;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+</style>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Mise à jour de la date minimum pour la création de réunion
@@ -1053,6 +973,13 @@ include_once __DIR__ . '/../common/header.php';
     function completeMeeting(meetingId) {
         document.getElementById('meeting_id_to_complete').value = meetingId;
         const modal = new bootstrap.Modal(document.getElementById('completeMeetingModal'));
+        modal.show();
+    }
+    
+    // Fonction pour annuler une réunion
+    function cancelMeeting(meetingId) {
+        document.getElementById('meeting_id_to_cancel').value = meetingId;
+        const modal = new bootstrap.Modal(document.getElementById('cancelMeetingModal'));
         modal.show();
     }
     
@@ -1189,6 +1116,106 @@ include_once __DIR__ . '/../common/header.php';
                 `;
             });
     }
+    
+    // Configuration de la table des réunions avec AdminTable
+    const meetingTableConfig = {
+        apiEndpoint: '/tutoring/api/meetings/tutor-list.php',
+        tableContainer: '#meetingsTableContainer',
+        searchForm: '#searchForm',
+        defaultSort: 'scheduled_date',
+        columns: [
+            { key: 'scheduled_date', label: 'Date', sortable: true },
+            { key: 'student_name', label: 'Étudiant', sortable: true },
+            { key: 'subject', label: 'Sujet', sortable: true },
+            { key: 'location', label: 'Lieu', sortable: true },
+            { key: 'status', label: 'Statut', sortable: true },
+            { key: 'actions', label: 'Actions', sortable: false }
+        ],
+        renderRow: function(meeting) {
+            // Badges de statut
+            const statusBadges = {
+                'scheduled': '<span class="badge bg-info">Programmée</span>',
+                'confirmed': '<span class="badge bg-success">Confirmée</span>',
+                'cancelled': '<span class="badge bg-danger">Annulée</span>',
+                'completed': '<span class="badge bg-secondary">Terminée</span>',
+                'pending': '<span class="badge bg-warning">En attente</span>'
+            };
+            const statusHTML = statusBadges[meeting.status] || `<span class="badge bg-secondary">${meeting.status}</span>`;
+            
+            return `
+                <tr>
+                    <td>
+                        <div>
+                            <strong>${meeting.scheduled_date_formatted}</strong>
+                            ${meeting.duration ? `<div class="text-muted small">${meeting.duration} min</div>` : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <div>
+                            <strong>${meeting.student_name || 'Étudiant non défini'}</strong>
+                            ${meeting.student_email ? `<div class="text-muted small">${meeting.student_email}</div>` : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="meeting-subject">
+                            <strong>${meeting.subject || 'Sujet non défini'}</strong>
+                            ${meeting.description ? `<div class="text-muted small">${meeting.description.substring(0, 50)}${meeting.description.length > 50 ? '...' : ''}</div>` : ''}
+                        </div>
+                    </td>
+                    <td>${meeting.location || 'Non défini'}</td>
+                    <td>${statusHTML}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="viewMeetingDetails(${meeting.id})"
+                                    data-bs-toggle="tooltip" 
+                                    title="Voir les détails">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            ${meeting.status !== 'completed' && meeting.status !== 'cancelled' ? 
+                                `<a href="/tutoring/views/tutor/meetings/edit.php?id=${meeting.id}" 
+                                   class="btn btn-sm btn-outline-secondary"
+                                   data-bs-toggle="tooltip" 
+                                   title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>` : ''
+                            }
+                            ${meeting.status === 'scheduled' || meeting.status === 'confirmed' ? 
+                                `<button class="btn btn-sm btn-outline-danger" 
+                                        onclick="cancelMeeting(${meeting.id})"
+                                        data-bs-toggle="tooltip" 
+                                        title="Annuler">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>` : ''
+                            }
+                        </div>
+                    </td>
+                </tr>
+            `;
+        },
+        onDataLoaded: function(data) {
+            // Mettre à jour le compteur
+            const countBadge = document.getElementById('meetingCount');
+            if (data.pagination.total_items > 0) {
+                countBadge.textContent = `${data.pagination.showing_from}-${data.pagination.showing_to} sur ${data.pagination.total_items} réunions`;
+            } else {
+                countBadge.textContent = '0 réunions';
+            }
+        }
+    };
+    
+    let adminTable;
+    
+    // Initialisation au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser AdminTable
+        adminTable = new AdminTable(meetingTableConfig);
+        
+        // Gestion du sélecteur d'éléments par page
+        document.getElementById('itemsPerPage').addEventListener('change', function() {
+            adminTable.setItemsPerPage(this.value);
+        });
+    });
 </script>
 
 <?php

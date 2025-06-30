@@ -54,24 +54,47 @@ include_once __DIR__ . '/../common/header.php';
     <!-- Filtres et recherche -->
     <div class="card mb-4">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <form action="" method="GET" class="d-flex">
-                        <input type="text" name="term" class="form-control me-2" placeholder="Rechercher..." value="<?php echo isset($_GET['term']) ? h($_GET['term']) : ''; ?>">
-                        <button type="submit" name="search" class="btn btn-outline-primary">
+            <div class="row">
+                <div class="col-md-4">
+                    <form id="searchForm" class="d-flex">
+                        <input type="text" name="term" class="form-control me-2" placeholder="Rechercher un document..." value="<?php echo isset($_GET['term']) ? h($_GET['term']) : ''; ?>">
+                        <button type="submit" class="btn btn-outline-primary">
                             <i class="bi bi-search"></i>
                         </button>
                     </form>
                 </div>
-                <div class="col-md-6">
-                    <div class="d-flex justify-content-md-end">
-                        <div class="btn-group" role="group">
-                            <a href="?category=" class="btn btn-outline-secondary <?php echo !isset($_GET['category']) ? 'active' : ''; ?>">Tous</a>
-                            <a href="?category=contract" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'contract' ? 'active' : ''; ?>">Contrats</a>
-                            <a href="?category=report" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'report' ? 'active' : ''; ?>">Rapports</a>
-                            <a href="?category=evaluation" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'evaluation' ? 'active' : ''; ?>">Évaluations</a>
-                            <a href="?category=certificate" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'certificate' ? 'active' : ''; ?>">Certificats</a>
-                            <a href="?category=other" class="btn btn-outline-secondary <?php echo isset($_GET['category']) && $_GET['category'] === 'other' ? 'active' : ''; ?>">Autres</a>
+                <div class="col-md-8 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3 flex-wrap">
+                        <!-- Filtres par catégorie -->
+                        <div class="btn-group" role="group" aria-label="Filtres par catégorie">
+                            <input type="radio" class="btn-check" name="categoryFilter" id="category-all" value="" checked>
+                            <label class="btn btn-outline-primary" for="category-all">Tous</label>
+                            
+                            <input type="radio" class="btn-check" name="categoryFilter" id="category-contract" value="contract">
+                            <label class="btn btn-outline-primary" for="category-contract">Contrats</label>
+                            
+                            <input type="radio" class="btn-check" name="categoryFilter" id="category-report" value="report">
+                            <label class="btn btn-outline-primary" for="category-report">Rapports</label>
+                            
+                            <input type="radio" class="btn-check" name="categoryFilter" id="category-evaluation" value="evaluation">
+                            <label class="btn btn-outline-primary" for="category-evaluation">Évaluations</label>
+                            
+                            <input type="radio" class="btn-check" name="categoryFilter" id="category-certificate" value="certificate">
+                            <label class="btn btn-outline-primary" for="category-certificate">Certificats</label>
+                            
+                            <input type="radio" class="btn-check" name="categoryFilter" id="category-other" value="other">
+                            <label class="btn btn-outline-primary" for="category-other">Autres</label>
+                        </div>
+                        
+                        <!-- Sélecteur du nombre d'éléments par page -->
+                        <div class="d-flex align-items-center">
+                            <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -129,16 +152,6 @@ include_once __DIR__ . '/../common/header.php';
                 </span>
             </div>
             
-            <!-- Sélecteur du nombre d'éléments par page -->
-            <div class="d-flex align-items-center">
-                <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
-                <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPageDocuments(this.value)">
-                    <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
-                    <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
-                    <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
-                    <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
-                </select>
-            </div>
         </div>
         <div class="card-body p-0" id="documentsTableContainer">
             <!-- Le contenu sera chargé dynamiquement -->
@@ -228,6 +241,12 @@ include_once __DIR__ . '/../common/header.php';
     
     .sortable.sorting {
         animation: sortHighlight 0.3s ease;
+    }
+    
+    /* Indicateur de recherche active */
+    .search-active {
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
     }
 </style>
 
@@ -557,6 +576,24 @@ include_once __DIR__ . '/../common/header.php';
         currentPage = 1;
         loadDocuments();
     }
+    
+    // Fonction pour effectuer une recherche
+    function performSearchDocuments() {
+        const searchInput = document.querySelector('input[name="term"]');
+        searchTerm = searchInput ? searchInput.value.trim() : '';
+        
+        // Indicateur visuel de recherche active
+        if (searchInput) {
+            if (searchTerm.length > 0) {
+                searchInput.classList.add('search-active');
+            } else {
+                searchInput.classList.remove('search-active');
+            }
+        }
+        
+        currentPage = 1; // Revenir à la première page
+        loadDocuments();
+    }
 
     function showErrorDocuments(message) {
         const container = document.getElementById('documentsTableContainer');
@@ -588,6 +625,38 @@ include_once __DIR__ . '/../common/header.php';
     // Initialisation au chargement de la page
     document.addEventListener('DOMContentLoaded', function() {
         loadDocuments();
+        
+        // Gestion du formulaire de recherche
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            performSearchDocuments();
+        });
+        
+        // Recherche en temps réel (optionnel)
+        const searchInput = document.querySelector('input[name="term"]');
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    performSearchDocuments();
+                }, 500); // Délai de 500ms
+            });
+        }
+        
+        // Gestion des filtres par catégorie
+        document.querySelectorAll('input[name="categoryFilter"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                categoryFilter = this.value;
+                currentPage = 1;
+                loadDocuments();
+            });
+        });
+        
+        // Gestionnaire pour le changement du nombre d'éléments par page
+        document.getElementById('itemsPerPage').addEventListener('change', function() {
+            changeItemsPerPageDocuments(this.value);
+        });
         
         // Initialiser les tooltips
         setTimeout(() => {

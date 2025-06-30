@@ -52,21 +52,25 @@ try {
     $params = [];
     
     if (!empty($searchTerm)) {
-        $whereConditions[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE :search 
-                              OR u.email LIKE :search 
-                              OR u.department LIKE :search
-                              OR u.role LIKE :search)";
-        $params[':search'] = '%' . $searchTerm . '%';
+        $whereConditions[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? 
+                              OR u.email LIKE ? 
+                              OR u.department LIKE ?
+                              OR u.role LIKE ?)";
+        $searchParam = '%' . $searchTerm . '%';
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
     }
     
     if (!empty($roleFilter)) {
-        $whereConditions[] = "u.role = :role";
-        $params[':role'] = $roleFilter;
+        $whereConditions[] = "u.role = ?";
+        $params[] = $roleFilter;
     }
     
     if (!empty($departmentFilter)) {
-        $whereConditions[] = "u.department = :department";
-        $params[':department'] = $departmentFilter;
+        $whereConditions[] = "u.department = ?";
+        $params[] = $departmentFilter;
     }
     
     $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
@@ -78,8 +82,8 @@ try {
         $whereClause
     ";
     $countStmt = $db->prepare($countQuery);
-    foreach ($params as $key => $value) {
-        $countStmt->bindValue($key, $value);
+    foreach ($params as $index => $value) {
+        $countStmt->bindValue($index + 1, $value);
     }
     $countStmt->execute();
     $totalUsers = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -99,15 +103,21 @@ try {
         FROM users u
         $whereClause
         ORDER BY $sortColumn $sortOrder, u.id DESC
-        LIMIT :limit OFFSET :offset
+        LIMIT ? OFFSET ?
     ";
     
     $stmt = $db->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
+    
+    // Bind les paramètres de recherche et filtres d'abord
+    $paramIndex = 1;
+    foreach ($params as $value) {
+        $stmt->bindValue($paramIndex, $value);
+        $paramIndex++;
     }
-    $stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    
+    // Puis bind les paramètres de pagination
+    $stmt->bindValue($paramIndex, $itemsPerPage, PDO::PARAM_INT);
+    $stmt->bindValue($paramIndex + 1, $offset, PDO::PARAM_INT);
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     

@@ -356,25 +356,32 @@ include_once __DIR__ . '/../common/header.php';
             <div class="row">
                 <div class="col-md-6">
                     <div class="search-container">
-                        <form action="" method="GET">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control" name="term" placeholder="Rechercher une entreprise..." value="<?php echo isset($_GET['term']) ? h($_GET['term']) : ''; ?>">
-                            <button type="submit" name="search" class="btn btn-primary btn-search d-none">
-                                <i class="bi bi-search"></i>
-                            </button>
-                        </form>
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Rechercher une entreprise...">
                     </div>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
                     <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        <!-- Filtres par statut -->
+                        <div class="btn-group" role="group" aria-label="Filtres par statut">
+                            <input type="radio" class="btn-check" name="statusFilter" id="status-all" value="" checked>
+                            <label class="btn btn-outline-primary" for="status-all">Toutes</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilter" id="status-active" value="active">
+                            <label class="btn btn-outline-success" for="status-active">Actives</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilter" id="status-inactive" value="inactive">
+                            <label class="btn btn-outline-danger" for="status-inactive">Inactives</label>
+                        </div>
+                        
                         <!-- Sélecteur du nombre d'éléments par page -->
                         <div class="d-flex align-items-center">
                             <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
-                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
-                                <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
-                                <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
-                                <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
-                                <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
                             </select>
                         </div>
                     </div>
@@ -431,215 +438,30 @@ include_once __DIR__ . '/../common/header.php';
         <div class="card-body p-4">
             <div class="list-header">
                 <h4><i class="bi bi-grid-3x3-gap me-2"></i>Liste des entreprises</h4>
-                <span class="count-badge">
-                    <?php if ($totalCompanies > 0): ?>
-                        <?php echo $showingFrom; ?>-<?php echo $showingTo; ?> sur <?php echo $totalCompanies; ?> entreprises
-                    <?php else: ?>
-                        0 entreprises
-                    <?php endif; ?>
-                </span>
+                <span class="count-badge" id="total-count">Chargement...</span>
             </div>
             
-            <!-- Info sur les filtres actifs -->
-            <?php if (!empty($search)): ?>
-            <div class="alert alert-info mb-4">
-                <i class="bi bi-info-circle me-2"></i>
-                <span>
-                    Affichage des résultats pour la recherche: <strong>"<?php echo h($search); ?>"</strong>
-                    (<?php echo $totalCompanies; ?> entreprises trouvées)
-                </span>
-                <a href="?" class="ms-2 text-decoration-none">Réinitialiser la recherche</a>
-            </div>
-            <?php endif; ?>
-            
-            <?php if (empty($companies)): ?>
-            <div class="info-message">
-                <i class="bi bi-info-circle"></i>
-                <span>Aucune entreprise trouvée.</span>
-            </div>
-            <?php else: ?>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4" id="companies-container">
-                <?php foreach ($companies as $company): ?>
-                <div class="col company-item">
-                    <div class="card company-card h-100">
-                        <?php if ($company['internship_count'] > 0): ?>
-                        <div class="internship-badge">
-                            <span class="badge bg-info"><?php echo $company['internship_count']; ?> stage<?php echo $company['internship_count'] > 1 ? 's' : ''; ?></span>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <div class="card-body">
-                            <div class="company-actions">
-                                <div class="btn-group">
-                                    <a href="/tutoring/views/admin/companies/show.php?id=<?php echo $company['id']; ?>" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="/tutoring/views/admin/companies/edit.php?id=<?php echo $company['id']; ?>" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Modifier">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Supprimer" onclick="openDeleteModal(<?php echo $company['id']; ?>, '<?php echo h(addslashes($company['name'])); ?>');">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="d-flex mb-3">
-                                <div class="company-logo-placeholder me-3" style="background-color: <?php echo generateAvatarColor($company['name']); ?>; color: white; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M19 4H5C3.89543 4 3 4.89543 3 6V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V6C21 4.89543 20.1046 4 19 4Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M3 8H21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M9 20V8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </div>
-                                
-                                <div>
-                                    <h5 class="card-title mb-1"><?php echo h($company['name']); ?></h5>
-                                    <p class="card-text mb-2">
-                                        <span class="status-indicator <?php echo $company['active'] ? 'status-active' : 'status-inactive'; ?>"></span>
-                                        <?php echo $company['active'] ? 'Active' : 'Inactive'; ?>
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div class="company-details">
-                                <?php if (!empty($company['address'])): ?>
-                                <div class="company-detail">
-                                    <i class="bi bi-geo-alt"></i>
-                                    <span><?php echo h($company['address'] . (isset($company['city']) ? ', ' . $company['city'] : '') . (isset($company['country']) ? ', ' . $company['country'] : '')); ?></span>
-                                </div>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($company['website'])): ?>
-                                <div class="company-detail">
-                                    <i class="bi bi-globe"></i>
-                                    <a href="<?php echo h($company['website']); ?>" target="_blank" class="text-decoration-none"><?php echo h(preg_replace('#^https?://#', '', $company['website'])); ?></a>
-                                </div>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($company['contact_name'])): ?>
-                                <div class="company-detail">
-                                    <i class="bi bi-person"></i>
-                                    <span><?php echo h($company['contact_name']); ?></span>
-                                </div>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($company['contact_email'])): ?>
-                                <div class="company-detail">
-                                    <i class="bi bi-envelope"></i>
-                                    <a href="mailto:<?php echo h($company['contact_email']); ?>" class="text-decoration-none"><?php echo h($company['contact_email']); ?></a>
-                                </div>
-                                <?php endif; ?>
-                                
-                                <?php if (!empty($company['contact_phone'])): ?>
-                                <div class="company-detail">
-                                    <i class="bi bi-telephone"></i>
-                                    <a href="tel:<?php echo h($company['contact_phone']); ?>" class="text-decoration-none"><?php echo h($company['contact_phone']); ?></a>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <?php if (!empty($company['description'])): ?>
-                            <div class="mt-3">
-                                <p class="card-text text-muted small">
-                                    <?php echo substr(h($company['description']), 0, 100) . (strlen($company['description']) > 100 ? '...' : ''); ?>
-                                </p>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <div class="card-footer bg-transparent">
-                            <a href="/tutoring/views/admin/companies/company_internships.php?id=<?php echo $company['id']; ?>" class="btn btn-sm btn-outline-primary w-100">
-                                <i class="bi bi-briefcase me-1"></i> Voir les stages
-                            </a>
-                        </div>
+            <div id="companies-container">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
                     </div>
+                    <p class="mt-2 text-muted">Chargement des entreprises...</p>
                 </div>
-                <?php endforeach; ?>
             </div>
-            <?php endif; ?>
-            
-            <!-- Pagination (seulement si plus de 20 entreprises au total) -->
-            <?php if ($totalCompanies > 20 && $totalPages > 1): ?>
-            <div class="mt-4">
-                <nav aria-label="Navigation des pages d'entreprises">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="text-muted">
-                            <?php if ($totalCompanies > 0): ?>
-                                Affichage de <?php echo $showingFrom; ?> à <?php echo $showingTo; ?> sur <?php echo $totalCompanies; ?> résultats
-                            <?php endif; ?>
-                        </div>
-                        
-                        <ul class="pagination pagination-sm mb-0">
-                            <!-- Bouton Précédent -->
-                            <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
-                                <?php if ($currentPage > 1): ?>
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>" aria-label="Précédent">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                <?php else: ?>
-                                    <span class="page-link" aria-label="Précédent">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </span>
-                                <?php endif; ?>
-                            </li>
-                            
-                            <?php
-                            // Logique d'affichage des numéros de page
-                            $startPage = max(1, $currentPage - 2);
-                            $endPage = min($totalPages, $currentPage + 2);
-                            
-                            // Afficher la première page si elle n'est pas dans la plage
-                            if ($startPage > 1): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
-                                </li>
-                                <?php if ($startPage > 2): ?>
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                            
-                            <!-- Pages dans la plage -->
-                            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                <li class="page-item <?php echo $i == $currentPage ? 'active' : ''; ?>">
-                                    <?php if ($i == $currentPage): ?>
-                                        <span class="page-link"><?php echo $i; ?></span>
-                                    <?php else: ?>
-                                        <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
-                                    <?php endif; ?>
-                                </li>
-                            <?php endfor; ?>
-                            
-                            <!-- Afficher la dernière page si elle n'est pas dans la plage -->
-                            <?php if ($endPage < $totalPages): ?>
-                                <?php if ($endPage < $totalPages - 1): ?>
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                <?php endif; ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
-                                </li>
-                            <?php endif; ?>
-                            
-                            <!-- Bouton Suivant -->
-                            <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
-                                <?php if ($currentPage < $totalPages): ?>
-                                    <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>" aria-label="Suivant">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                <?php else: ?>
-                                    <span class="page-link" aria-label="Suivant">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </span>
-                                <?php endif; ?>
-                            </li>
-                        </ul>
+        </div>
+        
+        <div class="card-footer">
+            <nav aria-label="Navigation des pages">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted" id="pagination-info">
+                        <!-- Sera rempli par JavaScript -->
                     </div>
-                </nav>
-            </div>
-            <?php endif; ?>
+                    <ul class="pagination pagination-sm mb-0" id="pagination-controls">
+                        <!-- Sera rempli par JavaScript -->
+                    </ul>
+                </div>
+            </nav>
         </div>
     </div>
 </div>
@@ -672,21 +494,309 @@ include_once __DIR__ . '/../common/header.php';
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialiser les tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
-    });
-    
-    // Fonction pour changer le nombre d'éléments par page
-    function changeItemsPerPage(value) {
-        const url = new URL(window.location);
-        url.searchParams.set('per_page', value);
-        url.searchParams.set('page', '1'); // Retourner à la première page
-        window.location.href = url.toString();
+    class CompaniesTable {
+        constructor() {
+            this.apiUrl = '/tutoring/api/companies/admin-list.php';
+            this.currentPage = 1;
+            this.itemsPerPage = 20;
+            this.searchTerm = '';
+            this.statusFilter = '';
+            this.searchTimeout = null;
+            
+            this.init();
+        }
+        
+        init() {
+            this.setupEventListeners();
+            this.loadData();
+        }
+        
+        setupEventListeners() {
+            // Recherche en temps réel
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.searchTerm = e.target.value;
+                    this.currentPage = 1;
+                    this.loadData();
+                }, 500);
+            });
+            
+            // Filtres par statut
+            document.querySelectorAll('input[name="statusFilter"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    this.statusFilter = e.target.value;
+                    this.currentPage = 1;
+                    this.loadData();
+                });
+            });
+            
+            // Changement du nombre d'éléments par page
+            document.getElementById('itemsPerPage').addEventListener('change', (e) => {
+                this.itemsPerPage = parseInt(e.target.value);
+                this.currentPage = 1;
+                this.loadData();
+            });
+        }
+        
+        async loadData() {
+            try {
+                const params = new URLSearchParams({
+                    page: this.currentPage,
+                    per_page: this.itemsPerPage,
+                    term: this.searchTerm,
+                    status: this.statusFilter
+                });
+                
+                const response = await fetch(`${this.apiUrl}?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.renderCompanies(result.data.companies);
+                    this.renderPagination(result.data.pagination);
+                } else {
+                    this.showError(result.error || 'Erreur inconnue');
+                }
+            } catch (error) {
+                this.showError('Erreur lors du chargement des données: ' + error.message);
+            }
+        }
+        
+        renderCompanies(companies) {
+            const container = document.getElementById('companies-container');
+            const totalCount = document.getElementById('total-count');
+            
+            if (companies.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-info-circle text-muted" style="font-size: 3rem;"></i>
+                        <p class="mt-2 text-muted">Aucune entreprise trouvée.</p>
+                    </div>
+                `;
+                totalCount.textContent = '0 entreprises';
+                return;
+            }
+            
+            const companiesHtml = companies.map(company => `
+                <div class="col company-item">
+                    <div class="card company-card h-100">
+                        ${company.internship_count > 0 ? `
+                        <div class="internship-badge">
+                            <span class="badge bg-info">${company.internship_count} stage${company.internship_count > 1 ? 's' : ''}</span>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="card-body">
+                            <div class="company-actions">
+                                <div class="btn-group">
+                                    <a href="/tutoring/views/admin/companies/show.php?id=${company.id}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="/tutoring/views/admin/companies/edit.php?id=${company.id}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Supprimer" onclick="openDeleteModal(${company.id}, '${company.name.replace(/'/g, "\\'")}')">}
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex mb-3">
+                                <div class="company-logo-placeholder me-3" style="background-color: ${this.generateAvatarColor(company.name)}; color: white; display: flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 10px;">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M19 4H5C3.89543 4 3 4.89543 3 6V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V6C21 4.89543 20.1046 4 19 4Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M3 8H21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M9 20V8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                
+                                <div>
+                                    <h5 class="card-title mb-1">${this.escapeHtml(company.name)}</h5>
+                                    <p class="card-text mb-2">
+                                        <span class="status-indicator ${company.active ? 'status-active' : 'status-inactive'}"></span>
+                                        ${company.active ? 'Active' : 'Inactive'}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="company-details">
+                                ${company.address ? `
+                                <div class="company-detail">
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span>${this.escapeHtml(company.address)}${company.city ? ', ' + this.escapeHtml(company.city) : ''}${company.country ? ', ' + this.escapeHtml(company.country) : ''}</span>
+                                </div>
+                                ` : ''}
+                                
+                                ${company.website ? `
+                                <div class="company-detail">
+                                    <i class="bi bi-globe"></i>
+                                    <a href="${this.escapeHtml(company.website)}" target="_blank" class="text-decoration-none">${this.escapeHtml(company.website.replace(/^https?:\/\//, ''))}</a>
+                                </div>
+                                ` : ''}
+                                
+                                ${company.contact_name ? `
+                                <div class="company-detail">
+                                    <i class="bi bi-person"></i>
+                                    <span>${this.escapeHtml(company.contact_name)}</span>
+                                </div>
+                                ` : ''}
+                                
+                                ${company.contact_email ? `
+                                <div class="company-detail">
+                                    <i class="bi bi-envelope"></i>
+                                    <a href="mailto:${this.escapeHtml(company.contact_email)}" class="text-decoration-none">${this.escapeHtml(company.contact_email)}</a>
+                                </div>
+                                ` : ''}
+                                
+                                ${company.contact_phone ? `
+                                <div class="company-detail">
+                                    <i class="bi bi-telephone"></i>
+                                    <a href="tel:${this.escapeHtml(company.contact_phone)}" class="text-decoration-none">${this.escapeHtml(company.contact_phone)}</a>
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            ${company.description ? `
+                            <div class="mt-3">
+                                <p class="card-text text-muted small">
+                                    ${this.escapeHtml(company.description.substring(0, 100))}${company.description.length > 100 ? '...' : ''}
+                                </p>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <a href="/tutoring/views/admin/companies/company_internships.php?id=${company.id}" class="btn btn-sm btn-outline-primary w-100">
+                                <i class="bi bi-briefcase me-1"></i> Voir les stages
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = `<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">${companiesHtml}</div>`;
+            
+            // Initialiser les tooltips
+            this.initTooltips();
+        }
+        
+        renderPagination(pagination) {
+            const totalCount = document.getElementById('total-count');
+            const paginationInfo = document.getElementById('pagination-info');
+            const paginationControls = document.getElementById('pagination-controls');
+            
+            // Mettre à jour le compteur total
+            if (pagination.total_items > 0) {
+                totalCount.textContent = `${pagination.showing_from}-${pagination.showing_to} sur ${pagination.total_items} entreprises`;
+            } else {
+                totalCount.textContent = '0 entreprises';
+            }
+            
+            // Mettre à jour les informations de pagination
+            if (pagination.total_items > 0) {
+                paginationInfo.textContent = `Affichage de ${pagination.showing_from} à ${pagination.showing_to} sur ${pagination.total_items} résultats`;
+            } else {
+                paginationInfo.textContent = '';
+            }
+            
+            // Générer les contrôles de pagination
+            if (pagination.total_pages <= 1) {
+                paginationControls.innerHTML = '';
+                return;
+            }
+            
+            let paginationHtml = '';
+            
+            // Bouton Précédent
+            paginationHtml += `
+                <li class="page-item ${pagination.current_page <= 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="companiesTable.changePage(${pagination.current_page - 1}); return false;" aria-label="Précédent">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            `;
+            
+            // Pages
+            const startPage = Math.max(1, pagination.current_page - 2);
+            const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+            
+            if (startPage > 1) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="companiesTable.changePage(1); return false;">1</a></li>`;
+                if (startPage > 2) {
+                    paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHtml += `
+                    <li class="page-item ${i === pagination.current_page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="companiesTable.changePage(${i}); return false;">${i}</a>
+                    </li>
+                `;
+            }
+            
+            if (endPage < pagination.total_pages) {
+                if (endPage < pagination.total_pages - 1) {
+                    paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="companiesTable.changePage(${pagination.total_pages}); return false;">${pagination.total_pages}</a></li>`;
+            }
+            
+            // Bouton Suivant
+            paginationHtml += `
+                <li class="page-item ${pagination.current_page >= pagination.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="companiesTable.changePage(${pagination.current_page + 1}); return false;" aria-label="Suivant">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            `;
+            
+            paginationControls.innerHTML = paginationHtml;
+        }
+        
+        changePage(page) {
+            this.currentPage = page;
+            this.loadData();
+        }
+        
+        showError(message) {
+            const container = document.getElementById('companies-container');
+            container.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+        
+        initTooltips() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+        
+        generateAvatarColor(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const h = Math.abs(hash) % 360;
+            return `hsl(${h}, 75%, 45%)`;
+        }
+        
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
     }
+    
+    // Initialiser la table
+    let companiesTable;
+    document.addEventListener('DOMContentLoaded', function() {
+        companiesTable = new CompaniesTable();
+    });
     
     // Fonction pour ouvrir le modal de suppression
     function openDeleteModal(id, name) {

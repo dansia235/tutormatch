@@ -1,7 +1,7 @@
 <?php
 /**
- * API pour la liste des documents (admin) avec tri et pagination
- * GET /api/documents/admin-list.php
+ * API pour la liste des documents (tuteur) avec tri et pagination
+ * GET /api/documents/tutor-list.php
  */
 
 require_once __DIR__ . '/../../includes/init.php';
@@ -13,10 +13,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-// Vérifier les permissions (admin et coordinateur uniquement)
-requireRole(['admin', 'coordinator']);
+// Vérifier les permissions (tuteurs uniquement)
+requireRole(['teacher']);
 
 try {
+    // Récupérer l'ID du tuteur
+    $teacherModel = new Teacher($db);
+    $teacher = $teacherModel->getByUserId($_SESSION['user_id']);
+    
+    if (!$teacher) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Profil tuteur non trouvé']);
+        exit;
+    }
+    
+    // Récupérer les affectations du tuteur
+    $assignments = $teacherModel->getAssignments($teacher['id']);
+    $studentIds = array_column($assignments, 'student_id');
+    
     // Configuration de la pagination
     $itemsPerPage = isset($_GET['per_page']) ? max(10, min(100, (int)$_GET['per_page'])) : 10;
     $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -24,10 +38,11 @@ try {
     
     // Traitement des filtres
     $categoryFilter = isset($_GET['category']) ? $_GET['category'] : null;
+    $studentFilter = isset($_GET['student_id']) ? (int)$_GET['student_id'] : null;
     $searchTerm = isset($_GET['term']) ? trim($_GET['term']) : '';
     
     // Traitement du tri
-    $sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
+    $sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'upload_date';
     $sortOrder = isset($_GET['order']) && strtolower($_GET['order']) === 'asc' ? 'ASC' : 'DESC';
     
     // Colonnes autorisées pour le tri
@@ -35,15 +50,16 @@ try {
         'title' => 'd.title',
         'type' => 'd.type',
         'file_size' => 'd.file_size',
+        'upload_date' => 'd.upload_date',
         'created_at' => 'd.upload_date',
-        'updated_at' => 'd.upload_date',
         'user_name' => 'CONCAT(u.first_name, " ", u.last_name)',
-        'visibility' => 'd.visibility'
+        'student_name' => 'CONCAT(u.first_name, " ", u.last_name)',
+        'status' => 'd.status'
     ];
     
     // Valider la colonne de tri
     if (!array_key_exists($sortBy, $allowedSortColumns)) {
-        $sortBy = 'created_at';
+        $sortBy = 'upload_date';
     }
     
     $sortColumn = $allowedSortColumns[$sortBy];
@@ -52,21 +68,33 @@ try {
     $whereConditions = [];
     $params = [];
     
+    // Limiter aux documents des étudiants assignés au tuteur
+    if (!empty($studentIds)) {
+        $placeholders = implode(',', array_fill(0, count($studentIds), '?'));
+        $whereConditions[] = "s.id IN ($placeholders)";
+        $params = array_merge($params, $studentIds);
+    } else {
+        // Si aucun étudiant assigné, ne retourner aucun document
+        $whereConditions[] = "1 = 0";
+    }
+    
     if (!empty($searchTerm)) {
         $whereConditions[] = "(d.title LIKE ? 
                               OR d.description LIKE ? 
                               OR d.file_path LIKE ?
                               OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?)";
         $searchParam = '%' . $searchTerm . '%';
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
+        $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam]);
     }
     
     if (!empty($categoryFilter)) {
         $whereConditions[] = "d.type = ?";
         $params[] = $categoryFilter;
+    }
+    
+    if ($studentFilter) {
+        $whereConditions[] = "s.id = ?";
+        $params[] = $studentFilter;
     }
     
     $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
@@ -76,13 +104,11 @@ try {
         SELECT COUNT(*) as total 
         FROM documents d
         LEFT JOIN users u ON d.user_id = u.id
+        LEFT JOIN students s ON u.id = s.user_id
         $whereClause
     ";
     $countStmt = $db->prepare($countQuery);
-    foreach ($params as $index => $value) {
-        $countStmt->bindValue($index + 1, $value);
-    }
-    $countStmt->execute();
+    $countStmt->execute($params);
     $totalDocuments = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
     
     // Calculer les informations de pagination
@@ -96,27 +122,19 @@ try {
                u.first_name,
                u.last_name,
                u.email,
+               s.student_number,
                CONCAT(u.first_name, ' ', u.last_name) as user_full_name
         FROM documents d
         LEFT JOIN users u ON d.user_id = u.id
+        LEFT JOIN students s ON u.id = s.user_id
         $whereClause
         ORDER BY $sortColumn $sortOrder, d.id DESC
         LIMIT ? OFFSET ?
     ";
     
     $stmt = $db->prepare($query);
-    
-    // Bind les paramètres de recherche et filtres d'abord
-    $paramIndex = 1;
-    foreach ($params as $value) {
-        $stmt->bindValue($paramIndex, $value);
-        $paramIndex++;
-    }
-    
-    // Puis bind les paramètres de pagination
-    $stmt->bindValue($paramIndex, $itemsPerPage, PDO::PARAM_INT);
-    $stmt->bindValue($paramIndex + 1, $offset, PDO::PARAM_INT);
-    $stmt->execute();
+    $allParams = array_merge($params, [$itemsPerPage, $offset]);
+    $stmt->execute($allParams);
     $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Formatter les données pour l'affichage
@@ -131,14 +149,17 @@ try {
             'file_size' => $document['file_size'],
             'file_size_formatted' => formatFileSize($document['file_size']),
             'file_path' => $document['file_path'],
+            'status' => $document['status'],
             'visibility' => $document['visibility'],
             'user_id' => $document['user_id'],
             'user_name' => $document['user_full_name'],
+            'student_name' => $document['user_full_name'],
             'user_email' => $document['email'],
+            'student_number' => $document['student_number'],
+            'upload_date' => $document['upload_date'],
             'created_at' => $document['upload_date'],
-            'updated_at' => $document['upload_date'],
-            'created_at_formatted' => date('d/m/Y H:i', strtotime($document['upload_date'])),
-            'updated_at_formatted' => date('d/m/Y H:i', strtotime($document['upload_date']))
+            'upload_date_formatted' => date('d/m/Y H:i', strtotime($document['upload_date'])),
+            'created_at_formatted' => date('d/m/Y H:i', strtotime($document['upload_date']))
         ];
     }
     

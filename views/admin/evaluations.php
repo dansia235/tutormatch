@@ -249,39 +249,38 @@ include_once __DIR__ . '/../common/header.php';
         <div class="card-body">
             <div class="row">
                 <div class="col-md-4">
-                    <form action="" method="GET" class="d-flex" id="searchForm">
-                        <input type="text" name="term" class="form-control me-2" placeholder="Rechercher..." value="<?php echo h($searchTerm); ?>">
-                        <button type="submit" name="search" class="btn btn-outline-primary">
+                    <form id="searchForm" class="d-flex">
+                        <input type="text" name="term" class="form-control me-2" placeholder="Rechercher une évaluation..." value="<?php echo h($searchTerm); ?>">
+                        <button type="submit" class="btn btn-outline-primary">
                             <i class="bi bi-search"></i>
                         </button>
-                        <?php if (!empty($statusFilter)): ?>
-                        <input type="hidden" name="status" value="<?php echo h($statusFilter); ?>">
-                        <?php endif; ?>
-                        <?php if (!empty($typeFilter)): ?>
-                        <input type="hidden" name="type" value="<?php echo h($typeFilter); ?>">
-                        <?php endif; ?>
                     </form>
                 </div>
                 <div class="col-md-8 text-md-end mt-3 mt-md-0">
                     <div class="d-flex align-items-center justify-content-md-end gap-3 flex-wrap">
                         <!-- Filtres par statut -->
-                        <div class="filter-tabs">
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['status' => null])); ?>" 
-                               class="filter-tab <?php echo empty($statusFilter) ? 'active' : ''; ?>">Tous</a>
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['status' => 'completed'])); ?>" 
-                               class="filter-tab <?php echo $statusFilter === 'completed' ? 'active' : ''; ?>">Complétées</a>
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['status' => 'draft'])); ?>" 
-                               class="filter-tab <?php echo $statusFilter === 'draft' ? 'active' : ''; ?>">Brouillons</a>
+                        <div class="btn-group" role="group" aria-label="Filtres par statut">
+                            <input type="radio" class="btn-check" name="statusFilter" id="status-all" value="" checked>
+                            <label class="btn btn-outline-primary" for="status-all">Toutes</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilter" id="status-completed" value="completed">
+                            <label class="btn btn-outline-primary" for="status-completed">Complétées</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilter" id="status-draft" value="draft">
+                            <label class="btn btn-outline-primary" for="status-draft">Brouillons</label>
+                            
+                            <input type="radio" class="btn-check" name="statusFilter" id="status-pending" value="pending">
+                            <label class="btn btn-outline-primary" for="status-pending">En attente</label>
                         </div>
                         
                         <!-- Sélecteur du nombre d'éléments par page -->
                         <div class="d-flex align-items-center">
                             <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
-                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="changeItemsPerPage(this.value)">
-                                <option value="10" <?php echo $itemsPerPage == 10 ? 'selected' : ''; ?>>10</option>
-                                <option value="20" <?php echo $itemsPerPage == 20 ? 'selected' : ''; ?>>20</option>
-                                <option value="50" <?php echo $itemsPerPage == 50 ? 'selected' : ''; ?>>50</option>
-                                <option value="100" <?php echo $itemsPerPage == 100 ? 'selected' : ''; ?>>100</option>
+                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
                             </select>
                         </div>
                     </div>
@@ -782,10 +781,9 @@ include_once __DIR__ . '/../common/header.php';
     }
 
     function changeItemsPerPage(value) {
-        const url = new URL(window.location);
-        url.searchParams.set('per_page', value);
-        url.searchParams.set('page', '1');
-        window.location.href = url.toString();
+        itemsPerPage = parseInt(value);
+        currentPage = 1;
+        loadEvaluations();
     }
 
     function viewEvaluation(id) {
@@ -985,6 +983,20 @@ include_once __DIR__ . '/../common/header.php';
                 }, 500); // Délai de 500ms
             });
         }
+        
+        // Gestion des filtres par statut
+        document.querySelectorAll('input[name="statusFilter"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                statusFilter = this.value;
+                currentPage = 1;
+                loadEvaluations();
+            });
+        });
+        
+        // Gestionnaire pour le changement du nombre d'éléments par page
+        document.getElementById('itemsPerPage').addEventListener('change', function() {
+            changeItemsPerPage(this.value);
+        });
         
         // Gestion de la modal de suppression
         const deleteCheckbox = document.getElementById('confirmDeleteCheckbox');

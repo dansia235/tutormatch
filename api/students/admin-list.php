@@ -55,27 +55,32 @@ try {
     $params = [];
     
     if (!empty($searchTerm)) {
-        $whereConditions[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE :search 
-                              OR u.email LIKE :search 
-                              OR s.student_number LIKE :search
-                              OR s.program LIKE :search
-                              OR s.level LIKE :search)";
-        $params[':search'] = '%' . $searchTerm . '%';
+        $whereConditions[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? 
+                              OR u.email LIKE ? 
+                              OR s.student_number LIKE ?
+                              OR s.program LIKE ?
+                              OR s.level LIKE ?)";
+        $searchParam = '%' . $searchTerm . '%';
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
     }
     
     if (!empty($programFilter)) {
-        $whereConditions[] = "s.program = :program";
-        $params[':program'] = $programFilter;
+        $whereConditions[] = "s.program = ?";
+        $params[] = $programFilter;
     }
     
     if (!empty($levelFilter)) {
-        $whereConditions[] = "s.level = :level";
-        $params[':level'] = $levelFilter;
+        $whereConditions[] = "s.level = ?";
+        $params[] = $levelFilter;
     }
     
     if ($activeFilter !== null) {
-        $whereConditions[] = "u.is_active = :active";
-        $params[':active'] = $activeFilter === '1' ? 1 : 0;
+        $whereConditions[] = "u.is_active = ?";
+        $params[] = $activeFilter === '1' ? 1 : 0;
     }
     
     $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
@@ -88,8 +93,8 @@ try {
         $whereClause
     ";
     $countStmt = $db->prepare($countQuery);
-    foreach ($params as $key => $value) {
-        $countStmt->bindValue($key, $value);
+    foreach ($params as $index => $value) {
+        $countStmt->bindValue($index + 1, $value);
     }
     $countStmt->execute();
     $totalStudents = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -113,15 +118,21 @@ try {
         LEFT JOIN users u ON s.user_id = u.id
         $whereClause
         ORDER BY $sortColumn $sortOrder, s.id DESC
-        LIMIT :limit OFFSET :offset
+        LIMIT ? OFFSET ?
     ";
     
     $stmt = $db->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
+    
+    // Bind les paramètres de recherche et filtres d'abord
+    $paramIndex = 1;
+    foreach ($params as $value) {
+        $stmt->bindValue($paramIndex, $value);
+        $paramIndex++;
     }
-    $stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    
+    // Puis bind les paramètres de pagination
+    $stmt->bindValue($paramIndex, $itemsPerPage, PDO::PARAM_INT);
+    $stmt->bindValue($paramIndex + 1, $offset, PDO::PARAM_INT);
     $stmt->execute();
     $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
     

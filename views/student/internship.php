@@ -293,83 +293,77 @@ include_once __DIR__ . '/../common/header.php';
                     
                     <!-- Pagination -->
                     <?php if ($totalPages > 1): ?>
-                    <div class="d-flex justify-content-center mt-4">
-                        <nav aria-label="Navigation des stages">
-                            <ul class="pagination">
-                                <!-- Bouton Précédent -->
-                                <?php if ($page > 1): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=<?= $page - 1 ?>" aria-label="Précédent">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </a>
-                                </li>
-                                <?php else: ?>
-                                <li class="page-item disabled">
-                                    <span class="page-link" aria-label="Précédent">
-                                        <span aria-hidden="true">&laquo;</span>
-                                    </span>
-                                </li>
-                                <?php endif; ?>
-                                
-                                <!-- Numéros de page -->
-                                <?php
-                                $startPage = max(1, $page - 2);
-                                $endPage = min($totalPages, $page + 2);
-                                
-                                if ($startPage > 1): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=1">1</a>
-                                </li>
-                                <?php if ($startPage > 2): ?>
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
-                                </li>
-                                <?php endif; ?>
-                                <?php endif; ?>
-                                
-                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-                                    <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
-                                </li>
-                                <?php endfor; ?>
-                                
-                                <?php if ($endPage < $totalPages): ?>
-                                <?php if ($endPage < $totalPages - 1): ?>
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
-                                </li>
-                                <?php endif; ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=<?= $totalPages ?>"><?= $totalPages ?></a>
-                                </li>
-                                <?php endif; ?>
-                                
-                                <!-- Bouton Suivant -->
-                                <?php if ($page < $totalPages): ?>
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=<?= $page + 1 ?>" aria-label="Suivant">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </a>
-                                </li>
-                                <?php else: ?>
-                                <li class="page-item disabled">
-                                    <span class="page-link" aria-label="Suivant">
-                                        <span aria-hidden="true">&raquo;</span>
-                                    </span>
-                                </li>
-                                <?php endif; ?>
-                            </ul>
+                    <div class="card-footer">
+                        <nav aria-label="Navigation des pages">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted">
+                                    Affichage de <?= min($offset + 1, $totalInternships) ?> à <?= min($offset + $itemsPerPage, $totalInternships) ?> sur <?= $totalInternships ?> stage<?= $totalInternships > 1 ? 's' : '' ?>
+                                </div>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Bouton précédent -->
+                                    <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                                        <?php if ($page > 1): ?>
+                                        <a class="page-link" href="?page=<?= $page - 1 ?>" aria-label="Précédent">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                        <?php else: ?>
+                                        <span class="page-link" aria-label="Précédent">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </span>
+                                        <?php endif; ?>
+                                    </li>
+                                    
+                                    <?php
+                                    $startPage = max(1, $page - 2);
+                                    $endPage = min($totalPages, $page + 2);
+                                    
+                                    if ($startPage > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1">1</a>
+                                    </li>
+                                    <?php if ($startPage > 2): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                    <?php endif; ?>
+                                    <?php endif; ?>
+                                    
+                                    <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                                        <?php if ($i === $page): ?>
+                                        <span class="page-link"><?= $i ?></span>
+                                        <?php else: ?>
+                                        <a class="page-link" href="?page=<?= $i ?>"><?= $i ?></a>
+                                        <?php endif; ?>
+                                    </li>
+                                    <?php endfor; ?>
+                                    
+                                    <?php if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=<?= $totalPages ?>"><?= $totalPages ?></a>
+                                    </li>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Bouton suivant -->
+                                    <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                                        <?php if ($page < $totalPages): ?>
+                                        <a class="page-link" href="?page=<?= $page + 1 ?>" aria-label="Suivant">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                        <?php else: ?>
+                                        <span class="page-link" aria-label="Suivant">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </span>
+                                        <?php endif; ?>
+                                    </li>
+                                </ul>
+                            </div>
                         </nav>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <!-- Information de pagination -->
-                    <?php if ($totalInternships > 0): ?>
-                    <div class="text-center text-muted mt-2">
-                        <small>
-                            Affichage de <?= min($offset + 1, $totalInternships) ?> à <?= min($offset + $itemsPerPage, $totalInternships) ?> 
-                            sur <?= $totalInternships ?> stage<?= $totalInternships > 1 ? 's' : '' ?>
-                        </small>
                     </div>
                     <?php endif; ?>
                     
@@ -381,11 +375,32 @@ include_once __DIR__ . '/../common/header.php';
 </div>
 
 <style>
-/* Styles pour la pagination */
+/* Pagination améliorée - style AdminTable */
 .pagination .page-item.active .page-link {
-    color: #fff !important;
     background-color: #0d6efd;
     border-color: #0d6efd;
+    color: white !important;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+}
+
+.pagination .page-link {
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #0d6efd;
+}
+
+.card-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 0.75rem 1.25rem;
 }
 
 .card.fade-in {

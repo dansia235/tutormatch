@@ -54,22 +54,27 @@ try {
     $params = [];
     
     if (!empty($searchTerm)) {
-        $whereConditions[] = "(CONCAT(evaluator.first_name, ' ', evaluator.last_name) LIKE :search 
-                              OR CONCAT(evaluatee.first_name, ' ', evaluatee.last_name) LIKE :search 
-                              OR e.comments LIKE :search
-                              OR e.type LIKE :search
-                              OR e.status LIKE :search)";
-        $params[':search'] = '%' . $searchTerm . '%';
+        $whereConditions[] = "(CONCAT(evaluator.first_name, ' ', evaluator.last_name) LIKE ? 
+                              OR CONCAT(evaluatee.first_name, ' ', evaluatee.last_name) LIKE ? 
+                              OR e.comments LIKE ?
+                              OR e.type LIKE ?
+                              OR e.status LIKE ?)";
+        $searchParam = '%' . $searchTerm . '%';
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
     }
     
     if (!empty($statusFilter)) {
-        $whereConditions[] = "e.status = :status";
-        $params[':status'] = $statusFilter;
+        $whereConditions[] = "e.status = ?";
+        $params[] = $statusFilter;
     }
     
     if (!empty($typeFilter)) {
-        $whereConditions[] = "e.type = :type";
-        $params[':type'] = $typeFilter;
+        $whereConditions[] = "e.type = ?";
+        $params[] = $typeFilter;
     }
     
     $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
@@ -83,8 +88,8 @@ try {
         $whereClause
     ";
     $countStmt = $db->prepare($countQuery);
-    foreach ($params as $key => $value) {
-        $countStmt->bindValue($key, $value);
+    foreach ($params as $index => $value) {
+        $countStmt->bindValue($index + 1, $value);
     }
     $countStmt->execute();
     $totalEvaluations = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -111,15 +116,21 @@ try {
         LEFT JOIN assignments a ON e.assignment_id = a.id
         $whereClause
         ORDER BY $sortColumn $sortOrder, e.updated_at DESC
-        LIMIT :limit OFFSET :offset
+        LIMIT ? OFFSET ?
     ";
     
     $stmt = $db->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
+    
+    // Bind les paramètres de recherche et filtres d'abord
+    $paramIndex = 1;
+    foreach ($params as $value) {
+        $stmt->bindValue($paramIndex, $value);
+        $paramIndex++;
     }
-    $stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    
+    // Puis bind les paramètres de pagination
+    $stmt->bindValue($paramIndex, $itemsPerPage, PDO::PARAM_INT);
+    $stmt->bindValue($paramIndex + 1, $offset, PDO::PARAM_INT);
     $stmt->execute();
     $evaluations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     

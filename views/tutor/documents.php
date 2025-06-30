@@ -6,6 +6,8 @@
 // Titre de la page
 $pageTitle = 'Documents';
 $currentPage = 'documents';
+$extraStyles = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">';
+$extraScripts = '<script src="/tutoring/assets/js/admin-table.js"></script>';
 
 // Inclure le fichier d'initialisation
 require_once __DIR__ . '/../../includes/init.php';
@@ -444,131 +446,38 @@ include_once __DIR__ . '/../common/header.php';
                     </div>
                 </div>
                 <div class="card-body">
-                    <?php if (empty($filteredDocuments)): ?>
-                    <div class="alert alert-info" role="alert">
-                        <i class="bi bi-info-circle-fill me-2"></i>Aucun document ne correspond à vos critères de recherche.
+                    <!-- En-tête avec compteur et sélecteur -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center">
+                            <h5 class="card-title mb-0 me-2">
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                Documents
+                            </h5>
+                            <span class="badge bg-primary" id="documentCount">
+                                Chargement...
+                            </span>
+                        </div>
+                        
+                        <!-- Sélecteur du nombre d'éléments par page -->
+                        <div class="d-flex align-items-center">
+                            <label for="itemsPerPage" class="form-label me-2 mb-0 text-muted small">Afficher:</label>
+                            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
                     </div>
-                    <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="documentsTable">
-                            <thead>
-                                <tr>
-                                    <th>Document</th>
-                                    <?php if (!$selectedStudent): ?>
-                                    <th>Étudiant</th>
-                                    <?php endif; ?>
-                                    <th>Type</th>
-                                    <th>Date</th>
-                                    <th>Statut</th>
-                                    <th>Taille</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($filteredDocuments as $doc): ?>
-                                <tr class="document-row" data-document-type="<?php echo h($doc['type']); ?>" data-document-status="<?php echo h($doc['status']); ?>">
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <?php
-                                            // Déterminer l'icône en fonction du type de fichier
-                                            $iconClass = 'bi-file-earmark text-secondary';
-                                            $fileType = isset($doc['file_type']) ? (string)$doc['file_type'] : '';
-                                            
-                                            if ($fileType && strpos($fileType, 'pdf') !== false) {
-                                                $iconClass = 'bi-file-earmark-pdf text-danger';
-                                            } elseif ($fileType && (strpos($fileType, 'word') !== false || strpos($fileType, 'document') !== false)) {
-                                                $iconClass = 'bi-file-earmark-word text-primary';
-                                            } elseif ($fileType && (strpos($fileType, 'excel') !== false || strpos($fileType, 'sheet') !== false)) {
-                                                $iconClass = 'bi-file-earmark-excel text-success';
-                                            } elseif ($fileType && strpos($fileType, 'image') !== false) {
-                                                $iconClass = 'bi-file-earmark-image text-info';
-                                            } elseif ($fileType && (strpos($fileType, 'presentation') !== false || strpos($fileType, 'powerpoint') !== false)) {
-                                                $iconClass = 'bi-file-earmark-slides text-warning';
-                                            }
-                                            ?>
-                                            <i class="bi <?php echo $iconClass; ?> document-icon me-2"></i>
-                                            <div>
-                                                <strong><?php echo h($doc['title']); ?></strong>
-                                                <?php if (!empty($doc['description'])): ?>
-                                                <br><small class="text-muted"><?php echo h(substr($doc['description'], 0, 50)) . (strlen($doc['description']) > 50 ? '...' : ''); ?></small>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <?php if (!$selectedStudent): ?>
-                                    <td>
-                                        <a href="/tutoring/views/tutor/documents.php?student_id=<?php echo h($doc['student_id']); ?>">
-                                            <?php echo h($doc['student_name']); ?>
-                                        </a>
-                                    </td>
-                                    <?php endif; ?>
-                                    <td>
-                                        <?php 
-                                        $typeLabel = match($doc['type']) {
-                                            'report' => '<span class="badge bg-info">Rapport</span>',
-                                            'contract' => '<span class="badge bg-primary">Contrat</span>',
-                                            'administrative' => '<span class="badge bg-secondary">Administratif</span>',
-                                            default => '<span class="badge bg-light text-dark">Autre</span>'
-                                        };
-                                        echo $typeLabel;
-                                        ?>
-                                    </td>
-                                    <td><?php echo date('d/m/Y', strtotime($doc['upload_date'])); ?></td>
-                                    <td>
-                                        <?php 
-                                        $statusClass = match($doc['status']) {
-                                            'pending' => 'bg-warning',
-                                            'submitted' => 'bg-warning',
-                                            'approved' => 'bg-success',
-                                            'rejected' => 'bg-danger',
-                                            'draft' => 'bg-secondary',
-                                            default => 'bg-secondary'
-                                        };
-                                        
-                                        $statusLabel = match($doc['status']) {
-                                            'pending' => 'En attente',
-                                            'submitted' => 'En attente',
-                                            'approved' => 'Validé',
-                                            'rejected' => 'Rejeté',
-                                            'draft' => 'Brouillon',
-                                            default => ucfirst($doc['status'])
-                                        };
-                                        ?>
-                                        <span class="badge <?php echo $statusClass; ?>"><?php echo $statusLabel; ?></span>
-                                    </td>
-                                    <td><?php echo formatFileSize($doc['file_size'] ?? null); ?></td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="/tutoring/views/tutor/document_details.php?id=<?php echo h($doc['id']); ?>" class="btn btn-sm btn-outline-primary" title="Visualiser">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <a href="/tutoring/<?php echo h($doc['file_path']); ?>" class="btn btn-sm btn-outline-secondary" download title="Télécharger">
-                                                <i class="bi bi-download"></i>
-                                            </a>
-                                            <?php if (($doc['status'] === 'pending' || $doc['status'] === 'submitted' || $doc['status'] === 'draft') && $doc['user_id'] != $_SESSION['user_id']): ?>
-                                            <button type="button" class="btn btn-sm btn-outline-success" 
-                                                    onclick="approveDocument(<?php echo $doc['id']; ?>, '<?php echo h($doc['title']); ?>')" title="Approuver">
-                                                <i class="bi bi-check-lg"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                    onclick="rejectDocument(<?php echo $doc['id']; ?>, '<?php echo h($doc['title']); ?>')" title="Rejeter">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                            <?php if ($doc['user_id'] == $_SESSION['user_id']): ?>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                    onclick="confirmDelete(<?php echo $doc['id']; ?>, '<?php echo h($doc['title']); ?>')" title="Supprimer">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    
+                    <!-- Container pour la table -->
+                    <div id="documentsTableContainer">
+                        <!-- Le contenu sera chargé dynamiquement -->
+                        <div class="text-center p-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                        </div>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -907,101 +816,304 @@ include_once __DIR__ . '/../common/header.php';
     </div>
 </div>
 
+<style>
+/* Styles pour les colonnes triables */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: #e9ecef !important;
+}
+
+.sort-icon {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.sortable:hover .sort-icon {
+    opacity: 1;
+}
+
+.sort-icon.text-primary {
+    opacity: 1;
+    font-weight: bold;
+}
+
+/* Animation pour le tri */
+@keyframes sortHighlight {
+    0% { background-color: #e3f2fd; }
+    100% { background-color: transparent; }
+}
+
+.sortable.sorting {
+    animation: sortHighlight 0.3s ease;
+}
+
+/* Pagination améliorée */
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white !important;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+}
+
+.pagination .page-link {
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #0d6efd;
+}
+</style>
+
 <script>
-    // Fonction pour la recherche de documents
-    document.getElementById('search').addEventListener('keyup', function() {
-        const searchTerm = this.value.toLowerCase();
-        const table = document.getElementById('documentsTable');
-        if (!table) return;
-        
-        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-        
-        for (let i = 0; i < rows.length; i++) {
-            const rowText = rows[i].textContent.toLowerCase();
-            rows[i].style.display = rowText.includes(searchTerm) ? '' : 'none';
+// Configuration de la table des documents avec AdminTable
+const documentTableConfig = {
+    apiEndpoint: '/tutoring/api/documents/tutor-list.php',
+    tableContainer: '#documentsTableContainer',
+    searchForm: '#searchForm',
+    defaultSort: 'upload_date',
+    columns: [
+        { key: 'title', label: 'Document', sortable: true },
+        { key: 'student_name', label: 'Étudiant', sortable: true },
+        { key: 'type', label: 'Type', sortable: true },
+        { key: 'upload_date', label: 'Date', sortable: true },
+        { key: 'status', label: 'Statut', sortable: true },
+        { key: 'file_size', label: 'Taille', sortable: true },
+        { key: 'actions', label: 'Actions', sortable: false }
+    ],
+    renderRow: function(document) {
+        // Icônes selon le type de fichier
+        let iconClass = 'bi-file';
+        if (document.file_type) {
+            if (document.file_type.includes('pdf')) iconClass = 'bi-file-pdf text-danger';
+            else if (document.file_type.includes('word')) iconClass = 'bi-file-word text-primary';
+            else if (document.file_type.includes('excel') || document.file_type.includes('sheet')) iconClass = 'bi-file-excel text-success';
+            else if (document.file_type.includes('powerpoint') || document.file_type.includes('presentation')) iconClass = 'bi-file-slides text-warning';
+            else if (document.file_type.includes('image')) iconClass = 'bi-file-image text-info';
+            else if (document.file_type.includes('zip') || document.file_type.includes('rar')) iconClass = 'bi-file-zip text-secondary';
+            else if (document.file_type.includes('text')) iconClass = 'bi-file-text';
         }
+        
+        // Badges de type
+        const typeLabels = {
+            'contract': '<span class="badge bg-primary">Contrat</span>',
+            'report': '<span class="badge bg-success">Rapport</span>',
+            'evaluation': '<span class="badge bg-warning">Évaluation</span>',
+            'certificate': '<span class="badge bg-info">Certificat</span>',
+            'other': '<span class="badge bg-dark">Autre</span>'
+        };
+        const typeHTML = typeLabels[document.type] || '<span class="badge bg-secondary">Inconnu</span>';
+        
+        // Badges de statut
+        const statusLabels = {
+            'draft': '<span class="badge bg-secondary">Brouillon</span>',
+            'submitted': '<span class="badge bg-info">Soumis</span>',
+            'approved': '<span class="badge bg-success">Approuvé</span>',
+            'rejected': '<span class="badge bg-danger">Rejeté</span>'
+        };
+        const statusHTML = statusLabels[document.status] || '<span class="badge bg-secondary">Inconnu</span>';
+        
+        // Initiales de l'étudiant
+        const firstName = document.student_name ? document.student_name.split(' ')[0] : '';
+        const lastName = document.student_name ? document.student_name.split(' ')[1] || '' : '';
+        const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+        
+        return `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="bi ${iconClass} me-2 fs-4"></i>
+                        <div>
+                            <div class="fw-bold">${document.title || ''}</div>
+                            ${document.description ? `<div class="text-muted small">${document.description.substring(0, 50)}${document.description.length > 50 ? '...' : ''}</div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-sm me-2">${initials}</div>
+                        <div>
+                            <div>${document.student_name || 'Inconnu'}</div>
+                            ${document.user_email ? `<div class="text-muted small">${document.user_email}</div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>${typeHTML}</td>
+                <td>${document.upload_date_formatted}</td>
+                <td>${statusHTML}</td>
+                <td>${document.file_size_formatted}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <a href="/tutoring/views/tutor/documents/show.php?id=${document.id}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Voir les détails">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="/tutoring/api/documents/download.php?id=${document.id}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Télécharger">
+                            <i class="bi bi-download"></i>
+                        </a>
+                        ${document.status === 'submitted' ? 
+                            `<button type="button" class="btn btn-sm btn-outline-success" onclick="approveDocument(${document.id}, '${document.title}')" title="Approuver">
+                                <i class="bi bi-check"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="rejectDocument(${document.id}, '${document.title}')" title="Rejeter">
+                                <i class="bi bi-x"></i>
+                            </button>` : ''
+                        }
+                    </div>
+                </td>
+            </tr>
+        `;
+    },
+    onDataLoaded: function(data) {
+        // Mettre à jour le compteur
+        const countBadge = document.getElementById('documentCount');
+        if (data.pagination.total_items > 0) {
+            countBadge.textContent = `${data.pagination.showing_from}-${data.pagination.showing_to} sur ${data.pagination.total_items} documents`;
+        } else {
+            countBadge.textContent = '0 documents';
+        }
+    }
+};
+
+let adminTable;
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser AdminTable
+    adminTable = new AdminTable(documentTableConfig);
+    
+    // Gestion du sélecteur d'éléments par page
+    document.getElementById('itemsPerPage').addEventListener('change', function() {
+        adminTable.setItemsPerPage(this.value);
     });
-    
-    // Fonction pour approuver un document
-    function approveDocument(documentId, documentTitle) {
-        document.getElementById('approve_document_id').value = documentId;
-        document.getElementById('approveDocumentTitle').textContent = documentTitle;
-        const modal = new bootstrap.Modal(document.getElementById('approveDocumentModal'));
-        modal.show();
+});
+</script>
+
+<script>
+// Configuration de la table des documents
+const documentTableConfig = {
+    apiEndpoint: '/tutoring/api/documents/tutor-list.php',
+    tableContainer: '#documentsTableContainer',
+    defaultSort: 'upload_date',
+    defaultOrder: 'desc',
+    columns: [
+        { key: 'title', label: 'Titre', sortable: true },
+        { key: 'student_name', label: 'Étudiant', sortable: true },
+        { key: 'type', label: 'Type', sortable: true },
+        { key: 'file_size', label: 'Taille', sortable: true },
+        { key: 'upload_date', label: 'Date d\'ajout', sortable: true },
+        { key: 'status', label: 'Statut', sortable: true },
+        { key: 'actions', label: 'Actions', sortable: false }
+    ],
+    renderRow: function(document) {
+        const statusBadge = {
+            'pending': '<span class="badge bg-warning">En attente</span>',
+            'approved': '<span class="badge bg-success">Approuvé</span>',
+            'rejected': '<span class="badge bg-danger">Rejeté</span>'
+        };
+
+        const typeBadge = {
+            'report': '<span class="badge bg-info">Rapport</span>',
+            'contract': '<span class="badge bg-primary">Contrat</span>',
+            'administrative': '<span class="badge bg-secondary">Administratif</span>',
+            'other': '<span class="badge bg-dark">Autre</span>'
+        };
+
+        return `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+                        <div>
+                            <div class="fw-medium">${document.title || 'Document'}</div>
+                            ${document.description ? '<small class="text-muted">' + document.description + '</small>' : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-person-circle me-2 text-secondary"></i>
+                        <div>
+                            <div>${document.student_name || 'Non assigné'}</div>
+                            ${document.student_number ? '<small class="text-muted">' + document.student_number + '</small>' : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>${typeBadge[document.type] || '<span class="badge bg-secondary">Autre</span>'}</td>
+                <td>
+                    <small class="text-muted">${document.file_size_formatted || '0 B'}</small>
+                </td>
+                <td>
+                    <small class="text-muted">${document.upload_date_formatted || ''}</small>
+                </td>
+                <td>${statusBadge[document.status] || '<span class="badge bg-secondary">Inconnu</span>'}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <a href="/tutoring/${document.file_path}" target="_blank" class="btn btn-sm btn-outline-primary" title="Télécharger">
+                            <i class="bi bi-download"></i>
+                        </a>
+                        ${document.status === 'pending' ? `
+                            <button class="btn btn-sm btn-outline-success" onclick="approveDocument(${document.id}, '${document.title}')" title="Approuver">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="rejectDocument(${document.id}, '${document.title}')" title="Rejeter">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(${document.id}, '${document.title}')" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
     }
+};
+
+// Initialiser AdminTable
+document.addEventListener('DOMContentLoaded', function() {
+    const adminTable = new AdminTable(documentTableConfig);
     
-    // Fonction pour rejeter un document
-    function rejectDocument(documentId, documentTitle) {
-        document.getElementById('reject_document_id').value = documentId;
-        document.getElementById('rejectDocumentTitle').textContent = documentTitle;
-        const modal = new bootstrap.Modal(document.getElementById('rejectDocumentModal'));
-        modal.show();
-    }
-    
-    // Fonction pour confirmer la suppression
-    function confirmDelete(documentId, documentTitle) {
-        document.getElementById('delete_document_id').value = documentId;
-        document.getElementById('deleteDocumentTitle').textContent = documentTitle;
-        const modal = new bootstrap.Modal(document.getElementById('deleteDocumentModal'));
-        modal.show();
-    }
-    
-    // Triage des documents
-    document.querySelectorAll('[data-sort]').forEach(sortBtn => {
-        sortBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Mettre à jour l'élément actif
-            document.querySelectorAll('[data-sort]').forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            const sortType = this.getAttribute('data-sort');
-            const table = document.getElementById('documentsTable');
-            if (!table) return;
-            
-            const tbody = table.getElementsByTagName('tbody')[0];
-            const rows = Array.from(tbody.getElementsByTagName('tr'));
-            
-            // Trier les lignes
-            rows.sort((a, b) => {
-                let aValue, bValue;
-                
-                switch (sortType) {
-                    case 'date-desc':
-                    case 'date-asc':
-                        aValue = new Date(a.getElementsByTagName('td')[sortType === 'date-desc' ? 2 : 2].textContent);
-                        bValue = new Date(b.getElementsByTagName('td')[sortType === 'date-desc' ? 2 : 2].textContent);
-                        return sortType === 'date-desc' ? bValue - aValue : aValue - bValue;
-                    
-                    case 'name':
-                        aValue = a.getElementsByTagName('td')[0].textContent.toLowerCase();
-                        bValue = b.getElementsByTagName('td')[0].textContent.toLowerCase();
-                        return aValue.localeCompare(bValue);
-                    
-                    case 'student':
-                        aValue = a.getElementsByTagName('td')[1]?.textContent.toLowerCase() || '';
-                        bValue = b.getElementsByTagName('td')[1]?.textContent.toLowerCase() || '';
-                        return aValue.localeCompare(bValue);
-                    
-                    case 'type':
-                        aValue = a.getAttribute('data-document-type');
-                        bValue = b.getAttribute('data-document-type');
-                        return aValue.localeCompare(bValue);
-                    
-                    case 'status':
-                        aValue = a.getAttribute('data-document-status');
-                        bValue = b.getAttribute('data-document-status');
-                        return aValue.localeCompare(bValue);
-                    
-                    default:
-                        return 0;
-                }
-            });
-            
-            // Réorganiser les lignes dans le tableau
-            rows.forEach(row => tbody.appendChild(row));
-        });
+    // Gestionnaire pour le changement du nombre d'éléments par page
+    document.getElementById('itemsPerPage').addEventListener('change', function() {
+        adminTable.setItemsPerPage(this.value);
     });
+});
+
+// Fonction pour approuver un document
+function approveDocument(documentId, documentTitle) {
+    document.getElementById('approve_document_id').value = documentId;
+    document.getElementById('approveDocumentTitle').textContent = documentTitle;
+    const modal = new bootstrap.Modal(document.getElementById('approveDocumentModal'));
+    modal.show();
+}
+
+// Fonction pour rejeter un document
+function rejectDocument(documentId, documentTitle) {
+    document.getElementById('reject_document_id').value = documentId;
+    document.getElementById('rejectDocumentTitle').textContent = documentTitle;
+    const modal = new bootstrap.Modal(document.getElementById('rejectDocumentModal'));
+    modal.show();
+}
+
+// Fonction pour confirmer la suppression
+function confirmDelete(documentId, documentTitle) {
+    document.getElementById('delete_document_id').value = documentId;
+    document.getElementById('deleteDocumentTitle').textContent = documentTitle;
+    const modal = new bootstrap.Modal(document.getElementById('deleteDocumentModal'));
+    modal.show();
+}
 </script>
 
 <?php

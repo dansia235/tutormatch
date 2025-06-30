@@ -28,7 +28,7 @@ try {
     $searchTerm = isset($_GET['term']) ? trim($_GET['term']) : '';
     
     // Traitement du tri
-    $sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'assigned_date';
+    $sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'assignment_date';
     $sortOrder = isset($_GET['order']) && strtolower($_GET['order']) === 'asc' ? 'ASC' : 'DESC';
     
     // Colonnes autorisées pour le tri
@@ -37,14 +37,14 @@ try {
         'teacher_name' => 'CONCAT(tu.first_name, " ", tu.last_name)',
         'internship_title' => 'i.title',
         'status' => 'a.status',
-        'assigned_date' => 'a.assigned_date',
+        'assignment_date' => 'a.assignment_date',
         'start_date' => 'a.start_date',
         'end_date' => 'a.end_date'
     ];
     
     // Valider la colonne de tri
     if (!array_key_exists($sortBy, $allowedSortColumns)) {
-        $sortBy = 'assigned_date';
+        $sortBy = 'assignment_date';
     }
     
     $sortColumn = $allowedSortColumns[$sortBy];
@@ -54,22 +54,27 @@ try {
     $params = [];
     
     if (!empty($searchTerm)) {
-        $whereConditions[] = "(CONCAT(su.first_name, ' ', su.last_name) LIKE :search 
-                              OR CONCAT(tu.first_name, ' ', tu.last_name) LIKE :search 
-                              OR i.title LIKE :search
-                              OR c.name LIKE :search
-                              OR a.status LIKE :search)";
-        $params[':search'] = '%' . $searchTerm . '%';
+        $whereConditions[] = "(CONCAT(su.first_name, ' ', su.last_name) LIKE ? 
+                              OR CONCAT(tu.first_name, ' ', tu.last_name) LIKE ? 
+                              OR i.title LIKE ?
+                              OR c.name LIKE ?
+                              OR a.status LIKE ?)";
+        $searchParam = '%' . $searchTerm . '%';
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
+        $params[] = $searchParam;
     }
     
     if (!empty($statusFilter)) {
-        $whereConditions[] = "a.status = :status";
-        $params[':status'] = $statusFilter;
+        $whereConditions[] = "a.status = ?";
+        $params[] = $statusFilter;
     }
     
     if (!empty($departmentFilter)) {
-        $whereConditions[] = "su.department = :department";
-        $params[':department'] = $departmentFilter;
+        $whereConditions[] = "su.department = ?";
+        $params[] = $departmentFilter;
     }
     
     $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
@@ -87,8 +92,8 @@ try {
         $whereClause
     ";
     $countStmt = $db->prepare($countQuery);
-    foreach ($params as $key => $value) {
-        $countStmt->bindValue($key, $value);
+    foreach ($params as $index => $value) {
+        $countStmt->bindValue($index + 1, $value);
     }
     $countStmt->execute();
     $totalAssignments = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -120,15 +125,21 @@ try {
         LEFT JOIN companies c ON i.company_id = c.id
         $whereClause
         ORDER BY $sortColumn $sortOrder, a.id DESC
-        LIMIT :limit OFFSET :offset
+        LIMIT ? OFFSET ?
     ";
     
     $stmt = $db->prepare($query);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
+    
+    // Bind les paramètres de recherche et filtres d'abord
+    $paramIndex = 1;
+    foreach ($params as $value) {
+        $stmt->bindValue($paramIndex, $value);
+        $paramIndex++;
     }
-    $stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    
+    // Puis bind les paramètres de pagination
+    $stmt->bindValue($paramIndex, $itemsPerPage, PDO::PARAM_INT);
+    $stmt->bindValue($paramIndex + 1, $offset, PDO::PARAM_INT);
     $stmt->execute();
     $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
