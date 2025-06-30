@@ -1,0 +1,3146 @@
+openapi: 3.0.3
+info:
+  title: TutorMatch API
+  description: |
+    Comprehensive API for the TutorMatch platform, a tutoring management system that handles students, teachers, internships, assignments, evaluations, meetings, documents, and messaging.
+    
+    ## Authentication
+    This API supports both JWT token-based authentication and session-based authentication for backward compatibility.
+    - JWT tokens are preferred and should be included in the Authorization header as `Bearer <token>`
+    - Session-based authentication is supported for development purposes
+    
+    ## Base URL
+    All API endpoints are prefixed with `/tutoring/api/`
+    
+    ## Response Format
+    All responses follow a consistent JSON format with standardized pagination and error handling.
+  version: 1.0.0
+  contact:
+    name: TutorMatch API Support
+    email: support@tutormatch.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost/tutoring/api
+    description: Development server
+  - url: https://tutormatch.example.com/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - SessionAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Users
+    description: User management operations
+  - name: Students
+    description: Student profile and academic information management
+  - name: Teachers
+    description: Teacher profile and availability management
+  - name: Internships
+    description: Internship opportunities management
+  - name: Assignments
+    description: Student-teacher-internship assignments
+  - name: Companies
+    description: Company information management
+  - name: Documents
+    description: Document upload, download, and management
+  - name: Meetings
+    description: Meeting scheduling and management
+  - name: Messages
+    description: Internal messaging system
+  - name: Evaluations
+    description: Student and internship evaluations
+  - name: Notifications
+    description: System notifications
+  - name: Dashboard
+    description: Dashboard statistics and analytics
+  - name: Export
+    description: Data export functionality
+  - name: Monitoring
+    description: System health and monitoring
+
+paths:
+  # Authentication endpoints
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticate user and receive JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["username", "password"]
+              properties:
+                username:
+                  type: string
+                  description: Username or email
+                password:
+                  type: string
+                  format: password
+                  description: User password
+            example:
+              username: "john.doe"
+              password: "securePassword123"
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      description: Invalidate current session or token
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["refresh_token"]
+              properties:
+                refresh_token:
+                  type: string
+                  description: Valid refresh token
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+
+  # User endpoints
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users
+      description: Retrieve paginated list of users with filtering options
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          description: Filter by user role
+          schema:
+            type: string
+            enum: [admin, coordinator, teacher, student]
+        - name: search
+          in: query
+          description: Search users by name or email
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Users]
+      summary: Create new user
+      description: Create a new user account (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      description: Retrieve detailed user information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Users]
+      summary: Update user
+      description: Update user information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Users]
+      summary: Delete user
+      description: Delete user account (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/profile:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      description: Retrieve current authenticated user's profile
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+    put:
+      tags: [Users]
+      summary: Update current user profile
+      description: Update current authenticated user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Student endpoints
+  /students:
+    get:
+      tags: [Students]
+      summary: List students
+      description: Retrieve paginated list of students with filtering options
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          description: Search students by name or email
+          schema:
+            type: string
+        - name: program
+          in: query
+          description: Filter by academic program
+          schema:
+            type: string
+        - name: level
+          in: query
+          description: Filter by academic level
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by student status
+          schema:
+            type: string
+            enum: [active, graduated, suspended]
+        - name: teacher_id
+          in: query
+          description: Filter by assigned teacher
+          schema:
+            type: integer
+        - name: has_internship
+          in: query
+          description: Filter students with/without internships
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Students retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentListResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /students/{id}:
+    get:
+      tags: [Students]
+      summary: Get student by ID
+      description: Retrieve detailed student information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentResponse'
+        '404':
+          description: Student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /students/{id}/assignments:
+    get:
+      tags: [Students]
+      summary: Get student assignments
+      description: Retrieve all assignments for a specific student
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student assignments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentListResponse'
+        '404':
+          description: Student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /students/{id}/preferences:
+    get:
+      tags: [Students]
+      summary: Get student preferences
+      description: Retrieve student internship preferences
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenceListResponse'
+
+    post:
+      tags: [Students]
+      summary: Add student preference
+      description: Add new internship preference for student
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Student ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePreferenceRequest'
+      responses:
+        '201':
+          description: Preference added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferenceResponse'
+
+  # Teacher endpoints
+  /teachers:
+    get:
+      tags: [Teachers]
+      summary: List teachers
+      description: Retrieve paginated list of teachers
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          description: Search teachers by name or email
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Teachers retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherListResponse'
+
+  /teachers/{id}:
+    get:
+      tags: [Teachers]
+      summary: Get teacher by ID
+      description: Retrieve detailed teacher information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Teacher ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Teacher retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherResponse'
+        '404':
+          description: Teacher not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /teachers/{id}/students:
+    get:
+      tags: [Teachers]
+      summary: Get teacher's students
+      description: Retrieve all students assigned to a specific teacher
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Teacher ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Teacher's students retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentListResponse'
+
+  /teachers/{id}/availability:
+    get:
+      tags: [Teachers]
+      summary: Get teacher availability
+      description: Retrieve teacher's availability schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Teacher ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Teacher availability retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+
+  # Internship endpoints
+  /internships:
+    get:
+      tags: [Internships]
+      summary: List internships
+      description: Retrieve paginated list of internships with filtering options
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          description: Filter by internship status
+          schema:
+            type: string
+            enum: [available, assigned, completed, expired]
+        - name: domain
+          in: query
+          description: Filter by internship domain
+          schema:
+            type: string
+        - name: work_mode
+          in: query
+          description: Filter by work mode
+          schema:
+            type: string
+            enum: [on_site, remote, hybrid]
+        - name: company_id
+          in: query
+          description: Filter by company
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Internships retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternshipListResponse'
+
+    post:
+      tags: [Internships]
+      summary: Create new internship
+      description: Create a new internship opportunity (admin/coordinator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInternshipRequest'
+      responses:
+        '201':
+          description: Internship created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternshipResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /internships/{id}:
+    get:
+      tags: [Internships]
+      summary: Get internship by ID
+      description: Retrieve detailed internship information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Internship ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Internship retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternshipResponse'
+        '404':
+          description: Internship not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Internships]
+      summary: Update internship
+      description: Update internship information (admin/coordinator only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Internship ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInternshipRequest'
+      responses:
+        '200':
+          description: Internship updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternshipResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Internship not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Internships]
+      summary: Delete internship
+      description: Delete internship (admin/coordinator only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Internship ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Internship deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Internship not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /internships/available:
+    get:
+      tags: [Internships]
+      summary: Get available internships
+      description: Retrieve all available internships for assignment
+      parameters:
+        - name: student_id
+          in: query
+          description: Filter internships available for specific student
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Available internships retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternshipListResponse'
+
+  # Assignment endpoints
+  /assignments:
+    get:
+      tags: [Assignments]
+      summary: List assignments
+      description: Retrieve paginated list of assignments with filtering options
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: student_id
+          in: query
+          description: Filter by student
+          schema:
+            type: integer
+        - name: teacher_id
+          in: query
+          description: Filter by teacher
+          schema:
+            type: integer
+        - name: internship_id
+          in: query
+          description: Filter by internship
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: Filter by assignment status
+          schema:
+            type: string
+            enum: [pending, confirmed, rejected, completed]
+      responses:
+        '200':
+          description: Assignments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentListResponse'
+
+    post:
+      tags: [Assignments]
+      summary: Create new assignment
+      description: Create a new student-teacher-internship assignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssignmentRequest'
+      responses:
+        '201':
+          description: Assignment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /assignments/{id}:
+    get:
+      tags: [Assignments]
+      summary: Get assignment by ID
+      description: Retrieve detailed assignment information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Assignment ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Assignment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentResponse'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Assignments]
+      summary: Update assignment
+      description: Update assignment information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Assignment ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssignmentRequest'
+      responses:
+        '200':
+          description: Assignment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /assignments/{id}/status:
+    put:
+      tags: [Assignments]
+      summary: Update assignment status
+      description: Update assignment status (confirmed, rejected, etc.)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Assignment ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["status"]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, confirmed, rejected, completed]
+                comments:
+                  type: string
+                  description: Optional comments about status change
+      responses:
+        '200':
+          description: Assignment status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentResponse'
+
+  # Company endpoints
+  /companies:
+    get:
+      tags: [Companies]
+      summary: List companies
+      description: Retrieve paginated list of companies
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          description: Search companies by name
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Companies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyListResponse'
+
+    post:
+      tags: [Companies]
+      summary: Create new company
+      description: Create a new company (admin/coordinator only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyRequest'
+      responses:
+        '201':
+          description: Company created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /companies/{id}:
+    get:
+      tags: [Companies]
+      summary: Get company by ID
+      description: Retrieve detailed company information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Company ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Company retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Companies]
+      summary: Update company
+      description: Update company information (admin/coordinator only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Company ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCompanyRequest'
+      responses:
+        '200':
+          description: Company updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+
+  # Document endpoints
+  /documents:
+    get:
+      tags: [Documents]
+      summary: List documents
+      description: Retrieve paginated list of documents
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          description: Filter by document type
+          schema:
+            type: string
+            enum: [contract, report, evaluation, certificate, other]
+        - name: assignment_id
+          in: query
+          description: Filter by assignment
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Documents retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentListResponse'
+
+    post:
+      tags: [Documents]
+      summary: Upload document
+      description: Upload a new document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: ["file", "title", "type"]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Document file (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, JPG, PNG)
+                title:
+                  type: string
+                  description: Document title
+                type:
+                  type: string
+                  enum: [contract, report, evaluation, certificate, other]
+                  description: Document type
+                assignment_id:
+                  type: integer
+                  description: Associated assignment ID (optional)
+                version:
+                  type: string
+                  description: Document version
+                  default: "1.0"
+      responses:
+        '201':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          description: Invalid file or input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /documents/{id}:
+    get:
+      tags: [Documents]
+      summary: Get document by ID
+      description: Retrieve document metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Document retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Documents]
+      summary: Delete document
+      description: Delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Document deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /documents/{id}/download:
+    get:
+      tags: [Documents]
+      summary: Download document
+      description: Download document file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Document file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Meeting endpoints
+  /meetings:
+    get:
+      tags: [Meetings]
+      summary: List meetings
+      description: Retrieve paginated list of meetings
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: assignment_id
+          in: query
+          description: Filter by assignment
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: Filter by meeting status
+          schema:
+            type: string
+            enum: [scheduled, completed, cancelled]
+      responses:
+        '200':
+          description: Meetings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingListResponse'
+
+    post:
+      tags: [Meetings]
+      summary: Create new meeting
+      description: Schedule a new meeting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeetingRequest'
+      responses:
+        '201':
+          description: Meeting created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /meetings/{id}:
+    get:
+      tags: [Meetings]
+      summary: Get meeting by ID
+      description: Retrieve detailed meeting information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Meeting ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Meeting retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingResponse'
+        '404':
+          description: Meeting not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Meetings]
+      summary: Update meeting
+      description: Update meeting information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Meeting ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeetingRequest'
+      responses:
+        '200':
+          description: Meeting updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingResponse'
+
+    delete:
+      tags: [Meetings]
+      summary: Delete meeting
+      description: Cancel/delete a meeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Meeting ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Meeting deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /meetings/{id}/participants:
+    get:
+      tags: [Meetings]
+      summary: Get meeting participants
+      description: Retrieve list of meeting participants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Meeting ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Participants retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantListResponse'
+
+  # Message endpoints
+  /messages:
+    get:
+      tags: [Messages]
+      summary: List messages
+      description: Retrieve paginated list of messages for current user
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageListResponse'
+
+  /messages/send:
+    post:
+      tags: [Messages]
+      summary: Send message
+      description: Send a new message to another user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /messages/conversations:
+    get:
+      tags: [Messages]
+      summary: List conversations
+      description: Retrieve list of message conversations for current user
+      responses:
+        '200':
+          description: Conversations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationListResponse'
+
+  /messages/conversation/{userId}:
+    get:
+      tags: [Messages]
+      summary: Get conversation with user
+      description: Retrieve conversation messages with specific user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Other user ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Conversation retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+
+  /messages/{id}/mark-read:
+    put:
+      tags: [Messages]
+      summary: Mark message as read
+      description: Mark a specific message as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Message ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Message marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Evaluation endpoints
+  /evaluations:
+    get:
+      tags: [Evaluations]
+      summary: List evaluations
+      description: Retrieve paginated list of evaluations
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: assignment_id
+          in: query
+          description: Filter by assignment
+          schema:
+            type: integer
+        - name: type
+          in: query
+          description: Filter by evaluation type
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by evaluation status
+          schema:
+            type: string
+            enum: [draft, submitted, approved]
+      responses:
+        '200':
+          description: Evaluations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationListResponse'
+
+    post:
+      tags: [Evaluations]
+      summary: Create new evaluation
+      description: Create a new evaluation for an assignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvaluationRequest'
+      responses:
+        '201':
+          description: Evaluation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationResponse'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /evaluations/{id}:
+    get:
+      tags: [Evaluations]
+      summary: Get evaluation by ID
+      description: Retrieve detailed evaluation information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Evaluation ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Evaluation retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationResponse'
+        '404':
+          description: Evaluation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Evaluations]
+      summary: Update evaluation
+      description: Update evaluation information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Evaluation ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEvaluationRequest'
+      responses:
+        '200':
+          description: Evaluation updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationResponse'
+
+  # Notification endpoints
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      description: Retrieve paginated list of notifications for current user
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          description: Filter by notification type
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+
+  /notifications/unread:
+    get:
+      tags: [Notifications]
+      summary: Get unread notifications
+      description: Retrieve all unread notifications for current user
+      responses:
+        '200':
+          description: Unread notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+
+  /notifications/{id}/mark-read:
+    put:
+      tags: [Notifications]
+      summary: Mark notification as read
+      description: Mark a specific notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Notification ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /notifications/mark-all-read:
+    put:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      description: Mark all notifications as read for current user
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # Dashboard endpoints
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard statistics
+      description: Retrieve general dashboard statistics (admin/coordinator only)
+      responses:
+        '200':
+          description: Dashboard statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStatsResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /dashboard/charts:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard charts data
+      description: Retrieve data for dashboard charts
+      responses:
+        '200':
+          description: Chart data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChartDataResponse'
+
+  /dashboard/activity:
+    get:
+      tags: [Dashboard]
+      summary: Get recent activity
+      description: Retrieve recent system activity
+      parameters:
+        - name: limit
+          in: query
+          description: Number of activities to retrieve
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Recent activity retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityResponse'
+
+  /dashboard/assignment-status:
+    get:
+      tags: [Dashboard]
+      summary: Get assignment status overview
+      description: Retrieve assignment status distribution
+      responses:
+        '200':
+          description: Assignment status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentStatusResponse'
+
+  /dashboard/tutor-dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get tutor dashboard
+      description: Retrieve dashboard data specific to teachers
+      responses:
+        '200':
+          description: Tutor dashboard data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TutorDashboardResponse'
+
+  # Export endpoints
+  /export/students:
+    get:
+      tags: [Export]
+      summary: Export students data
+      description: Export students data in various formats
+      parameters:
+        - name: format
+          in: query
+          description: Export format
+          schema:
+            type: string
+            enum: [csv, xlsx, pdf]
+            default: csv
+      responses:
+        '200':
+          description: Students data exported successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /export/teachers:
+    get:
+      tags: [Export]
+      summary: Export teachers data
+      description: Export teachers data in various formats
+      parameters:
+        - name: format
+          in: query
+          description: Export format
+          schema:
+            type: string
+            enum: [csv, xlsx, pdf]
+            default: csv
+      responses:
+        '200':
+          description: Teachers data exported successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /export/internships:
+    get:
+      tags: [Export]
+      summary: Export internships data
+      description: Export internships data in various formats
+      parameters:
+        - name: format
+          in: query
+          description: Export format
+          schema:
+            type: string
+            enum: [csv, xlsx, pdf]
+            default: csv
+      responses:
+        '200':
+          description: Internships data exported successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /export/assignments:
+    get:
+      tags: [Export]
+      summary: Export assignments data
+      description: Export assignments data in various formats
+      parameters:
+        - name: format
+          in: query
+          description: Export format
+          schema:
+            type: string
+            enum: [csv, xlsx, pdf]
+            default: csv
+      responses:
+        '200':
+          description: Assignments data exported successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  # Monitoring endpoints
+  /monitoring/health:
+    get:
+      tags: [Monitoring]
+      summary: Health check
+      description: Check API health status
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+      security: []
+
+  /monitoring/metrics:
+    get:
+      tags: [Monitoring]
+      summary: Get system metrics
+      description: Retrieve system performance metrics (admin only)
+      responses:
+        '200':
+          description: System metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: PHPSESSID
+      description: Session-based authentication
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+
+  schemas:
+    # Base response schemas
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "An error occurred"
+        details:
+          type: object
+          description: Additional error details
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        total_pages:
+          type: integer
+        total_records:
+          type: integer
+        per_page:
+          type: integer
+
+    # Authentication schemas
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Authentication successful"
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        access_token:
+          type: string
+          description: JWT access token
+        refresh_token:
+          type: string
+          description: JWT refresh token
+        token_type:
+          type: string
+          example: "Bearer"
+        expires_in:
+          type: integer
+          example: 3600
+          description: Token expiration time in seconds
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: New JWT access token
+        token_type:
+          type: string
+          example: "Bearer"
+        expires_in:
+          type: integer
+          example: 3600
+
+    # User schemas
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          type: string
+          enum: [admin, coordinator, teacher, student]
+        department:
+          type: string
+        profile_image:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+
+    User:
+      allOf:
+        - $ref: '#/components/schemas/UserProfile'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [active, inactive, suspended]
+
+    CreateUserRequest:
+      type: object
+      required: [username, email, password, first_name, last_name, role]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        role:
+          type: string
+          enum: [admin, coordinator, teacher, student]
+        department:
+          type: string
+          maxLength: 100
+        profile_image:
+          type: string
+          nullable: true
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        department:
+          type: string
+          maxLength: 100
+        profile_image:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        department:
+          type: string
+          maxLength: 100
+        profile_image:
+          type: string
+          nullable: true
+
+    UserResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # Student schemas
+    Student:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        student_number:
+          type: string
+        program:
+          type: string
+        level:
+          type: string
+        academic_year:
+          type: string
+        status:
+          type: string
+          enum: [active, graduated, suspended]
+        skills:
+          type: array
+          items:
+            type: string
+        interests:
+          type: array
+          items:
+            type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        active_assignment:
+          $ref: '#/components/schemas/Assignment'
+          nullable: true
+
+    StudentResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Student'
+
+    StudentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Student'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # Teacher schemas
+    Teacher:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        specialization:
+          type: string
+        max_students:
+          type: integer
+        current_students:
+          type: integer
+        availability:
+          type: object
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    TeacherResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Teacher'
+
+    TeacherListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Teacher'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            availability:
+              type: object
+              description: Weekly availability schedule
+            max_students:
+              type: integer
+            current_students:
+              type: integer
+
+    # Internship schemas
+    Internship:
+      type: object
+      properties:
+        id:
+          type: integer
+        company_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        requirements:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        location:
+          type: string
+          nullable: true
+        work_mode:
+          type: string
+          enum: [on_site, remote, hybrid]
+        compensation:
+          type: string
+          nullable: true
+        domain:
+          type: string
+        status:
+          type: string
+          enum: [available, assigned, completed, expired]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        company:
+          $ref: '#/components/schemas/Company'
+        skills:
+          type: array
+          items:
+            type: string
+
+    CreateInternshipRequest:
+      type: object
+      required: [company_id, title, description, start_date, end_date, domain]
+      properties:
+        company_id:
+          type: integer
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        requirements:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        location:
+          type: string
+          maxLength: 200
+        work_mode:
+          type: string
+          enum: [on_site, remote, hybrid]
+          default: on_site
+        compensation:
+          type: string
+        domain:
+          type: string
+          maxLength: 100
+        skills:
+          type: array
+          items:
+            type: string
+
+    UpdateInternshipRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        requirements:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        location:
+          type: string
+          maxLength: 200
+        work_mode:
+          type: string
+          enum: [on_site, remote, hybrid]
+        compensation:
+          type: string
+        domain:
+          type: string
+          maxLength: 100
+        status:
+          type: string
+          enum: [available, assigned, completed, expired]
+        skills:
+          type: array
+          items:
+            type: string
+
+    InternshipResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Internship'
+
+    InternshipListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Internship'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # Assignment schemas
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: integer
+        student_id:
+          type: integer
+        teacher_id:
+          type: integer
+        internship_id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, rejected, completed]
+        assignment_date:
+          type: string
+          format: date-time
+        comments:
+          type: string
+          nullable: true
+        student:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+        teacher:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+        internship:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            company:
+              type: string
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+
+    CreateAssignmentRequest:
+      type: object
+      required: [student_id, teacher_id, internship_id]
+      properties:
+        student_id:
+          type: integer
+        teacher_id:
+          type: integer
+        internship_id:
+          type: integer
+        comments:
+          type: string
+
+    UpdateAssignmentRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, rejected, completed]
+        comments:
+          type: string
+
+    AssignmentResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Assignment'
+
+    AssignmentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignment'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # Company schemas
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        website:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        contact_email:
+          type: string
+          nullable: true
+        contact_phone:
+          type: string
+          nullable: true
+        logo_path:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateCompanyRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        address:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        contact_phone:
+          type: string
+        logo_path:
+          type: string
+
+    UpdateCompanyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        address:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        contact_phone:
+          type: string
+        logo_path:
+          type: string
+
+    CompanyResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Company'
+
+    CompanyListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Company'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # Document schemas
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        assignment_id:
+          type: integer
+          nullable: true
+        title:
+          type: string
+        type:
+          type: string
+          enum: [contract, report, evaluation, certificate, other]
+        file_path:
+          type: string
+        upload_date:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, submitted, reviewed, approved, rejected]
+        feedback:
+          type: string
+          nullable: true
+        version:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            role:
+              type: string
+        assignment:
+          $ref: '#/components/schemas/Assignment'
+          nullable: true
+
+    DocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Document'
+
+    DocumentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # Meeting schemas
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        location:
+          type: string
+        type:
+          type: string
+          enum: [in-person, online, hybrid]
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled]
+        meeting_url:
+          type: string
+          nullable: true
+        assignment_id:
+          type: integer
+          nullable: true
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+
+    Participant:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, declined]
+        is_organizer:
+          type: boolean
+
+    CreateMeetingRequest:
+      type: object
+      required: [title, date, start_time, end_time]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        location:
+          type: string
+        type:
+          type: string
+          enum: [in-person, online, hybrid]
+          default: in-person
+        meeting_url:
+          type: string
+          format: uri
+        assignment_id:
+          type: integer
+        participants:
+          type: array
+          items:
+            type: integer
+          description: Array of user IDs to invite
+
+    UpdateMeetingRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        location:
+          type: string
+        type:
+          type: string
+          enum: [in-person, online, hybrid]
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled]
+        meeting_url:
+          type: string
+          format: uri
+
+    MeetingResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Meeting'
+
+    MeetingListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meeting'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ParticipantListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+
+    # Message schemas
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        sender_id:
+          type: integer
+        receiver_id:
+          type: integer
+        subject:
+          type: string
+        content:
+          type: string
+        sent_at:
+          type: string
+          format: date-time
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_outgoing:
+          type: boolean
+        time:
+          type: string
+        date:
+          type: string
+        date_text:
+          type: string
+
+    SendMessageRequest:
+      type: object
+      required: [recipient_id, content]
+      properties:
+        recipient_id:
+          type: integer
+        subject:
+          type: string
+          maxLength: 200
+          default: "Nouveau message"
+        content:
+          type: string
+
+    MessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Message'
+
+    MessageListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    Conversation:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        user_name:
+          type: string
+        last_message:
+          type: string
+        last_message_time:
+          type: string
+          format: date-time
+        unread_count:
+          type: integer
+
+    ConversationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Conversation'
+
+    ConversationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/UserProfile'
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/Message'
+
+    # Evaluation schemas
+    Evaluation:
+      type: object
+      properties:
+        id:
+          type: integer
+        assignment_id:
+          type: integer
+        type:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        comments:
+          type: string
+        strengths:
+          type: string
+        areas_for_improvement:
+          type: string
+        next_steps:
+          type: string
+        status:
+          type: string
+          enum: [draft, submitted, approved]
+        evaluator_id:
+          type: integer
+        submission_date:
+          type: string
+          format: date-time
+
+    CreateEvaluationRequest:
+      type: object
+      required: [assignment_id, type, score, comments]
+      properties:
+        assignment_id:
+          type: integer
+        type:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        comments:
+          type: string
+        strengths:
+          type: string
+        areas_for_improvement:
+          type: string
+        next_steps:
+          type: string
+        status:
+          type: string
+          enum: [draft, submitted, approved]
+          default: draft
+
+    UpdateEvaluationRequest:
+      type: object
+      properties:
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        comments:
+          type: string
+        strengths:
+          type: string
+        areas_for_improvement:
+          type: string
+        next_steps:
+          type: string
+        status:
+          type: string
+          enum: [draft, submitted, approved]
+
+    EvaluationResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Evaluation'
+
+    EvaluationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evaluation'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # Preference schemas
+    Preference:
+      type: object
+      properties:
+        id:
+          type: integer
+        student_id:
+          type: integer
+        internship_id:
+          type: integer
+        priority:
+          type: integer
+        reason:
+          type: string
+        internship:
+          $ref: '#/components/schemas/Internship'
+
+    CreatePreferenceRequest:
+      type: object
+      required: [internship_id]
+      properties:
+        internship_id:
+          type: integer
+        priority:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+
+    PreferenceResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Preference'
+
+    PreferenceListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Preference'
+
+    # Notification schemas
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+        related_type:
+          type: string
+          nullable: true
+        related_id:
+          type: integer
+          nullable: true
+        link:
+          type: string
+          nullable: true
+        action_url:
+          type: string
+          nullable: true
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    NotificationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        meta:
+          allOf:
+            - $ref: '#/components/schemas/PaginationMeta'
+            - type: object
+              properties:
+                unread_count:
+                  type: integer
+
+    # Dashboard schemas
+    DashboardStatsResponse:
+      type: object
+      properties:
+        overview:
+          type: object
+          properties:
+            total_students:
+              type: integer
+            total_teachers:
+              type: integer
+            total_internships:
+              type: integer
+            assignment_rate:
+              type: number
+            active_assignments:
+              type: integer
+            pending_assignments:
+              type: integer
+        stat_cards:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              value:
+                oneOf:
+                  - type: integer
+                  - type: string
+              change:
+                type: string
+                nullable: true
+              changeType:
+                type: string
+                enum: [positive, negative, neutral, info, warning]
+              icon:
+                type: string
+              color:
+                type: string
+              link:
+                type: string
+              linkText:
+                type: string
+        recent_assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignment'
+        quick_stats:
+          type: object
+          properties:
+            new_students:
+              type: integer
+            new_internships:
+              type: integer
+            completed_assignments:
+              type: integer
+            upcoming_meetings:
+              type: integer
+
+    ChartDataResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Chart data in various formats for different chart types
+
+    ActivityResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              type:
+                type: string
+              description:
+                type: string
+              user:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+
+    AssignmentStatusResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            pending:
+              type: integer
+            confirmed:
+              type: integer
+            rejected:
+              type: integer
+            completed:
+              type: integer
+
+    TutorDashboardResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            assigned_students:
+              type: integer
+            active_assignments:
+              type: integer
+            upcoming_meetings:
+              type: integer
+            pending_evaluations:
+              type: integer
+            recent_activities:
+              type: array
+              items:
+                type: object
+
+    # Monitoring schemas
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        database:
+          type: object
+          properties:
+            status:
+              type: string
+            response_time:
+              type: number
+        cache:
+          type: object
+          properties:
+            status:
+              type: string
+            hit_rate:
+              type: number
+
+    MetricsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            system:
+              type: object
+              properties:
+                cpu_usage:
+                  type: number
+                memory_usage:
+                  type: number
+                disk_usage:
+                  type: number
+            api:
+              type: object
+              properties:
+                requests_per_minute:
+                  type: number
+                average_response_time:
+                  type: number
+                error_rate:
+                  type: number
+            database:
+              type: object
+              properties:
+                active_connections:
+                  type: integer
+                query_response_time:
+                  type: number
