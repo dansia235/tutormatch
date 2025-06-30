@@ -1,0 +1,36 @@
+{
+    "name": "tutormatch/platform",
+    "description": "TutorMatch - Plateforme de gestion de tutorat",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.0",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-session": "*",
+        "ext-redis": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "symfony/var-dumper": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "TutorMatch\\": "src/",
+            "TutorMatch\\Algorithm\\": "src/Algorithm/",
+            "TutorMatch\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-unit": "phpunit --testsuite unit",
+        "test-integration": "phpunit --testsuite integration",
+        "test-coverage": "phpunit --coverage-html coverage/",
+        "lint": "php -l src/ includes/ api/",
+        "serve": "php -S localhost:8000 -t ."
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}
