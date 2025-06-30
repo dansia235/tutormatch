@@ -43,13 +43,24 @@ TutorMatch est une application web complète pour la gestion des stages académi
 
 ## 🛠️ Architecture technique
 
+### Stack principal
 - **Backend** : PHP 8+ avec architecture MVC
-- **Base de données** : MySQL/MariaDB
+- **Base de données** : MySQL/MariaDB avec requêtes optimisées
 - **Frontend** : HTML5, CSS3, JavaScript (ES6+)
-- **Frameworks** : Bootstrap 5 pour l'UI, Stimulus.js pour les interactions
-- **Librairies** : Chart.js pour les visualisations, Flatpickr pour les calendriers
-- **API** : REST API pour les opérations côté client
-- **Sécurité** : Authentification JWT, sessions sécurisées, protection CSRF
+- **API** : REST API complète avec endpoints standardisés
+
+### Frameworks et librairies
+- **UI** : Bootstrap 5 pour le design responsive
+- **Interactions** : Stimulus.js pour les comportements dynamiques
+- **Visualisations** : Chart.js pour graphiques et statistiques
+- **Calendriers** : Flatpickr pour la sélection de dates
+- **Animations** : CSS transitions pour une UX fluide
+
+### Sécurité
+- **Authentification** : JWT tokens et sessions PHP sécurisées
+- **Protection** : CSRF tokens, validation des entrées
+- **Permissions** : RBAC (Role-Based Access Control)
+- **Données** : Requêtes préparées, échappement XSS
 
 ## 📋 Prérequis
 
@@ -143,11 +154,24 @@ Rapports disponibles :
 
 ## 🔍 Fonctionnalités avancées
 
-- **Recherche avancée** : Filtres multiples, suggestions, tri des résultats
-- **Matrice d'affectation** : Visualisation interactive des compatibilités
-- **Système de thèmes** : Support des modes clair et sombre
-- **Exportation de données** : Formats PDF, Excel et CSV pour les rapports
-- **Responsive design** : Adapté à tous les appareils (desktop, tablette, mobile)
+### Recherche et filtrage
+- **Recherche temps réel** : Avec debouncing pour performances optimales
+- **Filtres multicritères** : Combinaison de multiples filtres
+- **Tri dynamique** : Sur toutes les colonnes importantes
+- **Pagination avancée** : Navigation fluide dans les grandes listes
+- **Export des résultats** : Export des recherches filtrées
+
+### Visualisations et rapports
+- **Matrice d'affectation** : Vue interactive des compatibilités tuteur-étudiant
+- **Tableaux de bord** : Graphiques en temps réel avec Chart.js
+- **Rapports personnalisés** : Génération de rapports PDF/Excel
+- **Statistiques avancées** : Analyses par département, période, performance
+
+### Interface utilisateur
+- **Thèmes** : Mode clair/sombre avec transition fluide
+- **Responsive design** : Optimisé pour tous les écrans
+- **Accessibilité** : Conformité WCAG pour inclusivité
+- **Performance** : Chargement asynchrone et mise en cache
 
 ## 🧪 Tests
 
@@ -175,23 +199,50 @@ php test_companies.php
 
 ## 📈 Feuille de route
 
-- Implémentation des algorithmes d'affectation avancés
-- Amélioration du système de recherche (voir [TODO-SEARCH-IMPROVEMENTS.md](TODO-SEARCH-IMPROVEMENTS.md))
-- Développement d'une application mobile
-- Internationalisation (support multilingue)
-- Intégration avec des systèmes de gestion académique externes
+### Court terme (Q1 2025)
+- ✅ Système de recherche et tri avancé (COMPLÉTÉ)
+- ✅ Amélioration de la messagerie (COMPLÉTÉ)
+- ⏳ Finalisation de l'algorithme hongrois
+- ⏳ Tests d'intégration automatisés
+
+### Moyen terme (Q2-Q3 2025)
+- 📱 Application mobile React Native
+- 🌐 Internationalisation (FR/EN/ES)
+- 🔗 API publique documentée (OpenAPI)
+- 📊 Analytics avancées avec tableaux de bord personnalisables
+
+### Long terme (2025-2026)
+- 🤖 IA pour suggestions d'affectation
+- 🎥 Système de vidéoconférence intégré
+- 🔄 Intégration LMS (Moodle, Canvas)
+- ☁️ Migration vers architecture microservices
 
 ## 🆕 Améliorations récentes
 
-- Interface complète de gestion des entreprises
-  - Ajout, modification et suppression d'entreprises
-  - Support pour les logos d'entreprise
-  - Avatars générés automatiquement pour les entreprises sans logo
-  - Visualisation des stages par entreprise
-  - Confirmation sécurisée pour la suppression
-- Correction des problèmes d'affichage dans la liste des tuteurs
-- Correction des bugs dans l'algorithme d'affectation
-- Amélioration des performances de recherche d'internships
+### Système de recherche et tri (Décembre 2024)
+- **Recherche avancée** : Implémentation complète sur toutes les entités
+- **Tri dynamique** : Sur toutes les colonnes avec ordre ASC/DESC
+- **Pagination flexible** : 10, 20, 50 ou 100 éléments par page
+- **Filtres multicritères** : Par statut, département, niveau, etc.
+- **Performance optimisée** : Requêtes SQL avec indices appropriés
+
+### Messagerie interne améliorée
+- **Interface moderne** : Design épuré avec animations fluides
+- **Thème sombre** : Support complet du mode sombre
+- **Indicateurs visuels** : Badges pour messages non lus
+- **Performance** : Chargement asynchrone des conversations
+
+### Corrections importantes
+- **Problème de chargement des stages** : Résolu avec LEFT JOIN
+- **Dashboard tuteur** : Correction affichage réunions et messages
+- **Modèle Meeting** : Gestion robuste des dates et champs
+- **Évaluations** : Contraintes d'unicité implémentées
+
+### Gestion des entreprises
+- **Interface CRUD complète** : Création, lecture, mise à jour, suppression
+- **Support logos** : Upload et affichage des logos d'entreprise
+- **Avatars automatiques** : Génération pour entreprises sans logo
+- **Vue stages** : Visualisation des stages par entreprise
 
 ## 👥 Statut du projet
 

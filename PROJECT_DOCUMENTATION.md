@@ -14,12 +14,13 @@
 5. [Modèle de données](#modèle-de-données)
 6. [Interface utilisateur](#interface-utilisateur)
 7. [Gestion des stages](#gestion-des-stages)
-8. [Système de notification](#système-de-notification)
-9. [Messagerie interne](#messagerie-interne)
-10. [API et intégrations](#api-et-intégrations)
-11. [Sécurité](#sécurité)
-12. [Tests et benchmarks](#tests-et-benchmarks)
-13. [Maintenance et évolutions](#maintenance-et-évolutions)
+8. [Système de recherche et filtrage](#système-de-recherche-et-filtrage)
+9. [Système de notification](#système-de-notification)
+10. [Messagerie interne](#messagerie-interne)
+11. [API et intégrations](#api-et-intégrations)
+12. [Sécurité](#sécurité)
+13. [Tests et benchmarks](#tests-et-benchmarks)
+14. [Maintenance et évolutions](#maintenance-et-évolutions)
 
 ## Introduction
 
@@ -521,14 +522,49 @@ TutorMatch gère l'ensemble du cycle de vie d'un stage :
 7. **Évaluation** : Les tuteurs évaluent les stages à mi-parcours et en fin de période
 8. **Clôture** : Le stage est marqué comme terminé et archivé
 
-### Recherche et filtrage
+### Gestion des entreprises partenaires
 
-Le système offre des fonctionnalités avancées de recherche pour les offres de stage :
+Le système offre une interface complète de gestion des entreprises :
 
-- **Filtres multicritères** : Par entreprise, domaine, localisation, durée, etc.
-- **Suggestions intelligentes** : Recommandations basées sur le profil de l'étudiant
-- **Recherche plein texte** : Dans les descriptions et compétences requises
-- **Tri personnalisable** : Par pertinence, date, popularité, etc.
+- **CRUD complet** : Création, lecture, mise à jour et suppression d'entreprises
+- **Informations détaillées** : Nom, adresse, site web, email, téléphone, description
+- **Support des logos** : Upload et affichage des logos d'entreprise
+- **Avatars automatiques** : Génération d'avatars pour les entreprises sans logo
+- **Vue des stages** : Visualisation des stages proposés par chaque entreprise
+- **Confirmation sécurisée** : Double validation pour la suppression d'entreprises
+
+## Système de recherche et filtrage
+
+Le système de recherche a été récemment amélioré pour offrir une expérience utilisateur optimale :
+
+### Fonctionnalités de recherche
+
+- **Recherche temps réel** : Avec debouncing de 500ms pour éviter les requêtes excessives
+- **Recherche multi-champs** : Recherche simultanée dans plusieurs colonnes
+- **Filtres avancés** : 
+  - Par statut (actif/inactif)
+  - Par département ou programme
+  - Par niveau d'études
+  - Par domaine ou secteur d'activité
+  - Par période ou durée
+
+### Système de tri
+
+- **Tri dynamique** : Sur toutes les colonnes principales
+- **Ordre bidirectionnel** : Croissant (ASC) ou décroissant (DESC)
+- **Persistance** : Conservation des préférences de tri durant la session
+- **Colonnes triables** : 
+  - Nom, prénom, email
+  - Date de création ou modification
+  - Département, niveau
+  - Statut, capacité
+
+### Pagination optimisée
+
+- **Options flexibles** : 10, 20, 50 ou 100 éléments par page
+- **Navigation intuitive** : Première/dernière page, pages précédente/suivante
+- **Indicateur de position** : Affichage du nombre d'éléments et de la page courante
+- **Performance** : Utilisation de requêtes SQL optimisées avec LIMIT et OFFSET
 
 ## Système de notification
 
@@ -557,22 +593,35 @@ Les utilisateurs peuvent personnaliser leurs préférences de notification :
 
 ## Messagerie interne
 
-Le système de messagerie interne facilite la communication entre les différents acteurs :
+Le système de messagerie interne a été récemment amélioré pour offrir une expérience de communication fluide :
 
 ### Fonctionnalités principales
 
-- **Conversations** : Échanges entre deux utilisateurs ou groupes
-- **Pièces jointes** : Partage de documents dans les messages
-- **Historique** : Conservation de l'historique des conversations
-- **Statuts** : Indication de lecture/non-lecture des messages
+- **Conversations threadées** : Organisation claire des échanges entre utilisateurs
+- **Interface moderne** : Design épuré avec animations et transitions fluides
+- **Indicateurs visuels** : 
+  - Badges pour les messages non lus
+  - Statuts de lecture/non-lecture
+  - Horodatage relatif (il y a X minutes/heures)
+- **Recherche de contacts** : Trouver rapidement des utilisateurs pour démarrer une conversation
+- **Suppression sécurisée** : Possibilité de supprimer des conversations avec confirmation
 
-### Intégration
+### Interface utilisateur
 
-La messagerie est intégrée au reste du système :
+- **Vue conversation** : 
+  - Liste des contacts à gauche
+  - Zone de conversation à droite
+  - Composition de message en bas
+- **Design responsive** : Adaptation automatique mobile/desktop
+- **Thème sombre** : Support complet du mode sombre
+- **Animations** : Transitions fluides pour améliorer l'expérience
 
-- Lien direct vers les discussions depuis les fiches de stage
-- Notification des nouveaux messages
-- Accès rapide aux conversations récentes depuis le tableau de bord
+### Intégration système
+
+- **Notifications temps réel** : Alertes pour les nouveaux messages
+- **Tableaux de bord** : Widget de messages récents
+- **API dédiée** : Endpoints optimisés pour les opérations de messagerie
+- **Performance** : Chargement asynchrone et mise en cache
 
 ## API et intégrations
 
@@ -651,29 +700,46 @@ Outils pour évaluer les performances :
 
 ### Corrections et optimisations récentes
 
-1. **Tableau de bord du tuteur** :
+1. **Système de recherche et tri** :
+   - Configuration complète d'un système de recherche avancé avec tri dynamique
+   - Implémentation de la pagination flexible (10, 20, 50, 100 éléments)
+   - Ajout de filtres multicritères sur toutes les entités principales
+   - Optimisation des requêtes SQL avec indices appropriés
+
+2. **Messagerie interne** :
+   - Refonte complète de l'interface avec un design moderne
+   - Ajout d'animations et transitions pour une meilleure UX
+   - Support complet du thème sombre
+   - Optimisation du chargement des conversations
+
+3. **Problème de chargement des stages** :
+   - Correction des requêtes SQL utilisant maintenant LEFT JOIN au lieu d'INNER JOIN
+   - Résolution des problèmes de données manquantes dans les relations
+   - Amélioration de la robustesse des requêtes de jointure
+
+4. **Tableau de bord du tuteur** :
    - Correction des problèmes d'affichage des réunions et messages non lus
    - Implémentation d'un fournisseur de données direct (`dashboard_data.php`) contournant les limitations de l'API
    - Gestion robuste des données manquantes ou incorrectes dans les modèles
    - Mise en place d'un système de données de secours pour garantir l'affichage en cas d'erreur
 
-2. **Modèle Meeting** :
+5. **Modèle Meeting** :
    - Correction du problème de la colonne `type` inexistante dans la méthode `create()`
    - Mise en place d'une nouvelle fonction `createMeeting()` respectant strictement le schéma de la base de données
    - Amélioration de la gestion des dates avec support de différents formats
    - Implémentation de valeurs par défaut pour les champs optionnels
 
-3. **Interface des notifications** :
+6. **Interface des notifications** :
    - Harmonisation de l'interface de notifications du tuteur avec celle de l'étudiant
    - Amélioration du formatage des dates relatives (il y a X minutes, heures, jours)
    - Implémentation d'une gestion optimisée des appels API
 
-4. **Gestion des erreurs** :
+7. **Gestion des erreurs** :
    - Amélioration de la gestion des erreurs avec des messages explicites
    - Implémentation de mécanismes de secours en cas d'échec des appels API
    - Journalisation détaillée des erreurs pour faciliter le débogage
 
-5. **Restrictions d'évaluation** :
+8. **Restrictions d'évaluation** :
    - Implémentation de contraintes d'unicité dans le modèle `Evaluation`
    - Méthode `canCreateEvaluation()` pour vérifier l'éligibilité avant création
    - Méthode `getEvaluationStatus()` pour consulter l'état des évaluations
@@ -686,16 +752,27 @@ Outils pour évaluer les performances :
    - Implémentation complète de l'algorithme hongrois
    - Développement de l'algorithme génétique
    - Intégration d'approches d'apprentissage automatique
+   - Optimisation des paramètres d'affectation par analyse historique
 
 2. **Fonctionnalités additionnelles** :
    - Application mobile pour les étudiants et tuteurs
    - Module de signature électronique pour les conventions
-   - Intégration avec des systèmes de gestion académique
+   - Intégration avec des systèmes de gestion académique externes
+   - Système de vidéoconférence intégré pour les réunions virtuelles
+   - Export avancé des données (formats personnalisés, rapports automatisés)
 
 3. **Optimisations techniques** :
-   - Amélioration des performances de recherche
-   - Mise en cache avancée pour les données fréquemment accédées
+   - Migration vers une architecture microservices
+   - Implémentation de WebSockets pour les notifications temps réel
+   - Mise en cache avancée avec Redis
    - Internationalisation complète de l'interface
+   - Tests d'intégration automatisés
+
+4. **Améliorations UX/UI** :
+   - Dashboard personnalisable par drag & drop
+   - Mode hors ligne avec synchronisation
+   - Accessibilité WCAG 2.1 niveau AA
+   - Tours guidés interactifs pour les nouveaux utilisateurs
 
 ### Contribution
 
