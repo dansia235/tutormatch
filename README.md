@@ -211,7 +211,7 @@ php test_companies.php
 
 ## 📈 Feuille de route
 
-### Court terme (Q1 2025)
+### Court terme
 - ✅ Système de recherche et tri avancé (COMPLÉTÉ)
 - ✅ Amélioration de la messagerie (COMPLÉTÉ)
 - ✅ Finalisation de l'algorithme hongrois (COMPLÉTÉ)
@@ -220,13 +220,13 @@ php test_companies.php
 - ✅ Documentation API Swagger (COMPLÉTÉ)
 - ✅ Monitoring et métriques système (COMPLÉTÉ)
 
-### Moyen terme (Q2-Q3 2025)
+### Moyen terme
 - 📱 Application mobile React Native
 - 🌐 Internationalisation (FR/EN/ES)
 - 🔗 API publique documentée (OpenAPI)
 - 📊 Analytics avancées avec tableaux de bord personnalisables
 
-### Long terme (2025-2026)
+### Long terme 
 - 🤖 IA pour suggestions d'affectation
 - 🎥 Système de vidéoconférence intégré
 - 🔄 Intégration LMS (Moodle, Canvas)
@@ -234,7 +234,7 @@ php test_companies.php
 
 ## 🆕 Améliorations récentes
 
-### Système de recherche et tri (Décembre 2024)
+### Système de recherche et tri
 - **Recherche avancée** : Implémentation complète sur toutes les entités
 - **Tri dynamique** : Sur toutes les colonnes avec ordre ASC/DESC
 - **Pagination flexible** : 10, 20, 50 ou 100 éléments par page
@@ -280,5 +280,5 @@ Pour toute question ou suggestion, veuillez contacter l'équipe de développemen
 ---
 
 <p align="center">
-  Développé avec ❤️ pour optimiser la gestion des stages académiques
+  Développé avec pour optimiser la gestion des stages académiques
 </p>
