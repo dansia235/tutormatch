@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maquettes des Interfaces Utilisateur - TutorMatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .mockup-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .mockup-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .mockup-content {
+            padding: 30px;
+        }
+        
+        .interface-frame {
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            background: #f8f9fa;
+            overflow: hidden;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .browser-bar {
+            background: #e9ecef;
+            padding: 8px 15px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .browser-dots {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .dot.red { background: #ff5f56; }
+        .dot.yellow { background: #ffbd2e; }
+        .dot.green { background: #27ca3f; }
+        
+        .url-bar {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 15px;
+            padding: 4px 12px;
+            margin-left: 15px;
+            flex: 1;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .interface-content {
+            background: white;
+            min-height: 400px;
+            position: relative;
+        }
+        
+        .navbar-mockup {
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 20px;
+        }
+        
+        .nav-item {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .card-mockup {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .card-title {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .card-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .card-description {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .table-mockup {
+            padding: 20px;
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            width: 250px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .table-content {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .table-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .table-row:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .table-row.header {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .form-mockup {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .matrix-mockup {
+            padding: 20px;
+        }
+        
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: 150px repeat(4, 1fr);
+            gap: 2px;
+            margin: 20px 0;
+        }
+        
+        .matrix-cell {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            background: white;
+            font-size: 12px;
+        }
+        
+        .matrix-cell.header {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .matrix-cell.student {
+            background: #f8f9fa;
+            font-weight: 500;
+        }
+        
+        .matrix-cell.score {
+            background: #fff;
+        }
+        
+        .score-high { background: #d4edda !important; color: #155724; }
+        .score-medium { background: #fff3cd !important; color: #856404; }
+        .score-low { background: #f8d7da !important; color: #721c24; }
+        
+        .chat-mockup {
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message.sent {
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .message.sent .message-bubble {
+            background: #667eea;
+            color: white;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .chat-input {
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            background: white;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+        }
+        
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 3px solid #667eea;
+            margin-top: 50px;
+        }
+        
+        .device-frame {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .mobile-frame {
+            max-width: 375px;
+            margin: 0 auto;
+        }
+        
+        .tablet-frame {
+            max-width: 768px;
+            margin: 0 auto;
+        }
+        
+        .desktop-frame {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .legend {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .chart-mockup {
+            height: 200px;
+            background: linear-gradient(45deg, #667eea22, #764ba222);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #667eea;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header py-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0"><i class="fas fa-desktop me-3"></i>Maquettes des Interfaces - TutorMatch</h1>
+                    <p class="mb-0 text-muted">Attribution de tuteur pour les suivis de stage</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex flex-column">
+                        <small class="text-muted">Présenté par:</small>
+                        <strong>DANSIA Toussaint</strong>
+                        <strong>BELLE BELLE Isaac</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        
+        <!-- Interface Coordinateur - Tableau de Bord -->
+        <div class="mockup-container">
+            <div class="mockup-header">
+                <i class="fas fa-chart-line me-2"></i>Interface Coordinateur - Tableau de Bord Principal
+            </div>
+            <div class="mockup-content">
+                <div class="desktop-frame">
+                    <div class="interface-frame">
+                        <div class="browser-bar">
+                            <div class="browser-dots">
+                                <div class="dot red"></div>
+                                <div class="dot yellow"></div>
+                                <div class="dot green"></div>
+                            </div>
+                            <div class="url-bar">https://tutormatch.univ.fr/coordinator/dashboard</div>
+                        </div>
+                        <div class="interface-content">
+                            <div class="navbar-mockup">
+                                <div class="navbar-brand">
+                                    <i class="fas fa-graduation-cap me-2"></i>TutorMatch
+                                </div>
+                                <nav class="navbar-nav">
+                                    <a href="#" class="nav-item active">Tableau de bord</a>
+                                    <a href="#" class="nav-item">Affectations</a>
+                                    <a href="#" class="nav-item">Stages</a>
+                                    <a href="#" class="nav-item">Algorithmes</a>
+                                    <a href="#" class="nav-item">Rapports</a>
+                                </nav>
+                                <div style="color: white;">
+                                    <i class="fas fa-user-circle me-2"></i>C. Martin
+                                </div>
+                            </div>
+                            
+                            <div class="dashboard-cards">
+                                <div class="card-mockup">
+                                    <div class="card-header">
+                                        <div class="card-icon" style="background: #28a745;">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="card-title">Étudiants</div>
+                                    </div>
+                                    <div class="card-value">247</div>
+                                    <div class="card-description">↗ +12 ce mois</div>
+                                </div>
+                                
+                                <div class="card-mockup">
+                                    <div class="card-header">
+                                        <div class="card-icon" style="background: #17a2b8;">
+                                            <i class="fas fa-chalkboard-teacher"></i>
+                                        </div>
+                                        <div class="card-title">Tuteurs</div>
+                                    </div>
+                                    <div class="card-value">42</div>
+                                    <div class="card-description">Capacité moyenne: 6.8</div>
+                                </div>
+                                
+                                <div class="card-mockup">
+                                    <div class="card-header">
+                                        <div class="card-icon" style="background: #ffc107;">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                        <div class="card-title">Entreprises</div>
+                                    </div>
+                                    <div class="card-value">89</div>
+                                    <div class="card-description">15 nouveaux partenaires</div>
+                                </div>
+                                
+                                <div class="card-mockup">
+                                    <div class="card-header">
+                                        <div class="card-icon" style="background: #dc3545;">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="card-title">Affectations</div>
+                                    </div>
+                                    <div class="card-value">92%</div>
+                                    <div class="card-description">Taux de satisfaction</div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; padding: 20px;">
+                                <div class="chart-mockup">
+                                    <i class="fas fa-chart-area fa-3x"></i>
+                                    <div class="ms-3">
+                                        <div>Évolution des Affectations</div>
+                                        <small>Graphique temporel des attributions</small>
+                                    </div>
+                                </div>
+                                <div class="chart-mockup">
+                                    <i class="fas fa-chart-pie fa-2x"></i>
+                                    <div class="ms-3">
+                                        <div>Répartition</div>
+                                        <small>Par département</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Fonctionnalités du Tableau de Bord Coordinateur</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Métriques temps réel :</strong> Statistiques mises à jour automatiquement</li>
+                                <li><strong>Visualisations :</strong> Graphiques interactifs avec Chart.js</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Navigation intuitive :</strong> Accès rapide aux fonctions principales</li>
+                                <li><strong>Indicateurs de performance :</strong> KPIs pour le suivi des objectifs</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface Coordinateur - Algorithmes d'Affectation -->
+        <div class="mockup-container">
+            <div class="mockup-header">
+                <i class="fas fa-brain me-2"></i>Interface Coordinateur - Exécution des Algorithmes
+            </div>
+            <div class="mockup-content">
+                <div class="desktop-frame">
+                    <div class="interface-frame">
+                        <div class="browser-bar">
+                            <div class="browser-dots">
+                                <div class="dot red"></div>
+                                <div class="dot yellow"></div>
+                                <div class="dot green"></div>
+                            </div>
+                            <div class="url-bar">https://tutormatch.univ.fr/coordinator/algorithms</div>
+                        </div>
+                        <div class="interface-content">
+                            <div class="navbar-mockup">
+                                <div class="navbar-brand">
+                                    <i class="fas fa-graduation-cap me-2"></i>TutorMatch
+                                </div>
+                                <nav class="navbar-nav">
+                                    <a href="#" class="nav-item">Tableau de bord</a>
+                                    <a href="#" class="nav-item">Affectations</a>
+                                    <a href="#" class="nav-item">Stages</a>
+                                    <a href="#" class="nav-item active">Algorithmes</a>
+                                    <a href="#" class="nav-item">Rapports</a>
+                                </nav>
+                                <div style="color: white;">
+                                    <i class="fas fa-user-circle me-2"></i>C. Martin
+                                </div>
+                            </div>
+                            
+                            <div class="form-mockup">
+                                <h4 class="mb-4">Sélection et Configuration de l'Algorithme</h4>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Algorithme d'affectation</label>
+                                            <select class="form-select">
+                                                <option>Algorithme Glouton (Greedy) - Rapide</option>
+                                                <option>Algorithme Hongrois (Hungarian) - Optimal</option>
+                                                <option selected>Algorithme Génétique (Genetic) - Adaptatif</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Nombre d'étudiants</label>
+                                            <input type="number" class="form-control" value="247" readonly>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label">Nombre de tuteurs disponibles</label>
+                                            <input type="number" class="form-control" value="42" readonly>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="card-mockup">
+                                            <h6>Configuration Algorithmique Adaptative</h6>
+                                            <div style="margin: 10px 0;">
+                                                <small class="text-muted">Taille détectée: Grande instance (200+ étudiants)</small>
+                                            </div>
+                                            <ul class="list-unstyled small">
+                                                <li>• Population: 100 individus</li>
+                                                <li>• Générations: 50 itérations</li>
+                                                <li>• Taux mutation: 0.15</li>
+                                                <li>• Élitisme: 10%</li>
+                                                <li>• Stratégie: Diversifiée</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-4">
+                                    <div class="col-md-12">
+                                        <button class="btn-primary me-3">
+                                            <i class="fas fa-play me-2"></i>Lancer l'affectation
+                                        </button>
+                                        <button class="btn-primary" style="background: #6c757d;">
+                                            <i class="fas fa-chart-bar me-2"></i>Comparer les algorithmes
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h6>Historique des Exécutions Récentes</h6>
+                                    <div class="table-content">
+                                        <div class="table-row header">
+                                            <div>Algorithme</div>
+                                            <div>Date</div>
+                                            <div>Temps d'exécution</div>
+                                            <div>Score qualité</div>
+                                        </div>
+                                        <div class="table-row">
+                                            <div>Génétique</div>
+                                            <div>2024-12-15 14:30</div>
+                                            <div>1.8s</div>
+                                            <div style="color: #28a745;">94.2%</div>
+                                        </div>
+                                        <div class="table-row">
+                                            <div>Hongrois</div>
+                                            <div>2024-12-15 14:25</div>
+                                            <div>3.2s</div>
+                                            <div style="color: #28a745;">96.8%</div>
+                                        </div>
+                                        <div class="table-row">
+                                            <div>Glouton</div>
+                                            <div>2024-12-15 14:20</div>
+                                            <div>0.4s</div>
+                                            <div style="color: #ffc107;">87.5%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Fonctionnalités des Algorithmes</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <ul class="list-unstyled">
+                                <li><strong>Configuration adaptative :</strong> Paramètres automatiques selon la taille</li>
+                                <li><strong>Monitoring temps réel :</strong> Suivi des performances d'exécution</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <ul class="list-unstyled">
+                                <li><strong>Comparaison :</strong> Benchmarks entre algorithmes</li>
+                                <li><strong>Historique :</strong> Traçabilité des exécutions</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <ul class="list-unstyled">
+                                <li><strong>Qualité mesurée :</strong> Métriques de satisfaction</li>
+                                <li><strong>Optimisation :</strong> Configuration fine possible</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface Coordinateur - Matrice d'Affectation -->
+        <div class="mockup-container">
+            <div class="mockup-header">
+                <i class="fas fa-table me-2"></i>Interface Coordinateur - Matrice d'Affectation Interactive
+            </div>
+            <div class="mockup-content">
+                <div class="desktop-frame">
+                    <div class="interface-frame">
+                        <div class="browser-bar">
+                            <div class="browser-dots">
+                                <div class="dot red"></div>
+                                <div class="dot yellow"></div>
+                                <div class="dot green"></div>
+                            </div>
+                            <div class="url-bar">https://tutormatch.univ.fr/coordinator/matrix</div>
+                        </div>
+                        <div class="interface-content">
+                            <div class="navbar-mockup">
+                                <div class="navbar-brand">
+                                    <i class="fas fa-graduation-cap me-2"></i>TutorMatch
+                                </div>
+                                <nav class="navbar-nav">
+                                    <a href="#" class="nav-item">Tableau de bord</a>
+                                    <a href="#" class="nav-item active">Affectations</a>
+                                    <a href="#" class="nav-item">Stages</a>
+                                    <a href="#" class="nav-item">Algorithmes</a>
+                                    <a href="#" class="nav-item">Rapports</a>
+                                </nav>
+                                <div style="color: white;">
+                                    <i class="fas fa-user-circle me-2"></i>C. Martin
+                                </div>
+                            </div>
+                            
+                            <div class="matrix-mockup">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4>Matrice de Compatibilité Étudiant-Tuteur</h4>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn-primary">
+                                            <i class="fas fa-download me-2"></i>Exporter
+                                        </button>
+                                        <button class="btn-primary" style="background: #28a745;">
+                                            <i class="fas fa-check me-2"></i>Valider sélection
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="matrix-grid">
+                                    <div class="matrix-cell header">Étudiants / Tuteurs</div>
+                                    <div class="matrix-cell header">Dr. Martin (Info)</div>
+                                    <div class="matrix-cell header">Pr. Durand (Réseaux)</div>
+                                    <div class="matrix-cell header">Dr. Lemoine (IA)</div>
+                                    <div class="matrix-cell header">Pr. Rousseau (Web)</div>
+                                    
+                                    <div class="matrix-cell student">Alice Dubois (M2 Info)</div>
+                                    <div class="matrix-cell score score-high">92%</div>
+                                    <div class="matrix-cell score score-medium">67%</div>
+                                    <div class="matrix-cell score score-high">89%</div>
+                                    <div class="matrix-cell score score-medium">74%</div>
+                                    
+                                    <div class="matrix-cell student">Bob Martin (M2 Réseaux)</div>
+                                    <div class="matrix-cell score score-medium">71%</div>
+                                    <div class="matrix-cell score score-high">95%</div>
+                                    <div class="matrix-cell score score-low">52%</div>
+                                    <div class="matrix-cell score score-medium">68%</div>
+                                    
+                                    <div class="matrix-cell student">Claire Moreau (M2 IA)</div>
+                                    <div class="matrix-cell score score-medium">78%</div>
+                                    <div class="matrix-cell score score-low">45%</div>
+                                    <div class="matrix-cell score score-high">97%</div>
+                                    <div class="matrix-cell score score-medium">63%</div>
+                                    
+                                    <div class="matrix-cell student">David Lopez (M2 Web)</div>
+                                    <div class="matrix-cell score score-medium">69%</div>
+                                    <div class="matrix-cell score score-medium">72%</div>
+                                    <div class="matrix-cell score score-low">58%</div>
+                                    <div class="matrix-cell score score-high">93%</div>
+                                </div>
+                                
+                                <div class="d-flex gap-4 mt-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 20px; height: 20px; background: #d4edda; border-radius: 3px;"></div>
+                                        <span class="small">Excellente compatibilité (≥85%)</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 20px; height: 20px; background: #fff3cd; border-radius: 3px;"></div>
+                                        <span class="small">Compatibilité moyenne (60-84%)</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width: 20px; height: 20px; background: #f8d7da; border-radius: 3px;"></div>
+                                        <span class="small">Compatibilité faible (<60%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Fonctionnalités de la Matrice</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Visualisation intuitive :</strong> Code couleur pour compatibilité</li>
+                                <li><strong>Interaction directe :</strong> Clic pour sélectionner/modifier affectations</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Calcul temps réel :</strong> Scores mis à jour automatiquement</li>
+                                <li><strong>Export flexible :</strong> Formats Excel, PDF, CSV</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface Tuteur - Tableau de Bord -->
+        <div class="mockup-container">
+            <div class="mockup-header">
+                <i class="fas fa-chalkboard-teacher me-2"></i>Interface Tuteur - Suivi des Étudiants
+            </div>
+            <div class="mockup-content">
+                <div class="desktop-frame">
+                    <div class="interface-frame">
+                        <div class="browser-bar">
+                            <div class="browser-dots">
+                                <div class="dot red"></div>
+                                <div class="dot yellow"></div>
+                                <div class="dot green"></div>
+                            </div>
+                            <div class="url-bar">https://tutormatch.univ.fr/tutor/dashboard</div>
+                        </div>
+                        <div class="interface-content">
+                            <div class="navbar-mockup">
+                                <div class="navbar-brand">
+                                    <i class="fas fa-graduation-cap me-2"></i>TutorMatch
+                                </div>
+                                <nav class="navbar-nav">
+                                    <a href="#" class="nav-item active">Mes étudiants</a>
+                                    <a href="#" class="nav-item">Préférences</a>
+                                    <a href="#" class="nav-item">Évaluations</a>
+                                    <a href="#" class="nav-item">Messages</a>
+                                    <a href="#" class="nav-item">Planification</a>
+                                </nav>
+                                <div style="color: white;">
+                                    <i class="fas fa-user-circle me-2"></i>Dr. Martin
+                                </div>
+                            </div>
+                            
+                            <div style="padding: 20px;">
+                                <div class="row mb-4">
+                                    <div class="col-md-8">
+                                        <h4>Mes Étudiants Assignés (6/8)</h4>
+                                        <p class="text-muted">Capacité d'encadrement: 75% utilisée</p>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <button class="btn-primary">
+                                            <i class="fas fa-calendar-plus me-2"></i>Planifier réunion
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-content">
+                                    <div class="table-row header">
+                                        <div>Étudiant</div>
+                                        <div>Entreprise</div>
+                                        <div>Progression</div>
+                                        <div>Actions</div>
+                                    </div>
+                                    <div class="table-row">
+                                        <div>
+                                            <strong>Alice Dubois</strong><br>
+                                            <small class="text-muted">M2 MIAGE - Développement</small>
+                                        </div>
+                                        <div>
+                                            <strong>TechCorp</strong><br>
+                                            <small class="text-muted">Stage 6 mois</small>
+                                        </div>
+                                        <div>
+                                            <div style="background: #e9ecef; border-radius: 10px; height: 8px; margin: 5px 0;">
+                                                <div style="background: #28a745; height: 100%; width: 75%; border-radius: 10px;"></div>
+                                            </div>
+                                            <small>75% - En cours</small>
+                                        </div>
+                                        <div>
+                                            <button class="btn-primary" style="background: #17a2b8; font-size: 12px; padding: 5px 10px;">Message</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-row">
+                                        <div>
+                                            <strong>Bob Martin</strong><br>
+                                            <small class="text-muted">M2 MIAGE - Réseaux</small>
+                                        </div>
+                                        <div>
+                                            <strong>NetSolutions</strong><br>
+                                            <small class="text-muted">Stage 4 mois</small>
+                                        </div>
+                                        <div>
+                                            <div style="background: #e9ecef; border-radius: 10px; height: 8px; margin: 5px 0;">
+                                                <div style="background: #ffc107; height: 100%; width: 45%; border-radius: 10px;"></div>
+                                            </div>
+                                            <small>45% - Démarré</small>
+                                        </div>
+                                        <div>
+                                            <button class="btn-primary" style="background: #17a2b8; font-size: 12px; padding: 5px 10px;">Message</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-row">
+                                        <div>
+                                            <strong>Claire Moreau</strong><br>
+                                            <small class="text-muted">M2 MIAGE - IA</small>
+                                        </div>
+                                        <div>
+                                            <strong>AI Innovations</strong><br>
+                                            <small class="text-muted">Stage 6 mois</small>
+                                        </div>
+                                        <div>
+                                            <div style="background: #e9ecef; border-radius: 10px; height: 8px; margin: 5px 0;">
+                                                <div style="background: #28a745; height: 100%; width: 100%; border-radius: 10px;"></div>
+                                            </div>
+                                            <small>100% - Terminé</small>
+                                        </div>
+                                        <div>
+                                            <button class="btn-primary" style="background: #28a745; font-size: 12px; padding: 5px 10px;">Évaluer</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-4">
+                                    <div class="col-md-6">
+                                        <div class="card-mockup">
+                                            <h6><i class="fas fa-calendar-check me-2"></i>Prochaines Réunions</h6>
+                                            <div class="small">
+                                                <div class="d-flex justify-content-between py-2 border-bottom">
+                                                    <span>Alice Dubois</span>
+                                                    <span class="text-muted">15 Jan, 14h00</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-2 border-bottom">
+                                                    <span>Bob Martin</span>
+                                                    <span class="text-muted">17 Jan, 10h30</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-2">
+                                                    <span>David Lopez</span>
+                                                    <span class="text-muted">20 Jan, 16h00</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card-mockup">
+                                            <h6><i class="fas fa-envelope me-2"></i>Messages Récents</h6>
+                                            <div class="small">
+                                                <div class="d-flex justify-content-between py-2 border-bottom">
+                                                    <span><strong>Alice:</strong> Question sur le rapport</span>
+                                                    <span class="text-muted">Il y a 2h</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-2 border-bottom">
+                                                    <span><strong>Bob:</strong> Problème technique</span>
+                                                    <span class="text-muted">Hier</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-2">
+                                                    <span><strong>Coord.:</strong> Nouvelle évaluation</span>
+                                                    <span class="text-muted">2 jours</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Fonctionnalités Interface Tuteur</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Suivi individuel :</strong> Progression détaillée par étudiant</li>
+                                <li><strong>Communication directe :</strong> Messagerie intégrée avec historique</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Planification :</strong> Gestion des réunions et rendez-vous</li>
+                                <li><strong>Évaluations :</strong> Outils d'évaluation et de notation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface Étudiant - Messagerie -->
+        <div class="mockup-container">
+            <div class="mockup-header">
+                <i class="fas fa-comments me-2"></i>Interface Étudiant - Messagerie avec Tuteur
+            </div>
+            <div class="mockup-content">
+                <div class="desktop-frame">
+                    <div class="interface-frame">
+                        <div class="browser-bar">
+                            <div class="browser-dots">
+                                <div class="dot red"></div>
+                                <div class="dot yellow"></div>
+                                <div class="dot green"></div>
+                            </div>
+                            <div class="url-bar">https://tutormatch.univ.fr/student/messages</div>
+                        </div>
+                        <div class="interface-content">
+                            <div class="navbar-mockup">
+                                <div class="navbar-brand">
+                                    <i class="fas fa-graduation-cap me-2"></i>TutorMatch
+                                </div>
+                                <nav class="navbar-nav">
+                                    <a href="#" class="nav-item">Mon stage</a>
+                                    <a href="#" class="nav-item">Préférences</a>
+                                    <a href="#" class="nav-item active">Messages</a>
+                                    <a href="#" class="nav-item">Documents</a>
+                                    <a href="#" class="nav-item">Évaluations</a>
+                                </nav>
+                                <div style="color: white;">
+                                    <i class="fas fa-user-circle me-2"></i>Alice Dubois
+                                </div>
+                            </div>
+                            
+                            <div style="padding: 20px;">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h4>Conversation avec Dr. Martin</h4>
+                                        <p class="text-muted">Tuteur de stage - Spécialité Développement Informatique</p>
+                                        
+                                        <div class="chat-mockup">
+                                            <div class="chat-header">
+                                                <i class="fas fa-circle text-success me-2" style="font-size: 8px;"></i>
+                                                Dr. Martin - En ligne
+                                            </div>
+                                            <div class="chat-messages">
+                                                <div class="message">
+                                                    <div class="message-avatar">DM</div>
+                                                    <div>
+                                                        <div class="message-bubble">
+                                                            Bonjour Alice, comment se passe votre stage chez TechCorp ? Avez-vous pu commencer le projet de développement dont nous avions parlé ?
+                                                        </div>
+                                                        <div class="message-time">Aujourd'hui à 09:15</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="message sent">
+                                                    <div class="message-avatar">AD</div>
+                                                    <div>
+                                                        <div class="message-bubble">
+                                                            Bonjour Docteur Martin ! Oui, le stage se passe très bien. J'ai commencé le projet React que vous aviez validé. J'ai une question sur l'architecture des composants.
+                                                        </div>
+                                                        <div class="message-time">Aujourd'hui à 09:45</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="message">
+                                                    <div class="message-avatar">DM</div>
+                                                    <div>
+                                                        <div class="message-bubble">
+                                                            Parfait ! N'hésitez pas à me poser vos questions. Nous pourrons en discuter lors de notre réunion prévue vendredi. Pouvez-vous me préparer un petit rapport d'avancement ?
+                                                        </div>
+                                                        <div class="message-time">Aujourd'hui à 10:02</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="message sent">
+                                                    <div class="message-avatar">AD</div>
+                                                    <div>
+                                                        <div class="message-bubble">
+                                                            Bien sûr ! Je vais préparer un document avec mes avancées et mes questions. Merci pour votre disponibilité.
+                                                        </div>
+                                                        <div class="message-time">Aujourd'hui à 10:30</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="chat-input">
+                                                <input type="text" placeholder="Tapez votre message...">
+                                                <button class="btn-primary">
+                                                    <i class="fas fa-paper-plane"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="card-mockup">
+                                            <h6><i class="fas fa-info-circle me-2"></i>Informations Stage</h6>
+                                            <div class="small">
+                                                <p><strong>Entreprise:</strong> TechCorp</p>
+                                                <p><strong>Durée:</strong> 6 mois</p>
+                                                <p><strong>Début:</strong> 1er septembre 2024</p>
+                                                <p><strong>Tuteur entreprise:</strong> M. Durand</p>
+                                                <p><strong>Sujet:</strong> Développement d'une application web React avec API Node.js</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-mockup mt-3">
+                                            <h6><i class="fas fa-calendar me-2"></i>Prochains RDV</h6>
+                                            <div class="small">
+                                                <div class="d-flex justify-content-between py-2 border-bottom">
+                                                    <span>Réunion tuteur</span>
+                                                    <span class="text-muted">15 Jan, 14h</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-2">
+                                                    <span>Présentation MI</span>
+                                                    <span class="text-muted">22 Jan, 10h</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-mockup mt-3">
+                                            <h6><i class="fas fa-file-alt me-2"></i>Documents</h6>
+                                            <div class="small">
+                                                <div class="d-flex justify-content-between py-1">
+                                                    <span><i class="fas fa-file-pdf text-danger me-1"></i>Convention stage</span>
+                                                    <i class="fas fa-download text-muted"></i>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-1">
+                                                    <span><i class="fas fa-file-word text-primary me-1"></i>Rapport MI</span>
+                                                    <i class="fas fa-upload text-success"></i>
+                                                </div>
+                                                <div class="d-flex justify-content-between py-1">
+                                                    <span><i class="fas fa-file-excel text-success me-1"></i>Feuille temps</span>
+                                                    <i class="fas fa-download text-muted"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Fonctionnalités Messagerie Étudiante</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Communication temps réel :</strong> Messages instantanés avec tuteurs</li>
+                                <li><strong>Contexte intégré :</strong> Informations stage toujours visibles</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Gestion documents :</strong> Upload/download de fichiers stage</li>
+                                <li><strong>Planification :</strong> Calendrier des rendez-vous et échéances</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface Mobile - Version Responsive -->
+        <div class="mockup-container">
+            <div class="mockup-header">
+                <i class="fas fa-mobile-alt me-2"></i>Interface Mobile - Version Responsive
+            </div>
+            <div class="mockup-content">
+                <div class="mobile-frame">
+                    <div class="interface-frame">
+                        <div class="browser-bar">
+                            <div class="browser-dots">
+                                <div class="dot red"></div>
+                                <div class="dot yellow"></div>
+                                <div class="dot green"></div>
+                            </div>
+                            <div class="url-bar">https://tutormatch.univ.fr/student/mobile</div>
+                        </div>
+                        <div class="interface-content">
+                            <!-- Header mobile -->
+                            <div style="background: #667eea; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <i class="fas fa-bars"></i>
+                                </div>
+                                <div class="fw-bold">TutorMatch</div>
+                                <div>
+                                    <i class="fas fa-bell"></i>
+                                    <span style="background: #dc3545; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; margin-left: 5px;">3</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Navigation mobile -->
+                            <div style="background: #f8f9fa; padding: 10px; display: flex; justify-content: space-around; border-bottom: 1px solid #dee2e6;">
+                                <div style="text-align: center; color: #667eea;">
+                                    <i class="fas fa-home d-block"></i>
+                                    <small>Accueil</small>
+                                </div>
+                                <div style="text-align: center; color: #6c757d;">
+                                    <i class="fas fa-comments d-block"></i>
+                                    <small>Messages</small>
+                                </div>
+                                <div style="text-align: center; color: #6c757d;">
+                                    <i class="fas fa-calendar d-block"></i>
+                                    <small>Planning</small>
+                                </div>
+                                <div style="text-align: center; color: #6c757d;">
+                                    <i class="fas fa-user d-block"></i>
+                                    <small>Profil</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Contenu mobile -->
+                            <div style="padding: 15px;">
+                                <div style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                                    <h6 class="mb-1">Mon Stage</h6>
+                                    <p class="mb-2" style="font-size: 14px;">TechCorp - Développement React</p>
+                                    <div style="background: rgba(255,255,255,0.2); border-radius: 10px; height: 6px;">
+                                        <div style="background: white; height: 100%; width: 75%; border-radius: 10px;"></div>
+                                    </div>
+                                    <small>75% terminé</small>
+                                </div>
+                                
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                                    <div style="background: #28a745; color: white; padding: 15px; border-radius: 8px; text-align: center;">
+                                        <i class="fas fa-user-tie d-block mb-2"></i>
+                                        <small>Dr. Martin</small>
+                                        <div style="font-size: 10px;">Tuteur École</div>
+                                    </div>
+                                    <div style="background: #17a2b8; color: white; padding: 15px; border-radius: 8px; text-align: center;">
+                                        <i class="fas fa-building d-block mb-2"></i>
+                                        <small>M. Durand</small>
+                                        <div style="font-size: 10px;">Tuteur Entreprise</div>
+                                    </div>
+                                </div>
+                                
+                                <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
+                                    <h6><i class="fas fa-bell me-2 text-warning"></i>Notifications</h6>
+                                    <div style="font-size: 13px; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                        <div style="display: flex; justify-content: between;">
+                                            <span>Nouveau message de Dr. Martin</span>
+                                            <span style="color: #6c757d; font-size: 11px;">2h</span>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 13px; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                        <div style="display: flex; justify-content: between;">
+                                            <span>Réunion prévue demain 14h</span>
+                                            <span style="color: #6c757d; font-size: 11px;">1j</span>
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 13px; padding: 8px 0;">
+                                        <div style="display: flex; justify-content: between;">
+                                            <span>Rapport MI à rendre</span>
+                                            <span style="color: #dc3545; font-size: 11px;">3j</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Fonctionnalités Interface Mobile</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Navigation tactile :</strong> Interface optimisée pour le touch</li>
+                                <li><strong>Informations essentielles :</strong> Accès rapide aux données importantes</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><strong>Notifications push :</strong> Alertes temps réel sur mobile</li>
+                                <li><strong>Responsive design :</strong> Adaptation automatique à tous écrans</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-graduation-cap me-2"></i>Projet Académique</h6>
+                    <p class="mb-0 small text-muted">Master 2 MIAGE - Systèmes d'Information</p>
+                    <p class="mb-0 small text-muted">Université de Picardie Jules Verne</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h6><i class="fas fa-calendar me-2"></i>Année Universitaire 2024-2025</h6>
+                    <p class="mb-0 small text-muted">Encadrement: Équipe pédagogique MIAGE</p>
+                    <p class="mb-0 small text-muted">Soutenance: Décembre 2024</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Animation des maquettes au scroll
+        window.addEventListener('scroll', function() {
+            const mockups = document.querySelectorAll('.mockup-container');
+            mockups.forEach(mockup => {
+                const rect = mockup.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                
+                if (isVisible) {
+                    mockup.style.opacity = '1';
+                    mockup.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        // Style initial pour l'animation
+        document.querySelectorAll('.mockup-container').forEach(mockup => {
+            mockup.style.opacity = '0.8';
+            mockup.style.transform = 'translateY(20px)';
+            mockup.style.transition = 'all 0.6s ease-in-out';
+        });
+
+        // Effet hover sur les éléments interactifs
+        document.querySelectorAll('.interface-frame').forEach(frame => {
+            frame.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.02)';
+                this.style.transition = 'transform 0.3s ease';
+            });
+            
+            frame.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        // Simulation de la saisie dans les champs de chat
+        document.querySelectorAll('.chat-input input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.style.boxShadow = '0 0 0 2px rgba(102, 126, 234, 0.25)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.style.boxShadow = 'none';
+            });
+        });
+
+        // Animation des barres de progression
+        document.querySelectorAll('[style*="width: 75%"]').forEach(bar => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const progressBar = entry.target;
+                        progressBar.style.transition = 'width 2s ease-in-out';
+                        setTimeout(() => {
+                            progressBar.style.width = '75%';
+                        }, 500);
+                    }
+                });
+            });
+            observer.observe(bar);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrammes UML Interactifs - TutorMatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --success-color: #4ade80;
+            --warning-color: #fbbf24;
+            --danger-color: #f87171;
+            --info-color: #06b6d4;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+            --shadow-light: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-large: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--shadow-light);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .diagram-navigation {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .nav-pills .nav-link {
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-weight: 500;
+            color: var(--dark-color);
+            transition: all 0.3s ease;
+            margin: 0 5px;
+        }
+
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: var(--shadow-light);
+            transform: translateY(-2px);
+        }
+
+        .nav-pills .nav-link:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .diagram-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow-large);
+            margin: 30px 0;
+            overflow: hidden;
+            position: relative;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .diagram-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .diagram-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 25px 30px;
+            font-weight: 600;
+            font-size: 1.4em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .diagram-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.1) 75%);
+            background-size: 20px 20px;
+            animation: movePattern 20s linear infinite;
+        }
+
+        @keyframes movePattern {
+            0% { transform: translateX(-20px); }
+            100% { transform: translateX(20px); }
+        }
+
+        .diagram-content {
+            padding: 40px;
+            position: relative;
+        }
+
+        /* Styles UML modernes */
+        .uml-element {
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .uml-element:hover {
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+            transform: translateY(-2px);
+        }
+
+        .uml-class {
+            fill: white;
+            stroke: var(--primary-color);
+            stroke-width: 2;
+            rx: 12;
+            ry: 12;
+        }
+
+        .uml-class.primary { 
+            fill: linear-gradient(135deg, #e3f2fd, #bbdefb); 
+            stroke: var(--primary-color);
+        }
+        .uml-class.success { 
+            fill: linear-gradient(135deg, #f0fdf4, #dcfce7); 
+            stroke: var(--success-color);
+        }
+        .uml-class.warning { 
+            fill: linear-gradient(135deg, #fffbeb, #fef3c7); 
+            stroke: var(--warning-color);
+        }
+        .uml-class.info { 
+            fill: linear-gradient(135deg, #f0fdfa, #ccfbf1); 
+            stroke: var(--info-color);
+        }
+        .uml-class.danger { 
+            fill: linear-gradient(135deg, #fef2f2, #fecaca); 
+            stroke: var(--danger-color);
+        }
+
+        .uml-actor {
+            fill: linear-gradient(135deg, #fff7ed, #fed7aa);
+            stroke: #ea580c;
+            stroke-width: 3;
+            rx: 25;
+            ry: 25;
+        }
+
+        .uml-usecase {
+            fill: linear-gradient(135deg, #faf5ff, #e9d5ff);
+            stroke: #a855f7;
+            stroke-width: 2;
+        }
+
+        .uml-text {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            fill: var(--dark-color);
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        .uml-text.title {
+            font-weight: 700;
+            font-size: 16px;
+            fill: var(--dark-color);
+        }
+
+        .uml-text.attribute {
+            font-size: 13px;
+            text-anchor: start;
+            fill: #4b5563;
+        }
+
+        .uml-text.method {
+            font-size: 13px;
+            text-anchor: start;
+            fill: #374151;
+            font-weight: 500;
+        }
+
+        .uml-text.small {
+            font-size: 12px;
+            fill: #6b7280;
+        }
+
+        .connection-line {
+            stroke: var(--dark-color);
+            stroke-width: 2;
+            fill: none;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .connection-line.animated {
+            stroke-dasharray: 5,5;
+            animation: dashAnimation 2s linear infinite;
+        }
+
+        @keyframes dashAnimation {
+            to { stroke-dashoffset: -10; }
+        }
+
+        .arrow {
+            fill: var(--dark-color);
+            opacity: 0.8;
+        }
+
+        .sequence-lifeline {
+            stroke: var(--primary-color);
+            stroke-width: 3;
+            stroke-dasharray: 8,4;
+            opacity: 0.7;
+        }
+
+        .sequence-activation {
+            fill: rgba(102, 126, 234, 0.2);
+            stroke: var(--primary-color);
+            stroke-width: 2;
+            rx: 4;
+            ry: 4;
+        }
+
+        .message-flow {
+            stroke: var(--secondary-color);
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+            transition: all 0.3s ease;
+        }
+
+        .message-flow:hover {
+            stroke-width: 3;
+            stroke: var(--accent-color);
+        }
+
+        .sequence-box {
+            fill: white;
+            stroke: var(--primary-color);
+            stroke-width: 2;
+            rx: 8;
+            ry: 8;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        /* Légendes modernes */
+        .legend {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-left: 5px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 30px 0;
+            box-shadow: var(--shadow-light);
+        }
+
+        .legend h6 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 12px;
+            border: 2px solid rgba(0,0,0,0.1);
+        }
+
+        /* Animations et interactions */
+        .diagram-zoom {
+            transition: transform 0.3s ease;
+        }
+
+        .diagram-zoom.zoomed {
+            transform: scale(1.1);
+        }
+
+        .interactive-element {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .interactive-element:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        /* Footer moderne */
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 50px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .diagram-content {
+                padding: 20px;
+            }
+            
+            .nav-pills .nav-link {
+                font-size: 14px;
+                padding: 8px 16px;
+                margin: 2px;
+            }
+        }
+
+        /* Animations d'entrée */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-scroll {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        /* Amélioration des gradients */
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        /* Indicateurs de progression */
+        .progress-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            z-index: 9999;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Indicateur de progression -->
+    <div class="progress-indicator" id="progressIndicator"></div>
+
+    <!-- Header -->
+    <div class="header py-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0">
+                        <i class="fas fa-project-diagram me-3 gradient-text"></i>
+                        <span class="gradient-text">Diagrammes UML Interactifs</span>
+                    </h1>
+                    <p class="mb-0 text-muted">Système TutorMatch - Attribution de tuteur pour les suivis de stage</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="d-flex flex-column">
+                        <small class="text-muted">Présenté par:</small>
+                        <strong class="gradient-text">DANSIA Toussaint</strong>
+                        <strong class="gradient-text">BELLE BELLE Isaac</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation des diagrammes -->
+    <div class="container">
+        <div class="diagram-navigation">
+            <ul class="nav nav-pills justify-content-center" id="diagramTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="use-case-tab" data-bs-toggle="pill" data-bs-target="#use-case" type="button" role="tab">
+                        <i class="fas fa-users me-2"></i>Cas d'Utilisation
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="class-tab" data-bs-toggle="pill" data-bs-target="#class-diagram" type="button" role="tab">
+                        <i class="fas fa-sitemap me-2"></i>Classes
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="sequence-tab" data-bs-toggle="pill" data-bs-target="#sequence-diagram" type="button" role="tab">
+                        <i class="fas fa-arrow-right me-2"></i>Séquence
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="architecture-tab" data-bs-toggle="pill" data-bs-target="#architecture-diagram" type="button" role="tab">
+                        <i class="fas fa-layer-group me-2"></i>Architecture
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Contenu des diagrammes -->
+    <div class="container my-5">
+        <div class="tab-content" id="diagramContent">
+            
+            <!-- Diagramme de Cas d'Utilisation -->
+            <div class="tab-pane fade show active" id="use-case" role="tabpanel">
+                <div class="diagram-container">
+                    <div class="diagram-header">
+                        <i class="fas fa-users me-3"></i>Diagramme de Cas d'Utilisation - Vue d'Ensemble du Système
+                    </div>
+                    <div class="diagram-content">
+                        <div class="row">
+                            <div class="col-12">
+                                <svg width="100%" height="700" viewBox="0 0 1400 700" class="diagram-zoom">
+                                    <!-- Définitions des gradients et marqueurs -->
+                                    <defs>
+                                        <linearGradient id="actorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#fff7ed;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#fed7aa;stop-opacity:1" />
+                                        </linearGradient>
+                                        <linearGradient id="usecaseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#faf5ff;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#e9d5ff;stop-opacity:1" />
+                                        </linearGradient>
+                                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 10 3.5, 0 7" fill="#374151" />
+                                        </marker>
+                                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.1"/>
+                                        </filter>
+                                    </defs>
+                                    
+                                    <!-- Acteurs -->
+                                    <g class="actors">
+                                        <!-- Administrateur -->
+                                        <g class="uml-element interactive-element" data-tooltip="Administrateur: Gestion globale du système">
+                                            <ellipse cx="100" cy="80" rx="60" ry="35" fill="url(#actorGradient)" stroke="#ea580c" stroke-width="3" filter="url(#shadow)"/>
+                                            <text x="100" y="85" class="uml-text title">Administrateur</text>
+                                        </g>
+                                        
+                                        <!-- Coordinateur -->
+                                        <g class="uml-element interactive-element" data-tooltip="Coordinateur: Supervision des affectations">
+                                            <ellipse cx="100" cy="180" rx="60" ry="35" fill="url(#actorGradient)" stroke="#ea580c" stroke-width="3" filter="url(#shadow)"/>
+                                            <text x="100" y="185" class="uml-text title">Coordinateur</text>
+                                        </g>
+                                        
+                                        <!-- Tuteur -->
+                                        <g class="uml-element interactive-element" data-tooltip="Tuteur: Encadrement des étudiants">
+                                            <ellipse cx="100" cy="280" rx="60" ry="35" fill="url(#actorGradient)" stroke="#ea580c" stroke-width="3" filter="url(#shadow)"/>
+                                            <text x="100" y="285" class="uml-text title">Tuteur</text>
+                                        </g>
+                                        
+                                        <!-- Étudiant -->
+                                        <g class="uml-element interactive-element" data-tooltip="Étudiant: Participant au système de stage">
+                                            <ellipse cx="100" cy="380" rx="60" ry="35" fill="url(#actorGradient)" stroke="#ea580c" stroke-width="3" filter="url(#shadow)"/>
+                                            <text x="100" y="385" class="uml-text title">Étudiant</text>
+                                        </g>
+                                    </g>
+                                    
+                                    <!-- Frontière du système -->
+                                    <rect x="220" y="30" width="1100" height="620" fill="none" stroke="#667eea" stroke-width="3" stroke-dasharray="10,5" rx="20" ry="20" opacity="0.6"/>
+                                    <text x="770" y="25" class="uml-text" style="font-size: 18px; font-weight: 700; fill: #667eea;">Système TutorMatch</text>
+                                    
+                                    <!-- Cas d'utilisation - Zone Administration -->
+                                    <g class="administration-zone">
+                                        <rect x="240" y="50" width="320" height="160" fill="rgba(239, 68, 68, 0.05)" stroke="#ef4444" stroke-width="1" stroke-dasharray="5,3" rx="10" ry="10"/>
+                                        <text x="250" y="45" class="uml-text small" style="fill: #ef4444; font-weight: 600;">Zone Administration</text>
+                                        
+                                        <ellipse cx="320" cy="100" rx="70" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Gestion complète des utilisateurs du système"/>
+                                        <text x="320" y="105" class="uml-text">Gérer les utilisateurs</text>
+                                        
+                                        <ellipse cx="450" cy="130" rx="75" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Configuration et monitoring système"/>
+                                        <text x="450" y="135" class="uml-text">Configuration système</text>
+                                        
+                                        <ellipse cx="380" cy="170" rx="65" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Surveillance en temps réel"/>
+                                        <text x="380" y="175" class="uml-text">Monitoring</text>
+                                    </g>
+                                    
+                                    <!-- Cas d'utilisation - Zone Gestion -->
+                                    <g class="management-zone">
+                                        <rect x="580" y="50" width="380" height="200" fill="rgba(59, 130, 246, 0.05)" stroke="#3b82f6" stroke-width="1" stroke-dasharray="5,3" rx="10" ry="10"/>
+                                        <text x="590" y="45" class="uml-text small" style="fill: #3b82f6; font-weight: 600;">Zone Gestion</text>
+                                        
+                                        <ellipse cx="680" cy="100" rx="70" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Administration des stages et entreprises"/>
+                                        <text x="680" y="105" class="uml-text">Gérer les stages</text>
+                                        
+                                        <ellipse cx="820" cy="130" rx="85" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Algorithmes d'affectation intelligents"/>
+                                        <text x="820" y="135" class="uml-text">Exécuter algorithmes</text>
+                                        
+                                        <ellipse cx="750" cy="180" rx="80" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Validation des affectations proposées"/>
+                                        <text x="750" y="185" class="uml-text">Valider affectations</text>
+                                        
+                                        <ellipse cx="650" cy="210" rx="70" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Génération de rapports détaillés"/>
+                                        <text x="650" y="215" class="uml-text">Générer rapports</text>
+                                    </g>
+                                    
+                                    <!-- Cas d'utilisation - Zone Pédagogique -->
+                                    <g class="educational-zone">
+                                        <rect x="1000" y="50" width="300" height="200" fill="rgba(34, 197, 94, 0.05)" stroke="#22c55e" stroke-width="1" stroke-dasharray="5,3" rx="10" ry="10"/>
+                                        <text x="1010" y="45" class="uml-text small" style="fill: #22c55e; font-weight: 600;">Zone Pédagogique</text>
+                                        
+                                        <ellipse cx="1100" cy="100" rx="70" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Expression des préférences pédagogiques"/>
+                                        <text x="1100" y="105" class="uml-text">Saisir préférences</text>
+                                        
+                                        <ellipse cx="1180" cy="150" rx="75" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Encadrement et suivi des étudiants"/>
+                                        <text x="1180" y="155" class="uml-text">Suivre étudiants</text>
+                                        
+                                        <ellipse cx="1050" cy="190" rx="70" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Évaluation des performances"/>
+                                        <text x="1050" y="195" class="uml-text">Évaluer stages</text>
+                                    </g>
+                                    
+                                    <!-- Cas d'utilisation - Zone Communication -->
+                                    <g class="communication-zone">
+                                        <rect x="400" y="300" width="700" height="200" fill="rgba(168, 85, 247, 0.05)" stroke="#a855f7" stroke-width="1" stroke-dasharray="5,3" rx="10" ry="10"/>
+                                        <text x="410" y="295" class="uml-text small" style="fill: #a855f7; font-weight: 600;">Zone Communication</text>
+                                        
+                                        <ellipse cx="500" cy="350" rx="70" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Messagerie interne sécurisée"/>
+                                        <text x="500" y="355" class="uml-text">Messagerie</text>
+                                        
+                                        <ellipse cx="650" cy="380" rx="80" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Consultation des affectations"/>
+                                        <text x="650" y="385" class="uml-text">Consulter affectation</text>
+                                        
+                                        <ellipse cx="850" cy="350" rx="75" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Planification de réunions"/>
+                                        <text x="850" y="355" class="uml-text">Planifier réunions</text>
+                                        
+                                        <ellipse cx="1000" cy="400" rx="70" ry="25" fill="url(#usecaseGradient)" stroke="#a855f7" stroke-width="2" class="uml-element interactive-element" filter="url(#shadow)" data-tooltip="Gestion documentaire"/>
+                                        <text x="1000" y="405" class="uml-text">Gérer documents</text>
+                                    </g>
+                                    
+                                    <!-- Relations avec animations -->
+                                    <g class="relations">
+                                        <!-- Administrateur -->
+                                        <line x1="160" y1="80" x2="250" y2="100" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="80" x2="375" y2="130" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="90" x2="310" y2="170" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        
+                                        <!-- Coordinateur -->
+                                        <line x1="160" y1="180" x2="610" y2="100" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="180" x2="735" y2="130" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="190" x2="670" y2="180" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="200" x2="580" y2="210" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        
+                                        <!-- Tuteur -->
+                                        <line x1="160" y1="280" x2="1030" y2="100" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="290" x2="1105" y2="150" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="300" x2="980" y2="190" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="310" x2="430" y2="350" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="320" x2="775" y2="350" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        
+                                        <!-- Étudiant -->
+                                        <line x1="160" y1="380" x2="570" y2="380" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="390" x2="430" y2="350" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                        <line x1="160" y1="400" x2="930" y2="400" class="connection-line animated" marker-end="url(#arrowhead)"/>
+                                    </g>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="legend">
+                            <h6><i class="fas fa-info-circle me-2"></i>Zones Fonctionnelles du Système</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.4));"></div>
+                                        <span><strong>Administration:</strong> Configuration et supervision</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.4));"></div>
+                                        <span><strong>Gestion:</strong> Algorithmes et affectations</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.4));"></div>
+                                        <span><strong>Pédagogique:</strong> Suivi et évaluation</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(168, 85, 247, 0.4));"></div>
+                                        <span><strong>Communication:</strong> Échanges et collaboration</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagramme de Classes -->
+            <div class="tab-pane fade" id="class-diagram" role="tabpanel">
+                <div class="diagram-container">
+                    <div class="diagram-header">
+                        <i class="fas fa-sitemap me-3"></i>Diagramme de Classes - Architecture Orientée Objet
+                    </div>
+                    <div class="diagram-content">
+                        <div class="row">
+                            <div class="col-12">
+                                <svg width="100%" height="900" viewBox="0 0 1600 900" class="diagram-zoom">
+                                    <defs>
+                                        <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#bbdefb;stop-opacity:1" />
+                                        </linearGradient>
+                                        <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#f0fdf4;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#dcfce7;stop-opacity:1" />
+                                        </linearGradient>
+                                        <linearGradient id="warningGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#fffbeb;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#fef3c7;stop-opacity:1" />
+                                        </linearGradient>
+                                        <linearGradient id="infoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#f0fdfa;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#ccfbf1;stop-opacity:1" />
+                                        </linearGradient>
+                                        <pattern id="abstractPattern" patternUnits="userSpaceOnUse" width="4" height="4">
+                                            <rect width="4" height="4" fill="white"/>
+                                            <path d="m0,4l4,-4m-2,0l6,0m-6,4l6,0" stroke="#666" stroke-width="0.5"/>
+                                        </pattern>
+                                    </defs>
+                                    
+                                    <!-- Classe User (Abstraite) -->
+                                    <g class="uml-element interactive-element" data-tooltip="Classe abstraite utilisateur - Base du système d'authentification">
+                                        <rect x="50" y="50" width="220" height="180" fill="url(#abstractPattern)" stroke="#667eea" stroke-width="3" rx="12" ry="12" filter="url(#shadow)"/>
+                                        <text x="160" y="75" class="uml-text title" style="font-style: italic;">«abstract» User</text>
+                                        <line x1="60" y1="90" x2="260" y2="90" stroke="#667eea" stroke-width="2"/>
+                                        
+                                        <!-- Attributs -->
+                                        <text x="70" y="110" class="uml-text attribute">- id: int</text>
+                                        <text x="70" y="125" class="uml-text attribute">- email: string</text>
+                                        <text x="70" y="140" class="uml-text attribute">- password: string</text>
+                                        <text x="70" y="155" class="uml-text attribute">- role: UserRole</text>
+                                        <text x="70" y="170" class="uml-text attribute">- createdAt: DateTime</text>
+                                        
+                                        <line x1="60" y1="180" x2="260" y2="180" stroke="#667eea" stroke-width="1"/>
+                                        
+                                        <!-- Méthodes -->
+                                        <text x="70" y="200" class="uml-text method">+ authenticate(): bool</text>
+                                        <text x="70" y="215" class="uml-text method">+ hasRole(role: string): bool</text>
+                                    </g>
+                                    
+                                    <!-- Classe Student -->
+                                    <g class="uml-element interactive-element" data-tooltip="Classe Student - Gestion des étudiants et leurs préférences">
+                                        <rect x="350" y="50" width="240" height="200" fill="url(#successGradient)" stroke="#22c55e" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                        <text x="470" y="75" class="uml-text title">Student</text>
+                                        <line x1="360" y1="90" x2="580" y2="90" stroke="#22c55e" stroke-width="2"/>
+                                        
+                                        <text x="370" y="110" class="uml-text attribute">- studentId: string</text>
+                                        <text x="370" y="125" class="uml-text attribute">- department: string</text>
+                                        <text x="370" y="140" class="uml-text attribute">- level: AcademicLevel</text>
+                                        <text x="370" y="155" class="uml-text attribute">- preferences: Preference[]</text>
+                                        <text x="370" y="170" class="uml-text attribute">- skills: Skill[]</text>
+                                        
+                                        <line x1="360" y1="180" x2="580" y2="180" stroke="#22c55e" stroke-width="1"/>
+                                        
+                                        <text x="370" y="200" class="uml-text method">+ addPreference(pref: Preference): void</text>
+                                        <text x="370" y="215" class="uml-text method">+ getAssignment(): Assignment</text>
+                                        <text x="370" y="230" class="uml-text method">+ updateProfile(): void</text>
+                                    </g>
+                                    
+                                    <!-- Classe Teacher -->
+                                    <g class="uml-element interactive-element" data-tooltip="Classe Teacher - Gestion des enseignants tuteurs">
+                                        <rect x="650" y="50" width="240" height="200" fill="url(#warningGradient)" stroke="#f59e0b" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                        <text x="770" y="75" class="uml-text title">Teacher</text>
+                                        <line x1="660" y1="90" x2="880" y2="90" stroke="#f59e0b" stroke-width="2"/>
+                                        
+                                        <text x="670" y="110" class="uml-text attribute">- teacherId: string</text>
+                                        <text x="670" y="125" class="uml-text attribute">- department: string</text>
+                                        <text x="670" y="140" class="uml-text attribute">- capacity: int</text>
+                                        <text x="670" y="155" class="uml-text attribute">- specializations: string[]</text>
+                                        <text x="670" y="170" class="uml-text attribute">- preferences: TeacherPreference[]</text>
+                                        
+                                        <line x1="660" y1="180" x2="880" y2="180" stroke="#f59e0b" stroke-width="1"/>
+                                        
+                                        <text x="670" y="200" class="uml-text method">+ setPreferences(prefs: TeacherPreference[]): void</text>
+                                        <text x="670" y="215" class="uml-text method">+ getStudents(): Student[]</text>
+                                        <text x="670" y="230" class="uml-text method">+ updateCapacity(capacity: int): void</text>
+                                    </g>
+                                    
+                                    <!-- Classe Assignment -->
+                                    <g class="uml-element interactive-element" data-tooltip="Classe Assignment - Gestion des affectations">
+                                        <rect x="350" y="350" width="280" height="220" fill="url(#primaryGradient)" stroke="#667eea" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                        <text x="490" y="375" class="uml-text title">Assignment</text>
+                                        <line x1="360" y1="390" x2="620" y2="390" stroke="#667eea" stroke-width="2"/>
+                                        
+                                        <text x="370" y="410" class="uml-text attribute">- id: int</text>
+                                        <text x="370" y="425" class="uml-text attribute">- studentId: int</text>
+                                        <text x="370" y="440" class="uml-text attribute">- teacherId: int</text>
+                                        <text x="370" y="455" class="uml-text attribute">- internshipId: int</text>
+                                        <text x="370" y="470" class="uml-text attribute">- score: float</text>
+                                        <text x="370" y="485" class="uml-text attribute">- status: AssignmentStatus</text>
+                                        <text x="370" y="500" class="uml-text attribute">- algorithm: AlgorithmType</text>
+                                        
+                                        <line x1="360" y1="510" x2="620" y2="510" stroke="#667eea" stroke-width="1"/>
+                                        
+                                        <text x="370" y="530" class="uml-text method">+ create(): bool</text>
+                                        <text x="370" y="545" class="uml-text method">+ validate(): bool</text>
+                                        <text x="370" y="560" class="uml-text method">+ calculateCompatibility(): float</text>
+                                    </g>
+                                    
+                                    <!-- Classe Internship -->
+                                    <g class="uml-element interactive-element" data-tooltip="Classe Internship - Gestion des offres de stage">
+                                        <rect x="50" y="350" width="240" height="200" fill="url(#infoGradient)" stroke="#06b6d4" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                        <text x="170" y="375" class="uml-text title">Internship</text>
+                                        <line x1="60" y1="390" x2="280" y2="390" stroke="#06b6d4" stroke-width="2"/>
+                                        
+                                        <text x="70" y="410" class="uml-text attribute">- id: int</text>
+                                        <text x="70" y="425" class="uml-text attribute">- title: string</text>
+                                        <text x="70" y="440" class="uml-text attribute">- company: Company</text>
+                                        <text x="70" y="455" class="uml-text attribute">- technologies: Technology[]</text>
+                                        <text x="70" y="470" class="uml-text attribute">- duration: int</text>
+                                        <text x="70" y="485" class="uml-text attribute">- requirements: string[]</text>
+                                        
+                                        <line x1="60" y1="495" x2="280" y2="495" stroke="#06b6d4" stroke-width="1"/>
+                                        
+                                        <text x="70" y="515" class="uml-text method">+ publish(): void</text>
+                                        <text x="70" y="530" class="uml-text method">+ getDetails(): InternshipDetails</text>
+                                    </g>
+                                    
+                                    <!-- Classe AssignmentAlgorithm -->
+                                    <g class="uml-element interactive-element" data-tooltip="Interface AssignmentAlgorithm - Stratégie d'affectation">
+                                        <rect x="950" y="50" width="280" height="250" fill="url(#abstractPattern)" stroke="#8b5cf6" stroke-width="3" rx="12" ry="12" filter="url(#shadow)"/>
+                                        <text x="1090" y="75" class="uml-text title" style="font-style: italic;">«interface» AssignmentAlgorithm</text>
+                                        <line x1="960" y1="90" x2="1220" y2="90" stroke="#8b5cf6" stroke-width="2"/>
+                                        
+                                        <text x="970" y="115" class="uml-text method" style="font-style: italic;">+ execute(students: Student[], teachers: Teacher[]): Assignment[]</text>
+                                        <text x="970" y="135" class="uml-text method" style="font-style: italic;">+ calculateFitness(assignment: Assignment): float</text>
+                                        <text x="970" y="155" class="uml-text method" style="font-style: italic;">+ optimize(parameters: AlgorithmParams): void</text>
+                                        <text x="970" y="175" class="uml-text method" style="font-style: italic;">+ generateReport(): AssignmentReport</text>
+                                        <text x="970" y="195" class="uml-text method" style="font-style: italic;">+ benchmark(): PerformanceMetrics</text>
+                                        
+                                        <line x1="960" y1="210" x2="1220" y2="210" stroke="#8b5cf6" stroke-width="1"/>
+                                        <text x="970" y="230" class="uml-text small">Implémentations:</text>
+                                        <text x="970" y="245" class="uml-text small">• GreedyAlgorithm</text>
+                                        <text x="970" y="260" class="uml-text small">• HungarianAlgorithm</text>
+                                        <text x="970" y="275" class="uml-text small">• GeneticAlgorithm</text>
+                                    </g>
+                                    
+                                    <!-- Classe Monitoring -->
+                                    <g class="uml-element interactive-element" data-tooltip="Classe Monitoring - Système de surveillance">
+                                        <rect x="1300" y="350" width="250" height="200" fill="linear-gradient(135deg, #fef2f2, #fecaca)" stroke="#ef4444" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                        <text x="1425" y="375" class="uml-text title">Monitor</text>
+                                        <line x1="1310" y1="390" x2="1540" y2="390" stroke="#ef4444" stroke-width="2"/>
+                                        
+                                        <text x="1320" y="410" class="uml-text attribute">- metrics: MetricCollection</text>
+                                        <text x="1320" y="425" class="uml-text attribute">- logs: LogEntry[]</text>
+                                        <text x="1320" y="440" class="uml-text attribute">- alerts: Alert[]</text>
+                                        <text x="1320" y="455" class="uml-text attribute">- thresholds: Threshold[]</text>
+                                        
+                                        <line x1="1310" y1="465" x2="1540" y2="465" stroke="#ef4444" stroke-width="1"/>
+                                        
+                                        <text x="1320" y="485" class="uml-text method">+ collectMetrics(): void</text>
+                                        <text x="1320" y="500" class="uml-text method">+ generateReport(): MonitoringReport</text>
+                                        <text x="1320" y="515" class="uml-text method">+ sendAlert(alert: Alert): void</text>
+                                        <text x="1320" y="530" class="uml-text method">+ healthCheck(): HealthStatus</text>
+                                    </g>
+                                    
+                                    <!-- Relations avec styles modernes -->
+                                    <g class="relations">
+                                        <!-- Héritage User -> Student -->
+                                        <line x1="270" y1="140" x2="350" y2="140" stroke="#667eea" stroke-width="3" marker-end="url(#inheritance)"/>
+                                        <polygon points="340,135 350,140 340,145" fill="white" stroke="#667eea" stroke-width="2"/>
+                                        
+                                        <!-- Héritage User -> Teacher -->
+                                        <line x1="270" y1="140" x2="300" y2="140" stroke="#667eea" stroke-width="3"/>
+                                        <line x1="300" y1="140" x2="300" y2="80" stroke="#667eea" stroke-width="3"/>
+                                        <line x1="300" y1="80" x2="650" y2="80" stroke="#667eea" stroke-width="3"/>
+                                        <line x1="650" y1="80" x2="650" y2="140" stroke="#667eea" stroke-width="3" marker-end="url(#inheritance)"/>
+                                        <polygon points="640,135 650,140 640,145" fill="white" stroke="#667eea" stroke-width="2"/>
+                                        
+                                        <!-- Association Student -> Assignment -->
+                                        <line x1="470" y1="250" x2="470" y2="350" stroke="#22c55e" stroke-width="2"/>
+                                        <text x="475" y="300" class="uml-text small">1</text>
+                                        <text x="475" y="340" class="uml-text small">0..*</text>
+                                        
+                                        <!-- Association Teacher -> Assignment -->
+                                        <line x1="770" y1="250" x2="770" y2="320" stroke="#f59e0b" stroke-width="2"/>
+                                        <line x1="770" y1="320" x2="550" y2="320" stroke="#f59e0b" stroke-width="2"/>
+                                        <line x1="550" y1="320" x2="550" y2="350" stroke="#f59e0b" stroke-width="2"/>
+                                        <text x="775" y="270" class="uml-text small">1</text>
+                                        <text x="555" y="340" class="uml-text small">0..*</text>
+                                        
+                                        <!-- Association Internship -> Assignment -->
+                                        <line x1="290" y1="450" x2="350" y2="450" stroke="#06b6d4" stroke-width="2"/>
+                                        <text x="295" y="445" class="uml-text small">1</text>
+                                        <text x="340" y="445" class="uml-text small">0..*</text>
+                                        
+                                        <!-- Dépendance Algorithm -> Assignment -->
+                                        <line x1="950" y1="175" x2="700" y2="175" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4"/>
+                                        <line x1="700" y1="175" x2="700" y2="350" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4"/>
+                                        <text x="800" y="170" class="uml-text small">«uses»</text>
+                                        
+                                        <!-- Monitoring observe tout -->
+                                        <line x1="1300" y1="400" x2="630" y2="400" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5"/>
+                                        <text x="950" y="395" class="uml-text small">«observes»</text>
+                                    </g>
+                                    
+                                    <!-- Zone de responsabilités -->
+                                    <rect x="30" y="30" width="1200" height="560" fill="none" stroke="#667eea" stroke-width="2" stroke-dasharray="15,10" rx="25" ry="25" opacity="0.3"/>
+                                    <text x="40" y="25" class="uml-text" style="font-size: 16px; font-weight: 700; fill: #667eea;">Domaine Métier - TutorMatch</text>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="legend">
+                            <h6><i class="fas fa-info-circle me-2"></i>Légende du Diagramme de Classes</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: url(#abstractPattern);"></div>
+                                        <span><strong>Classes abstraites/Interfaces:</strong> Pattern, hachures</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb);"></div>
+                                        <span><strong>Classes métier:</strong> Cœur du système</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7);"></div>
+                                        <span><strong>Entités utilisateur:</strong> Student, Teacher</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(135deg, #f0fdfa, #ccfbf1);"></div>
+                                        <span><strong>Entités de données:</strong> Internship</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #667eea; margin-right: 12px;"></div>
+                                        <span><strong>Héritage:</strong> Relation "est-un"</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #22c55e; margin-right: 12px;"></div>
+                                        <span><strong>Association:</strong> Relation "a-un"</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagramme de Séquence -->
+            <div class="tab-pane fade" id="sequence-diagram" role="tabpanel">
+                <div class="diagram-container">
+                    <div class="diagram-header">
+                        <i class="fas fa-arrow-right me-3"></i>Diagramme de Séquence - Processus d'Affectation Intelligente
+                    </div>
+                    <div class="diagram-content">
+                        <div class="row">
+                            <div class="col-12">
+                                <svg width="100%" height="800" viewBox="0 0 1500 800" class="diagram-zoom">
+                                    <defs>
+                                        <marker id="sequenceArrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 10 3.5, 0 7" fill="#374151" />
+                                        </marker>
+                                        <marker id="returnArrow" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                            <polygon points="10 0, 0 3.5, 10 7" fill="#6b7280" />
+                                        </marker>
+                                    </defs>
+                                    
+                                    <!-- Acteurs/Objets avec design moderne -->
+                                    <g class="sequence-actors">
+                                        <!-- Coordinateur -->
+                                        <g class="uml-element interactive-element" data-tooltip="Coordinateur: Initie le processus d'affectation">
+                                            <rect x="50" y="50" width="160" height="60" fill="url(#primaryGradient)" stroke="#667eea" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                            <text x="130" y="75" class="uml-text title">Coordinateur</text>
+                                            <text x="130" y="95" class="uml-text small">:User</text>
+                                        </g>
+                                        
+                                        <!-- Interface Web -->
+                                        <g class="uml-element interactive-element" data-tooltip="Interface Web: Couche présentation">
+                                            <rect x="250" y="50" width="160" height="60" fill="url(#successGradient)" stroke="#22c55e" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                            <text x="330" y="75" class="uml-text title">Interface Web</text>
+                                            <text x="330" y="95" class="uml-text small">:WebController</text>
+                                        </g>
+                                        
+                                        <!-- Service Layer -->
+                                        <g class="uml-element interactive-element" data-tooltip="Service Layer: Logique métier">
+                                            <rect x="450" y="50" width="160" height="60" fill="url(#warningGradient)" stroke="#f59e0b" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                            <text x="530" y="75" class="uml-text title">Service Layer</text>
+                                            <text x="530" y="95" class="uml-text small">:AssignmentService</text>
+                                        </g>
+                                        
+                                        <!-- Algorithm Engine -->
+                                        <g class="uml-element interactive-element" data-tooltip="Algorithm Engine: Moteur d'affectation">
+                                            <rect x="650" y="50" width="160" height="60" fill="url(#infoGradient)" stroke="#06b6d4" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                            <text x="730" y="75" class="uml-text title">Algorithm Engine</text>
+                                            <text x="730" y="95" class="uml-text small">:GeneticAlgorithm</text>
+                                        </g>
+                                        
+                                        <!-- Data Access -->
+                                        <g class="uml-element interactive-element" data-tooltip="Data Access: Couche données">
+                                            <rect x="850" y="50" width="160" height="60" fill="linear-gradient(135deg, #fef2f2, #fecaca)" stroke="#ef4444" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                            <text x="930" y="75" class="uml-text title">Data Access</text>
+                                            <text x="930" y="95" class="uml-text small">:DatabaseRepository</text>
+                                        </g>
+                                        
+                                        <!-- Cache System -->
+                                        <g class="uml-element interactive-element" data-tooltip="Cache System: Optimisation performances">
+                                            <rect x="1050" y="50" width="160" height="60" fill="linear-gradient(135deg, #f3e8ff, #ddd6fe)" stroke="#8b5cf6" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                            <text x="1130" y="75" class="uml-text title">Cache System</text>
+                                            <text x="1130" y="95" class="uml-text small">:RedisCache</text>
+                                        </g>
+                                        
+                                        <!-- Monitoring -->
+                                        <g class="uml-element interactive-element" data-tooltip="Monitoring: Surveillance système">
+                                            <rect x="1250" y="50" width="160" height="60" fill="linear-gradient(135deg, #fffbeb, #fef3c7)" stroke="#f59e0b" stroke-width="2" rx="12" ry="12" filter="url(#shadow)"/>
+                                            <text x="1330" y="75" class="uml-text title">Monitoring</text>
+                                            <text x="1330" y="95" class="uml-text small">:PrometheusMetrics</text>
+                                        </g>
+                                    </g>
+                                    
+                                    <!-- Lignes de vie avec style moderne -->
+                                    <g class="lifelines">
+                                        <line x1="130" y1="110" x2="130" y2="750" class="sequence-lifeline"/>
+                                        <line x1="330" y1="110" x2="330" y2="750" class="sequence-lifeline"/>
+                                        <line x1="530" y1="110" x2="530" y2="750" class="sequence-lifeline"/>
+                                        <line x1="730" y1="110" x2="730" y2="750" class="sequence-lifeline"/>
+                                        <line x1="930" y1="110" x2="930" y2="750" class="sequence-lifeline"/>
+                                        <line x1="1130" y1="110" x2="1130" y2="750" class="sequence-lifeline"/>
+                                        <line x1="1330" y1="110" x2="1330" y2="750" class="sequence-lifeline"/>
+                                    </g>
+                                    
+                                    <!-- Messages séquentiels avec numérotation -->
+                                    <g class="sequence-messages">
+                                        <!-- 1. Demande d'affectation -->
+                                        <line x1="130" y1="140" x2="330" y2="140" class="message-flow" marker-end="url(#sequenceArrow)"/>
+                                        <text x="200" y="135" class="uml-text small">1: requestAssignment()</text>
+                                        <circle cx="120" cy="140" r="12" fill="#667eea" stroke="white" stroke-width="2"/>
+                                        <text x="120" y="145" class="uml-text" style="fill: white; font-size: 10px; font-weight: bold;">1</text>
+                                        
+                                        <!-- 2. Validation -->
+                                        <line x1="330" y1="160" x2="530" y2="160" class="message-flow" marker-end="url(#sequenceArrow)"/>
+                                        <text x="400" y="155" class="uml-text small">2: validateRequest()</text>
+                                        <circle cx="320" cy="160" r="12" fill="#22c55e" stroke="white" stroke-width="2"/>
+                                        <text x="320" y="165" class="uml-text" style="fill: white; font-size: 10px; font-weight: bold;">2</text>
+                                        
+                                        <!-- 3. Chargement données -->
+                                        <line x1="530" y1="180" x2="930" y2="180" class="message-flow" marker-end="url(#sequenceArrow)"/>
+                                        <text x="700" y="175" class="uml-text small">3: loadStudentsAndTeachers()</text>
+                                        <circle cx="520" cy="180" r="12" fill="#f59e0b" stroke="white" stroke-width="2"/>
+                                        <text x="520" y="185" class="uml-text" style="fill: white; font-size: 10px; font-weight: bold;">3</text>
+                                        
+                                        <!-- 4. Vérification cache -->
+                                        <line x1="530" y1="200" x2="1130" y2="200" class="message-flow" marker-end="url(#sequenceArrow)"/>
+                                        <text x="800" y="195" class="uml-text small">4: checkCache(key)</text>
+                                        <circle cx="520" cy="200" r="12" fill="#f59e0b" stroke="white" stroke-width="2"/>
+                                        <text x="520" y="205" class="uml-text" style="fill: white; font-size: 10px; font-weight: bold;">4</text>
+                                        
+                                        <!-- 5. Retour données -->
+                                        <line x1="930" y1="220" x2="530" y2="220" class="message-flow" marker-end="url(#returnArrow)" stroke="#6b7280" stroke-dasharray="5,3"/>
+                                        <text x="700" y="215" class="uml-text small" style="fill: #6b7280;">5: data</text>
+                                        
+                                        <!-- Zone d'activation algorithme -->
+                                        <rect x="720" y="240" width="20" height="200" class="sequence-activation"/>
+                                        <text x="745" y="255" class="uml-text small" style="fill: #06b6d4; font-weight: 600;">Configuration Adaptative</text>
+                                        
+                                        <!-- 6. Initialisation algorithme -->
+                                        <line x1="530" y1="260" x2="730" y2="260" class="message-flow" marker-end="url(#sequenceArrow)"/>
+                                        <text x="600" y="255" class="uml-text small">6: initAlgorithm(config)</text>
+                                        <circle cx="520" cy="260" r="12" fill="#f59e0b" stroke="white" stroke-width="2"/>
+                                        <text x="520" y="265" class="uml-text" style="fill: white; font-size: 10px; font-weight: bold;">6</text>
+                                        
+                                        <!-- 7. Configuration parameters -->
+                                        <rect x="680" y="280" width="100" height="40" fill="rgba(6, 182, 212, 0.1)" stroke="#06b6d4" stroke-width="1" rx="8" ry="8"/>
+                                        <text x="730" y="295" class="uml-text small">Population: 100</text>
+                                        <text x="730" y="310" class="uml-text small">Generations: 50</text>
+                                        
+                                        <!-- 8. Exécution -->
+                                        <rect x="680" y="330" width="100" height="60" fill="rgba(6, 182, 212, 0.2)" stroke="#06b6d4" stroke-width="2" rx="8" ry="8"/>
+                                        <text x="730" y="350" class="uml-text small">Évolution</text>
+                                        <text x="730" y="365" class="uml-text small">Génétique</text>
+                                        <text x="730" y="380" class="uml-text small">En cours...</text>
+                                        
+                                        <!-- 9. Monitoring -->
+                                        <line x1="730" y1="400" x2="1330" y2="400" class="message-flow" marker-end="url(#sequenceArrow)" stroke="#f59e0b" stroke-dasharray="3,3"/>
+                                        <text x="1000" y="395" class="uml-text small" style="fill: #f59e0b;">9: recordMetrics()</text>
+                                        
+                                        <!-- 10. Sauvegarde résultats -->
+                                        <line x1="730" y1="450" x2="930" y2="450" class="message-flow" marker-end="url(#sequenceArrow)"/>
+                                        <text x="800" y="445" class="uml-text small">10: saveResults()</text>
+                                        <circle cx="720" cy="450" r="12" fill="#06b6d4" stroke="white" stroke-width="2"/>
+                                        <text x="720" y="455" class="uml-text" style="fill: white; font-size: 10px; font-weight: bold;">10</text>
+                                        
+                                        <!-- 11. Cache mise à jour -->
+                                        <line x1="730" y1="470" x2="1130" y2="470" class="message-flow" marker-end="url(#sequenceArrow)"/>
+                                        <text x="900" y="465" class="uml-text small">11: updateCache(results)</text>
+                                        <circle cx="720" cy="470" r="12" fill="#06b6d4" stroke="white" stroke-width="2"/>
+                                        <text x="720" y="475" class="uml-text" style="fill: white; font-size: 10px; font-weight: bold;">11</text>
+                                        
+                                        <!-- 12. Retour résultats -->
+                                        <line x1="730" y1="490" x2="530" y2="490" class="message-flow" marker-end="url(#returnArrow)" stroke="#6b7280" stroke-dasharray="5,3"/>
+                                        <text x="600" y="485" class="uml-text small" style="fill: #6b7280;">12: assignments[]</text>
+                                        
+                                        <!-- 13. Génération rapport -->
+                                        <line x1="530" y1="510" x2="330" y2="510" class="message-flow" marker-end="url(#returnArrow)" stroke="#6b7280" stroke-dasharray="5,3"/>
+                                        <text x="400" y="505" class="uml-text small" style="fill: #6b7280;">13: assignmentReport</text>
+                                        
+                                        <!-- 14. Notification utilisateur -->
+                                        <line x1="330" y1="530" x2="130" y2="530" class="message-flow" marker-end="url(#returnArrow)" stroke="#6b7280" stroke-dasharray="5,3"/>
+                                        <text x="200" y="525" class="uml-text small" style="fill: #6b7280;">14: success + metrics</text>
+                                        
+                                        <!-- Zone de logging continu -->
+                                        <rect x="1280" y="400" width="100" height="150" fill="rgba(245, 158, 11, 0.1)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3" rx="8" ry="8"/>
+                                        <text x="1330" y="420" class="uml-text small" style="fill: #f59e0b; font-weight: 600;">Logging</text>
+                                        <text x="1330" y="440" class="uml-text small" style="fill: #f59e0b;">Continu</text>
+                                        <text x="1330" y="480" class="uml-text small" style="fill: #f59e0b;">• Performance</text>
+                                        <text x="1330" y="500" class="uml-text small" style="fill: #f59e0b;">• Erreurs</text>
+                                        <text x="1330" y="520" class="uml-text small" style="fill: #f59e0b;">• Métriques</text>
+                                        <text x="1330" y="540" class="uml-text small" style="fill: #f59e0b;">• Alertes</text>
+                                    </g>
+                                    
+                                    <!-- Indicateurs de performance -->
+                                    <g class="performance-indicators">
+                                        <rect x="50" y="600" width="1360" height="120" fill="rgba(102, 126, 234, 0.05)" stroke="#667eea" stroke-width="1" rx="15" ry="15"/>
+                                        <text x="60" y="620" class="uml-text" style="font-size: 16px; font-weight: 700; fill: #667eea;">Métriques de Performance</text>
+                                        
+                                        <g class="metrics">
+                                            <circle cx="120" cy="650" r="25" fill="#22c55e" opacity="0.8"/>
+                                            <text x="120" y="655" class="uml-text" style="fill: white; font-weight: bold;">1.8s</text>
+                                            <text x="120" y="685" class="uml-text small">Temps d'exécution</text>
+                                            
+                                            <circle cx="250" cy="650" r="25" fill="#06b6d4" opacity="0.8"/>
+                                            <text x="250" y="655" class="uml-text" style="fill: white; font-weight: bold;">94%</text>
+                                            <text x="250" y="685" class="uml-text small">Score qualité</text>
+                                            
+                                            <circle cx="380" cy="650" r="25" fill="#f59e0b" opacity="0.8"/>
+                                            <text x="380" y="655" class="uml-text" style="fill: white; font-weight: bold;">50</text>
+                                            <text x="380" y="685" class="uml-text small">Générations</text>
+                                            
+                                            <circle cx="510" cy="650" r="25" fill="#8b5cf6" opacity="0.8"/>
+                                            <text x="510" y="655" class="uml-text" style="fill: white; font-weight: bold;">85%</text>
+                                            <text x="510" y="685" class="uml-text small">Cache hit ratio</text>
+                                        </g>
+                                    </g>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="legend">
+                            <h6><i class="fas fa-info-circle me-2"></i>Flux Temporel du Processus d'Affectation</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #374151; margin-right: 12px;"></div>
+                                        <span><strong>Messages synchrones:</strong> Appels directs</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #6b7280; border-top: 2px dashed #6b7280; margin-right: 12px;"></div>
+                                        <span><strong>Messages de retour:</strong> Réponses</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: rgba(6, 182, 212, 0.2); border: 1px solid #06b6d4;"></div>
+                                        <span><strong>Zone d'activation:</strong> Traitement en cours</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #667eea; border-top: 2px dashed #667eea; margin-right: 12px;"></div>
+                                        <span><strong>Lignes de vie:</strong> Existence objets</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 20px; background: #22c55e; border-radius: 50%; margin-right: 12px;"></div>
+                                        <span><strong>Numérotation:</strong> Ordre chronologique</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div style="width: 20px; height: 3px; background: #f59e0b; border-top: 1px dashed #f59e0b; margin-right: 12px;"></div>
+                                        <span><strong>Monitoring:</strong> Surveillance continue</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: rgba(102, 126, 234, 0.1); border: 1px solid #667eea;"></div>
+                                        <span><strong>Métriques:</strong> Indicateurs de performance</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagramme d'Architecture -->
+            <div class="tab-pane fade" id="architecture-diagram" role="tabpanel">
+                <div class="diagram-container">
+                    <div class="diagram-header">
+                        <i class="fas fa-layer-group me-3"></i>Architecture Système - Vue d'Ensemble Technique
+                    </div>
+                    <div class="diagram-content">
+                        <div class="row">
+                            <div class="col-12">
+                                <svg width="100%" height="700" viewBox="0 0 1400 700" class="diagram-zoom">
+                                    <defs>
+                                        <linearGradient id="layerGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.8" />
+                                            <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:0.8" />
+                                        </linearGradient>
+                                        <linearGradient id="layerGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.8" />
+                                            <stop offset="100%" style="stop-color:#059669;stop-opacity:0.8" />
+                                        </linearGradient>
+                                        <linearGradient id="layerGradient3" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.8" />
+                                            <stop offset="100%" style="stop-color:#d97706;stop-opacity:0.8" />
+                                        </linearGradient>
+                                        <linearGradient id="layerGradient4" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.8" />
+                                            <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.8" />
+                                        </linearGradient>
+                                    </defs>
+                                    
+                                    <!-- Couche Présentation -->
+                                    <g class="presentation-layer">
+                                        <rect x="50" y="50" width="1300" height="120" fill="url(#layerGradient1)" rx="15" ry="15" filter="url(#shadow)"/>
+                                        <text x="70" y="80" class="uml-text title" style="fill: white; font-size: 18px;">Couche Présentation</text>
+                                        <text x="70" y="100" class="uml-text" style="fill: white; opacity: 0.9;">Interface utilisateur, API REST, Documentation Swagger</text>
+                                        
+                                        <!-- Composants de présentation -->
+                                        <rect x="100" y="120" width="150" height="40" fill="white" stroke="#1d4ed8" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Interface Web responsive"/>
+                                        <text x="175" y="145" class="uml-text">Interface Web</text>
+                                        
+                                        <rect x="300" y="120" width="150" height="40" fill="white" stroke="#1d4ed8" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="API REST documentée"/>
+                                        <text x="375" y="145" class="uml-text">API REST</text>
+                                        
+                                        <rect x="500" y="120" width="150" height="40" fill="white" stroke="#1d4ed8" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Documentation interactive"/>
+                                        <text x="575" y="145" class="uml-text">Swagger UI</text>
+                                        
+                                        <rect x="700" y="120" width="150" height="40" fill="white" stroke="#1d4ed8" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Application mobile"/>
+                                        <text x="775" y="145" class="uml-text">Mobile App</text>
+                                        
+                                        <rect x="900" y="120" width="150" height="40" fill="white" stroke="#1d4ed8" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Interfaces de monitoring"/>
+                                        <text x="975" y="145" class="uml-text">Monitoring UI</text>
+                                    </g>
+                                    
+                                    <!-- Couche Logique Métier -->
+                                    <g class="business-layer">
+                                        <rect x="50" y="200" width="1300" height="140" fill="url(#layerGradient2)" rx="15" ry="15" filter="url(#shadow)"/>
+                                        <text x="70" y="230" class="uml-text title" style="fill: white; font-size: 18px;">Couche Logique Métier</text>
+                                        <text x="70" y="250" class="uml-text" style="fill: white; opacity: 0.9;">Contrôleurs, Services, Algorithmes d'affectation</text>
+                                        
+                                        <!-- Services métier -->
+                                        <rect x="100" y="270" width="140" height="60" fill="white" stroke="#059669" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Gestion des utilisateurs"/>
+                                        <text x="170" y="295" class="uml-text">User</text>
+                                        <text x="170" y="310" class="uml-text">Controller</text>
+                                        
+                                        <rect x="260" y="270" width="140" height="60" fill="white" stroke="#059669" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Gestion des affectations"/>
+                                        <text x="330" y="295" class="uml-text">Assignment</text>
+                                        <text x="330" y="310" class="uml-text">Service</text>
+                                        
+                                        <rect x="420" y="270" width="140" height="60" fill="white" stroke="#059669" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Algorithme glouton"/>
+                                        <text x="490" y="295" class="uml-text">Greedy</text>
+                                        <text x="490" y="310" class="uml-text">Algorithm</text>
+                                        
+                                        <rect x="580" y="270" width="140" height="60" fill="white" stroke="#059669" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Algorithme hongrois"/>
+                                        <text x="650" y="295" class="uml-text">Hungarian</text>
+                                        <text x="650" y="310" class="uml-text">Algorithm</text>
+                                        
+                                        <rect x="740" y="270" width="140" height="60" fill="white" stroke="#059669" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Algorithme génétique"/>
+                                        <text x="810" y="295" class="uml-text">Genetic</text>
+                                        <text x="810" y="310" class="uml-text">Algorithm</text>
+                                        
+                                        <rect x="900" y="270" width="140" height="60" fill="white" stroke="#059669" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Service de messagerie"/>
+                                        <text x="970" y="295" class="uml-text">Message</text>
+                                        <text x="970" y="310" class="uml-text">Service</text>
+                                        
+                                        <rect x="1060" y="270" width="140" height="60" fill="white" stroke="#059669" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Service de notification"/>
+                                        <text x="1130" y="295" class="uml-text">Notification</text>
+                                        <text x="1130" y="310" class="uml-text">Service</text>
+                                    </g>
+                                    
+                                    <!-- Couche Accès aux Données -->
+                                    <g class="data-layer">
+                                        <rect x="50" y="370" width="1300" height="120" fill="url(#layerGradient3)" rx="15" ry="15" filter="url(#shadow)"/>
+                                        <text x="70" y="400" class="uml-text title" style="fill: white; font-size: 18px;">Couche Accès aux Données</text>
+                                        <text x="70" y="420" class="uml-text" style="fill: white; opacity: 0.9;">Modèles, Repositories, Cache, Validation</text>
+                                        
+                                        <!-- Modèles et repositories -->
+                                        <rect x="100" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Modèle utilisateur"/>
+                                        <text x="160" y="465" class="uml-text">User Model</text>
+                                        
+                                        <rect x="240" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Modèle étudiant"/>
+                                        <text x="300" y="465" class="uml-text">Student Model</text>
+                                        
+                                        <rect x="380" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Modèle enseignant"/>
+                                        <text x="440" y="465" class="uml-text">Teacher Model</text>
+                                        
+                                        <rect x="520" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Modèle affectation"/>
+                                        <text x="580" y="465" class="uml-text">Assignment Model</text>
+                                        
+                                        <rect x="660" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Modèle stage"/>
+                                        <text x="720" y="465" class="uml-text">Internship Model</text>
+                                        
+                                        <rect x="800" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Cache Redis"/>
+                                        <text x="860" y="465" class="uml-text">Redis Cache</text>
+                                        
+                                        <rect x="940" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Validation des données"/>
+                                        <text x="1000" y="465" class="uml-text">Validator</text>
+                                        
+                                        <rect x="1080" y="440" width="120" height="40" fill="white" stroke="#d97706" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Gestion des erreurs"/>
+                                        <text x="1140" y="465" class="uml-text">Error Handler</text>
+                                    </g>
+                                    
+                                    <!-- Couche Infrastructure -->
+                                    <g class="infrastructure-layer">
+                                        <rect x="50" y="520" width="1300" height="120" fill="url(#layerGradient4)" rx="15" ry="15" filter="url(#shadow)"/>
+                                        <text x="70" y="550" class="uml-text title" style="fill: white; font-size: 18px;">Couche Infrastructure</text>
+                                        <text x="70" y="570" class="uml-text" style="fill: white; opacity: 0.9;">Base de données, Serveur web, Monitoring, Sécurité</text>
+                                        
+                                        <!-- Composants infrastructure -->
+                                        <rect x="100" y="590" width="140" height="40" fill="white" stroke="#dc2626" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Base de données MySQL"/>
+                                        <text x="170" y="615" class="uml-text">MySQL Database</text>
+                                        
+                                        <rect x="260" y="590" width="140" height="40" fill="white" stroke="#dc2626" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Serveur web Apache"/>
+                                        <text x="330" y="615" class="uml-text">Apache Server</text>
+                                        
+                                        <rect x="420" y="590" width="140" height="40" fill="white" stroke="#dc2626" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Système de fichiers"/>
+                                        <text x="490" y="615" class="uml-text">File System</text>
+                                        
+                                        <rect x="580" y="590" width="140" height="40" fill="white" stroke="#dc2626" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Authentification JWT"/>
+                                        <text x="650" y="615" class="uml-text">JWT Security</text>
+                                        
+                                        <rect x="740" y="590" width="140" height="40" fill="white" stroke="#dc2626" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Logs système"/>
+                                        <text x="810" y="615" class="uml-text">Logging System</text>
+                                        
+                                        <rect x="900" y="590" width="140" height="40" fill="white" stroke="#dc2626" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Métriques Prometheus"/>
+                                        <text x="970" y="615" class="uml-text">Prometheus</text>
+                                        
+                                        <rect x="1060" y="590" width="140" height="40" fill="white" stroke="#dc2626" stroke-width="2" rx="8" ry="8" class="uml-element interactive-element" data-tooltip="Pipeline CI/CD"/>
+                                        <text x="1130" y="615" class="uml-text">GitHub Actions</text>
+                                    </g>
+                                    
+                                    <!-- Flèches de communication entre couches -->
+                                    <g class="layer-communication">
+                                        <!-- Présentation -> Métier -->
+                                        <line x1="700" y1="170" x2="700" y2="200" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        <line x1="600" y1="170" x2="600" y2="200" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        <line x1="800" y1="170" x2="800" y2="200" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        
+                                        <!-- Métier -> Données -->
+                                        <line x1="700" y1="340" x2="700" y2="370" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        <line x1="600" y1="340" x2="600" y2="370" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        <line x1="800" y1="340" x2="800" y2="370" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        
+                                        <!-- Données -> Infrastructure -->
+                                        <line x1="700" y1="490" x2="700" y2="520" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        <line x1="600" y1="490" x2="600" y2="520" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                        <line x1="800" y1="490" x2="800" y2="520" stroke="#374151" stroke-width="3" marker-end="url(#sequenceArrow)"/>
+                                    </g>
+                                    
+                                    <!-- Flux de données latéral -->
+                                    <g class="data-flow">
+                                        <!-- Cache Redis flux -->
+                                        <path d="M 860 440 Q 1000 420 1100 350 Q 1200 280 1130 270" stroke="#f59e0b" stroke-width="3" fill="none" stroke-dasharray="8,4" marker-end="url(#sequenceArrow)"/>
+                                        <text x="1050" y="350" class="uml-text small" style="fill: #f59e0b; font-weight: 600;">Cache Flow</text>
+                                        
+                                        <!-- Monitoring flux -->
+                                        <path d="M 970 590 Q 1050 550 1100 450 Q 1150 350 1130 330" stroke="#ef4444" stroke-width="3" fill="none" stroke-dasharray="5,5" marker-end="url(#sequenceArrow)"/>
+                                        <text x="1100" y="500" class="uml-text small" style="fill: #ef4444; font-weight: 600;">Metrics</text>
+                                    </g>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="legend">
+                            <h6><i class="fas fa-info-circle me-2"></i>Architecture en Couches - Séparation des Responsabilités</h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(90deg, #3b82f6, #1d4ed8);"></div>
+                                        <span><strong>Présentation:</strong> Interface utilisateur, API</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
+                                        <span><strong>Métier:</strong> Logique algorithmique</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+                                        <span><strong>Données:</strong> Modèles, Cache, Validation</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="legend-item">
+                                        <div class="legend-color" style="background: linear-gradient(90deg, #ef4444, #dc2626);"></div>
+                                        <span><strong>Infrastructure:</strong> Base, Sécurité, Monitoring</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Tooltip pour les éléments interactifs -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <!-- Footer -->
+    <div class="footer py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-graduation-cap me-2"></i>Projet Académique</h6>
+                    <p class="mb-0 small text-muted">Master 2 MIAGE - Systèmes d'Information</p>
+                    <p class="mb-0 small text-muted">Université de Picardie Jules Verne</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h6><i class="fas fa-calendar me-2"></i>Année Universitaire 2024-2025</h6>
+                    <p class="mb-0 small text-muted">Encadrement: Équipe pédagogique MIAGE</p>
+                    <p class="mb-0 small text-muted">Soutenance: Décembre 2024</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Système de progression de lecture
+        function updateProgressIndicator() {
+            const scrollTop = window.pageYOffset;
+            const docHeight = document.body.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            document.getElementById('progressIndicator').style.width = scrollPercent + '%';
+        }
+
+        window.addEventListener('scroll', updateProgressIndicator);
+
+        // Animation des diagrammes au scroll avec Intersection Observer
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Animation séquentielle des éléments UML
+                    const elements = entry.target.querySelectorAll('.uml-element');
+                    elements.forEach((el, index) => {
+                        setTimeout(() => {
+                            el.style.opacity = '1';
+                            el.style.transform = 'translateY(0) scale(1)';
+                        }, index * 100);
+                    });
+                }
+            });
+        }, observerOptions);
+
+        // Observer tous les conteneurs de diagrammes
+        document.querySelectorAll('.diagram-container').forEach(container => {
+            observer.observe(container);
+        });
+
+        // Système de tooltip interactif
+        const tooltip = document.getElementById('tooltip');
+        const interactiveElements = document.querySelectorAll('.interactive-element');
+
+        interactiveElements.forEach(element => {
+            element.addEventListener('mouseenter', (e) => {
+                const tooltipText = e.currentTarget.getAttribute('data-tooltip');
+                if (tooltipText) {
+                    tooltip.textContent = tooltipText;
+                    tooltip.classList.add('visible');
+                }
+                
+                // Effet de surbrillance
+                e.currentTarget.style.filter = 'drop-shadow(0 8px 16px rgba(102, 126, 234, 0.3))';
+                e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+            });
+
+            element.addEventListener('mousemove', (e) => {
+                tooltip.style.left = e.pageX + 15 + 'px';
+                tooltip.style.top = e.pageY - 35 + 'px';
+            });
+
+            element.addEventListener('mouseleave', (e) => {
+                tooltip.classList.remove('visible');
+                e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))';
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Zoom interactif sur les diagrammes
+        document.querySelectorAll('.diagram-zoom').forEach(diagram => {
+            let isZoomed = false;
+            
+            diagram.addEventListener('click', (e) => {
+                if (e.target.closest('.interactive-element')) return; // Éviter le conflit avec les éléments interactifs
+                
+                if (!isZoomed) {
+                    diagram.classList.add('zoomed');
+                    diagram.style.cursor = 'zoom-out';
+                    isZoomed = true;
+                } else {
+                    diagram.classList.remove('zoomed');
+                    diagram.style.cursor = 'zoom-in';
+                    isZoomed = false;
+                }
+            });
+            
+            diagram.style.cursor = 'zoom-in';
+        });
+
+        // Animation des connexions dans le diagramme de séquence
+        function animateSequenceConnections() {
+            const animatedLines = document.querySelectorAll('.connection-line.animated');
+            animatedLines.forEach((line, index) => {
+                setTimeout(() => {
+                    line.style.opacity = '1';
+                    line.style.strokeDasharray = '5,5';
+                    line.style.animation = 'dashAnimation 2s linear infinite';
+                }, index * 200);
+            });
+        }
+
+        // Animation des métriques de performance
+        function animateMetrics() {
+            const metrics = document.querySelectorAll('.metrics circle');
+            metrics.forEach((metric, index) => {
+                setTimeout(() => {
+                    metric.style.transform = 'scale(1.1)';
+                    metric.style.transition = 'transform 0.5s ease';
+                    setTimeout(() => {
+                        metric.style.transform = 'scale(1)';
+                    }, 500);
+                }, index * 300);
+            });
+        }
+
+        // Gestionnaire d'événements pour les onglets
+        document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (e) => {
+                const targetId = e.target.getAttribute('data-bs-target');
+                
+                if (targetId === '#sequence-diagram') {
+                    setTimeout(animateSequenceConnections, 500);
+                    setTimeout(animateMetrics, 1500);
+                }
+                
+                // Réinitialiser les animations des éléments UML
+                const targetPane = document.querySelector(targetId);
+                const elements = targetPane.querySelectorAll('.uml-element');
+                elements.forEach((el, index) => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px) scale(0.95)';
+                    setTimeout(() => {
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0) scale(1)';
+                        el.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                    }, index * 100);
+                });
+            });
+        });
+
+        // Effet de parallaxe léger sur les en-têtes
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            document.querySelectorAll('.diagram-header').forEach((header, index) => {
+                const rate = scrolled * -0.5;
+                header.style.transform = `translateY(${rate}px)`;
+            });
+        });
+
+        // Initialisation des styles d'animation
+        document.querySelectorAll('.uml-element').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px) scale(0.95)';
+            el.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+        });
+
+        // Animation d'entrée initiale pour le premier diagramme
+        setTimeout(() => {
+            const firstDiagram = document.querySelector('.tab-pane.active .uml-element');
+            if (firstDiagram) {
+                const elements = document.querySelectorAll('.tab-pane.active .uml-element');
+                elements.forEach((el, index) => {
+                    setTimeout(() => {
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0) scale(1)';
+                    }, index * 100);
+                });
+            }
+        }, 500);
+
+        // Gestion des performances pour les animations
+        let ticking = false;
+        function requestTick() {
+            if (!ticking) {
+                requestAnimationFrame(updateProgressIndicator);
+                ticking = true;
+            }
+        }
+
+        window.addEventListener('scroll', requestTick);
+    </script>
+</body>
+</html>
