@@ -1,6 +1,6 @@
 # Résumé de l'implémentation des algorithmes d'affectation
 
-## État actuel du projet (Décembre 2024)
+## État actuel du projet (Décembre 2025)
 
 ### Phase 1 complétée - Algorithme Glouton ✅
 

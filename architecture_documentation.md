@@ -198,7 +198,7 @@ Le système utilise MySQL/MariaDB avec :
 
 ## 9. Évolutions récentes et améliorations
 
-### Évolutions majeures récentes (Décembre 2024)
+### Évolutions majeures récentes (Décembre 2025)
 
 #### 1. Système de recherche et tri avancé
 - **API standardisée** : Endpoints `admin-list.php` pour toutes les entités

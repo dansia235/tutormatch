@@ -491,13 +491,13 @@ Le projet a adopté une approche Agile avec des sprints de 2-3 semaines. Le dév
 
 | **Phase** | **Période** | **Statut** | **Livrables réalisés** |
 |-----------|-------------|------------|------------------------|
-| **Étude préliminaire** | Mai 2024 | ✅ Complété | Analyse de l'existant, spécifications fonctionnelles |
-| **Cahier des charges** | Mai-Juin 2024 | ✅ Complété | Document de spécifications validé et mis à jour |
-| **Conception et développement des algorithmes** | Juin-Septembre 2024 | ✅ Complété | 3 algorithmes opérationnels (Glouton, Hongrois, Génétique) |
-| **Développement système complet** | Septembre-Novembre 2024 | ✅ Complété | Application complète avec interfaces utilisateur, API REST, monitoring |
-| **Tests et validation** | Novembre-Décembre 2024 | ✅ Complété | Tests unitaires/intégration, benchmarks performance, validation sécurité |
-| **Déploiement et optimisation** | Décembre 2024 | ✅ Complété | Cache Redis, monitoring production, pipeline CI/CD |
-| **Documentation et finalisation** | Décembre 2024-Janvier 2025 | ✅ Complété | Documentation technique complète, guides utilisateur |
+| **Étude préliminaire** | Mai 2025 | ✅ Complété | Analyse de l'existant, spécifications fonctionnelles |
+| **Cahier des charges** | Mai-Juin 2025 | ✅ Complété | Document de spécifications validé et mis à jour |
+| **Conception et développement des algorithmes** | Juin-Juillet 2025 | ✅ Complété | 3 algorithmes opérationnels (Glouton, Hongrois, Génétique) |
+| **Développement système complet** | Aout-Octobre 2025 | ✅ Complété | Application complète avec interfaces utilisateur, API REST, monitoring |
+| **Tests et validation** | Octobre 2025 | ✅ Complété | Tests unitaires/intégration, benchmarks performance, validation sécurité |
+| **Déploiement et optimisation** | Novembre 2025 | ✅ Complété | Cache Redis, monitoring production, pipeline CI/CD |
+| **Documentation et finalisation** | Décembre 2025 | ✅ Complété | Documentation technique complète, guides utilisateur |
 
 Certaines phases pourront se chevaucher pour optimiser les délais, notamment le début du développement de certains modules pendant que la conception se poursuit.
 

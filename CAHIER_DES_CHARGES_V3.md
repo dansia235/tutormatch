@@ -1,7 +1,7 @@
 # CAHIER DES CHARGES TECHNIQUE
 ## TutorMatch - Système de Gestion d'Attribution des Stages
 
-**Version 3.0 - Décembre 2024**  
+**Version 3.0 - Décembre 2025**  
 **Statut : Implémenté et Opérationnel**
 
 ---
