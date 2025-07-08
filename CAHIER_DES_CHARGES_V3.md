@@ -2,8 +2,8 @@
 
 ## Système de Gestion d'Attribution des Tuteurs de Stage
 
-**Version 3.0 - Décembre 2025**  
-**Statut : Implémenté et Opérationnel**
+**Version 3.0 - Juillet 2025**  
+**Statut : En cours de développement**
 
 # 1. Introduction
 
@@ -13,7 +13,7 @@ Dans le cadre du Master 2 MIAGE - Systèmes d'Information Nomades à Distance, n
 
 L'automatisation de l'enregistrement et du traitement des informations relatives aux stages offrira aux responsables une plus grande flexibilité pour ajuster manuellement les affectations en fonction des contraintes spécifiques.
 
-Nous formons un binôme composé de **DANSIA Toussaint** et **BELLE BELLE Isaac**, et nous avons sélectionné ce projet afin d'appliquer notre expertise en ingénierie des systèmes d'information dans un cadre concret et exigeant. Ce cahier des charges a pour mission de définir précisément l'ensemble des besoins fonctionnels et non fonctionnels, l'architecture technique ainsi que la méthodologie de gestion du projet. Le développement démarre immédiatement et doit être achevé et livré au plus tard le **31 mai**.
+Nous formons un binôme composé de **DANSIA Toussaint** et **BELLE BELLE Isaac**, et nous avons sélectionné ce projet afin d'appliquer notre expertise en ingénierie des systèmes d'information dans un cadre concret et exigeant. Ce cahier des charges a pour mission de définir précisément l'ensemble des besoins fonctionnels et non fonctionnels, l'architecture technique ainsi que la méthodologie de gestion du projet. Le développement a démarré en mai 2025 et doit être achevé et livré au plus tard le **31 décembre 2025**.
 
 ## 1.2 Enjeux du système d'information
 
@@ -52,66 +52,9 @@ En équilibrant les affectations selon les contraintes (telles que le nombre max
 
 # 2. Objectifs et Périmètre du Projet
 
-## 2.1 Technologies implémentées
+## 2.1 Objectifs principaux
 
-### 2.1.1 Backend
-- **Langage** : PHP 8.2+
-- **Architecture** : MVC personnalisée
-- **Base de données** : MySQL 8.0 / MariaDB 10.6+
-- **Cache** : Redis 6.0+ avec fallback automatique
-- **API** : REST avec documentation OpenAPI 3.0
-
-### 2.1.2 Frontend
-- **Technologies** : HTML5, CSS3, JavaScript ES6+
-- **Framework UI** : Bootstrap 5.3
-- **Interactions** : Stimulus.js pour les composants dynamiques
-- **Visualisations** : Chart.js pour graphiques temps réel
-- **Calendriers** : Flatpickr pour sélection de dates
-
-### 2.1.3 Infrastructure et outils
-- **Serveur web** : Apache 2.4+ / Nginx 1.20+
-- **Gestion dépendances** : Composer 2.0+
-- **Tests** : PHPUnit 10+ avec couverture complète
-- **CI/CD** : GitHub Actions avec pipeline automatisé
-- **Monitoring** : Métriques Prometheus, logging PSR-3
-- **Documentation** : Swagger UI intégré
-
-## 2.2 Architecture système
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Utilisateurs  │    │  Load Balancer  │    │   Monitoring    │
-│                 │    │                 │    │                 │
-└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    APPLICATION LAYER                            │
-│      ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
-│      │   Web UI    │  │   REST API  │  │   Swagger   │          │
-│      └─────────────┘  └─────────────┘  └─────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-          │                      │                     │
-          ▼                      ▼                     ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     BUSINESS LAYER                              │
-│       ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│       │ Controllers │  │  Services   │  │ Algorithms  │         │
-│       └─────────────┘  └─────────────┘  └─────────────┘         │
-└─────────────────────────────────────────────────────────────────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         DATA LAYER                              │
-│       ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│       │   Models    │  │    MySQL    │  │    Redis    │         │
-│       └─────────────┘  └─────────────┘  └─────────────┘         │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## 2.3 Objectifs principaux
-
-### 2.3.1 Optimisation des affectations
+### 2.1.1 Optimisation des affectations
 
 Afin d'assurer une gestion efficace des attributions et répondre aux attentes spécifiques des enseignants tout en respectant les contraintes institutionnelles, il est essentiel d'adopter une approche systématique d'optimisation.
 
@@ -127,7 +70,7 @@ En intégrant un mécanisme de pondération basé sur les préférences individu
 
 Une répartition équitable des affectations est essentielle pour garantir une qualité de suivi homogène et éviter la surcharge de certains enseignants. L'algorithme devra ainsi intégrer des critères de distribution équilibrée des étudiants, tout en respectant les capacités individuelles des enseignants.
 
-### 2.3.2 Gestion des contraintes
+### 2.1.2 Gestion des contraintes
 
 Une attribution précise et équitable requiert de mettre en place une gestion rigoureuse des contraintes spécifiques à chaque enseignant et à chaque stage. À cet effet, les aspects suivants doivent être pris en compte :
 
@@ -143,7 +86,7 @@ S'assurer que l'algorithme prenne rigoureusement en compte le nombre maximal d'�
 
 Intégrer des règles de gestion permettant d'identifier et de traiter les incompatibilités potentielles, qu'il s'agisse de conflits d'emploi du temps ou de besoins spécifiques liés à certains stages. Cette approche garantit une correspondance optimale entre les exigences des stages et les compétences des enseignants.
 
-### 2.3.3 Satisfaction des parties prenantes
+### 2.1.3 Satisfaction des parties prenantes
 
 Le succès du projet repose sur la satisfaction de l'ensemble des acteurs impliqués. Pour y parvenir, il est essentiel de mettre en place des outils et des interfaces ergonomiques qui favorisent une communication fluide et transparente. Les aspects suivants doivent être développés :
 
@@ -159,9 +102,9 @@ Mettre en place un module interactif dédié aux enseignants, leur permettant d'
 
 Intégrer des outils collaboratifs tels que des messageries internes, des notifications automatiques et des tableaux de bord partagés pour fluidifier les échanges et garantir une transparence totale dans le suivi des affectations. Cette approche permet de limiter les conflits, d'améliorer la coordination entre les responsables de stages et les enseignants, et de favoriser un environnement de travail harmonieux.
 
-## 2.4 Périmètre fonctionnel et technique
+## 2.2 Périmètre fonctionnel et technique
 
-### 2.4.1 Modules de saisie des données
+### 2.2.1 Modules de saisie des données
 
 Pour garantir une collecte efficace et précise des informations nécessaires au processus d'affectation, il est essentiel de disposer de modules de saisie performants et ergonomiques. Les éléments suivants doivent être mis en place :
 
@@ -181,7 +124,7 @@ Intégrer les spécialités, disponibilités et contraintes propres à chaque en
 
 Assurer le chargement initial des informations et permettre des sauvegardes régulières, garantissant ainsi la continuité et la sécurité des données.
 
-### 2.4.2 Traitement et stockage des données
+### 2.2.2 Traitement et stockage des données
 
 Une gestion centralisée et sécurisée des données est indispensable pour garantir l'intégrité et la fiabilité du système. Les actions suivantes sont recommandées :
 
@@ -197,7 +140,7 @@ Implémenter des processus automatiques de validation pour assurer la cohérence
 
 Enregistrer toutes les modifications apportées aux données afin de permettre un suivi détaillé afin de faciliter les audits et les retours d'expérience.
 
-### 2.4.3 Algorithme d'affectation
+### 2.2.3 Algorithme d'affectation
 
 L'optimisation de l'attribution des tuteurs repose sur le développement d'un algorithme intelligent capable de prendre en compte l'ensemble des paramètres du système. Cet algorithme devra :
 
@@ -213,7 +156,7 @@ Offrir la possibilité de réaliser différentes simulations en ajustant les par
 
 Évaluer la qualité des propositions d'affectation à l'aide d'un système de notation pour faciliter la prise de décision du responsable des stages.
 
-### 2.4.4 Interfaces utilisateur
+### 2.2.4 Interfaces utilisateur
 
 L'ergonomie des interfaces est un élément clé pour garantir la qualité et l'efficacité du système.
 
@@ -229,9 +172,9 @@ Proposer un espace dédié où les enseignants peuvent saisir leurs préférence
 
 Mettre en place des outils de reporting dynamiques permettant d'analyser les résultats des simulations et des affectations afin de faciliter l'identification des axes d'optimisation et la détection d'éventuelles anomalies.
 
-## 2.5 Bénéficiaires
+## 2.3 Bénéficiaires
 
-### 2.5.1 Responsable des stages
+### 2.3.1 Responsable des stages
 
 En tant qu'administrateur principal du système, le responsable des stages joue un rôle central dans la gestion et la supervision du processus d'affectation. Ses missions incluent :
 
@@ -251,7 +194,7 @@ En tant qu'administrateur principal du système, le responsable des stages joue 
   - Diffuser les résultats et les décisions aux enseignants et aux étudiants via la plateforme dédiée.
   - Assurer une communication claire pour expliquer les critères d'attribution et répondre aux éventuelles interrogations des utilisateurs.
 
-### 2.5.2 Enseignants
+### 2.3.2 Enseignants
 
 Les enseignants, en tant qu'acteurs clés du processus d'affectation, disposent d'outils interactifs leur permettant de s'impliquer activement :
 
@@ -271,7 +214,7 @@ Les enseignants, en tant qu'acteurs clés du processus d'affectation, disposent 
   - Utiliser les outils intégrés (messagerie, notifications) pour échanger directement avec le responsable et clarifier les attentes.
   - Participer activement au processus de validation en cas de réajustement des affectations.
 
-### 2.5.3 Étudiants
+### 2.3.3 Étudiants
 
 Bien que les étudiants soient des bénéficiaires indirects du processus d'affectation, ils disposent d'un accès simplifié leur permettant de suivre leur affectation et de récupérer les informations nécessaires :
 
@@ -327,29 +270,31 @@ Permettre aux enseignants d'indiquer clairement le nombre maximal d'étudiants q
 
 Proposer un champ dédié pour que les enseignants puissent ajouter des commentaires ou des précisions sur leurs choix, ce qui pourra être pris en compte lors de l'analyse globale des préférences.
 
-### 3.1.3 Algorithmes d'affectation implémentés
+### 3.1.3 Algorithmes d'affectation en développement
 
-Le système intègre trois algorithmes d'affectation optimisés pour différents contextes d'utilisation :
+Le système intégrera trois algorithmes d'affectation optimisés pour différents contextes d'utilisation :
 
 - **Algorithme Glouton (Greedy Algorithm)**
   - Complexité : O(n² log n) où n est le nombre d'étudiants
   - Usage : Instances petites à moyennes (< 200 étudiants)
   - Avantages : Rapidité d'exécution, simplicité de mise en œuvre
+  - **Statut : En cours de développement**
 
 - **Algorithme Hongrois (Hungarian Algorithm)**
   - Complexité : O(n³)
   - Usage : Optimisation globale garantie
   - Avantages : Solution mathématiquement optimale, respect strict des contraintes
+  - **Statut : Planifié**
 
 - **Algorithme Génétique (Genetic Algorithm)**
   - Configuration adaptative selon la taille du problème
-  - Usage : Grandes instances (200+ étudiants) avec +25% qualité vs glouton
-  - Fonctionnalités avancées : Logging complet, métriques temps réel, convergence intelligente
-  - Stratégies d'initialisation diversifiées (30% aléatoire, 30% départements, 40% glouton)
+  - Usage : Grandes instances (200+ étudiants) avec objectif +25% qualité vs glouton
+  - Fonctionnalités prévues : Logging complet, métriques temps réel, convergence intelligente
+  - **Statut : Planifié**
 
 - **Génération de rapports et métriques**
 
-Produire des rapports détaillés avec indicateurs de performance, temps d'exécution, et scores de satisfaction pour chaque algorithme utilisé.
+Production de rapports détaillés avec indicateurs de performance, temps d'exécution, et scores de satisfaction pour chaque algorithme utilisé.
 
 ### 3.1.4 Interface d'administration et de validation
 
@@ -383,11 +328,11 @@ Assurer un temps de réponse inférieur à 2 secondes pour les opérations coura
 
 - **Efficacité des algorithmes**
 
-Les performances mesurées en production garantissent :
-  - Algorithme glouton : ~0.3s pour 100 étudiants
-  - Algorithme hongrois : ~2s pour 100 étudiants  
-  - Algorithme génétique : ~1.5s pour 100 étudiants (+15% qualité)
-  - Cache hit ratio : >85% avec Redis
+Les performances attendues selon les tests préliminaires :
+  - Algorithme glouton : ~0.3s pour 100 étudiants (objectif)
+  - Algorithme hongrois : ~2s pour 100 étudiants (objectif)
+  - Algorithme génétique : ~1.5s pour 100 étudiants (objectif)
+  - Cache hit ratio : >85% avec Redis (objectif)
 
 - **Haute disponibilité**
 
@@ -443,63 +388,94 @@ Respecter les normes d'accessibilité pour permettre à tous les utilisateurs, y
 
 ## 4.1 Architecture générale
 
-L'architecture proposée suit un modèle modulaire basé sur une approche en couches. Elle garantit une séparation des responsabilités et facilite l'évolution du système.
+L'architecture proposée suit un modèle modulaire basé sur une approche en couches. Elle garantira une séparation des responsabilités et facilitera l'évolution du système.
+
+### 4.1.1 Vue d'ensemble de l'architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Utilisateurs  │    │  Load Balancer  │    │   Monitoring    │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          ▼                      ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    APPLICATION LAYER                            │
+│       ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│       │   Web UI    │  │   REST API  │  │   Swagger   │         │
+│       └─────────────┘  └─────────────┘  └─────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+          │                      │                      │
+          ▼                      ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       BUSINESS LAYER                            │
+│       ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│       │ Controllers │  │  Services   │  │ Algorithms  │         │
+│       └─────────────┘  └─────────────┘  └─────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+          │                      │                      │
+          ▼                      ▼                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      DATA LAYER                                 │
+│        ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│        │   Models    │  │    MySQL    │  │    Redis    │        │
+│        └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 4.1.2 Organisation modulaire
 
 Chaque couche est dédiée à un ensemble de fonctions précises :
 
-- La couche de présentation gère les interfaces
-- La couche application orchestre les services et les contrôleurs
-- La couche métier se concentre sur la logique et les algorithmes
-- La couche Données est responsable du stockage et de la gestion des informations
+- **Couche de présentation** : Gère les interfaces utilisateur et l'expérience utilisateur
+- **Couche application** : Orchestre les services et les contrôleurs métier
+- **Couche métier** : Se concentre sur la logique applicative et les algorithmes
+- **Couche données** : Responsable du stockage et de la gestion des informations
 
-Cette organisation facilite la maintenance et la compréhension du système.
-
-Grâce à la modularité, chaque couche peut être testée de manière isolée, permettant une détection précoce des erreurs et une validation efficace des fonctionnalités avant leur intégration dans l'ensemble du système.
+Cette organisation facilite la maintenance et la compréhension du système. Grâce à la modularité, chaque couche peut être testée de manière isolée, permettant une détection précoce des erreurs et une validation efficace des fonctionnalités avant leur intégration dans l'ensemble du système.
 
 ## 4.2 Composants techniques
 
-### 4.2.1 Logiciels
+### 4.2.1 Stack technologique
 
-- **Backend** :
-  - Langage PHP 8.2+ avec architecture MVC personnalisée
-  - API REST pour la communication avec le frontend
-  - Documentation des API avec Swagger/OpenAPI 3.0 intégré
-  - Système d'authentification basé sur JWT et sessions sécurisées
+#### Backend
+- **Langage** : PHP 8.2+ avec architecture MVC personnalisée
+- **Base de données** : MySQL 8.0 / MariaDB 10.6+ pour le stockage relationnel
+- **Cache** : Redis 6.0+ avec fallback automatique et TTL adaptatifs (en développement)
+- **API** : REST avec documentation OpenAPI 3.0 (planifiée)
+- **Authentification** : JWT avec sessions sécurisées et protection CSRF (planifiée)
 
-- **Frontend** :
-  - HTML5, CSS3, JavaScript ES6+ pour interfaces utilisateur modernes
-  - Framework Bootstrap 5.3 pour la conception responsive
-  - Stimulus.js pour les interactions dynamiques
-  - Chart.js pour les visualisations graphiques temps réel
+#### Frontend
+- **Technologies** : HTML5, CSS3, JavaScript ES6+
+- **Framework UI** : Bootstrap 5.3 pour design responsive
+- **Interactions** : Stimulus.js pour composants dynamiques (planifié)
+- **Visualisations** : Chart.js pour graphiques temps réel (planifié)
+- **Calendriers** : Flatpickr pour sélection de dates (planifié)
 
-- **Base de données et cache** :
-  - MySQL 8.0 / MariaDB 10.6+ pour le stockage relationnel des données
-  - Redis 6.0+ avec fallback automatique pour l'amélioration des performances
-  - Configuration adaptative des TTL par type de données
+#### Infrastructure et DevOps
+- **Serveur web** : Apache 2.4+ / Nginx 1.20+
+- **Gestion dépendances** : Composer 2.0+
+- **Versioning** : Git avec workflow GitFlow
+- **CI/CD** : GitHub Actions avec pipeline automatisé (planifié)
+- **Tests** : PHPUnit 10+ avec couverture complète (en développement)
+- **Documentation** : Swagger UI intégré (planifié)
 
-### 4.2.2 Technologies implémentées
+### 4.2.2 Monitoring et sécurité
 
-- **Développement** :
-  - Git pour le versionnement du code
-  - Composer 2.0+ pour la gestion des dépendances PHP
-  - GitHub Actions pour l'intégration continue et le déploiement
-  - PHPUnit 10+ pour les tests unitaires et d'intégration
+#### Observabilité (planifiée)
+- **Métriques** : Prometheus avec interfaces visuelles
+- **Logging** : PSR-3 structuré avec rotation automatique
+- **Health checks** : Automatisés (/api/monitoring/health.php)
+- **Rate limiting** : Configurable par endpoint
 
-- **Monitoring et observabilité** :
-  - Métriques Prometheus avec interfaces visuelles
-  - Logging structuré PSR-3 avec rotation automatique
-  - Health checks automatisés (/api/monitoring/health.php)
-  - Rate limiting configurable par endpoint
-
-- **Sécurité** :
-  - Protection CSRF sur tous les formulaires
-  - Authentification JWT avec sessions sécurisées
-  - Contrôle d'accès basé sur les rôles (RBAC)
-  - Audit trail et journalisation des actions sensibles
+#### Sécurité (en développement)
+- **Protection** : CSRF sur tous les formulaires
+- **Contrôle d'accès** : RBAC (Role-Based Access Control)
+- **Audit** : Trail complet et journalisation des actions sensibles
+- **Chiffrement** : HTTPS obligatoire, TLS 1.3
 
 ## 4.3 Interface et Communication
 
-### 4.3.1 Protocoles d'échange
+### 4.3.1 Protocoles d'échange (planifiés)
 
 - API REST sécurisée par HTTPS pour les échanges entre frontend et backend
 - Documentation interactive Swagger/OpenAPI 3.0 accessible via /api/swagger.php
@@ -528,18 +504,18 @@ L'équipe de projet est constituée d'un binôme avec les rôles suivants :
 
 - **Développeur principal** : Responsable de l'architecture technique, du développement des composants critiques et de la qualité du code.
 
-Les deux membres travailleront en étroite collaboration, avec des réunions régulières pour synchroniser leurs avancées et résoudre les difficultés rencontrées.
+Les deux membres travaillent en étroite collaboration, avec des réunions régulières pour synchroniser leurs avancées et résoudre les difficultés rencontrées.
 
 ### 5.1.1 Interaction avec le tuteur
 
-Le tuteur du projet jouera le rôle du commanditaire et non celui d'un conseiller technique. Cette distinction est importante car :
+Le tuteur du projet joue le rôle du commanditaire et non celui d'un conseiller technique. Cette distinction est importante car :
 
-- Le tuteur répondra aux questions concernant les fonctionnalités souhaitées
-- Les choix techniques seront entièrement à la charge de l'équipe projet
+- Le tuteur répond aux questions concernant les fonctionnalités souhaitées
+- Les choix techniques sont entièrement à la charge de l'équipe projet
 - Le tuteur évaluera la pertinence et la justification de ces choix dans le rapport final
-- Le tuteur fournira des retours sur le contenu du rapport et le diaporama de soutenance
+- Le tuteur fournit des retours sur le contenu du rapport et le diaporama de soutenance
 
-La communication avec le tuteur se fera exclusivement par email, avec :
+La communication avec le tuteur se fait exclusivement par email, avec :
 
 - Un compte-rendu d'avancement envoyé toutes les 2 semaines
 - Un partage mensuel de l'avancement de la rédaction du rapport
@@ -547,31 +523,31 @@ La communication avec le tuteur se fera exclusivement par email, avec :
 
 ## 5.2 Planning et Phases du Projet
 
-Le projet a adopté une approche Agile avec des sprints de 2-3 semaines. Le développement s'est déroulé avec succès selon les phases suivantes :
+Le projet adopte une approche Agile avec des sprints de 2-3 semaines. Le développement se déroule selon les phases suivantes :
 
-| **Phase** | **Période** | **Statut** | **Livrables réalisés** |
-|-----------|-------------|------------|------------------------|
+| **Phase** | **Période** | **Statut** | **Livrables prévus** |
+|-----------|-------------|------------|--------------------------|
 | **Étude préliminaire** | Mai 2025 | ✅ Complété | Analyse de l'existant, spécifications fonctionnelles |
 | **Cahier des charges** | Mai-Juin 2025 | ✅ Complété | Document de spécifications validé et mis à jour |
-| **Conception et développement des algorithmes** | Juin-Juillet 2025 | ✅ Complété | 3 algorithmes opérationnels (Glouton, Hongrois, Génétique) |
-| **Développement système complet** | Aout-Octobre 2025 | ✅ Complété | Application complète avec interfaces utilisateur, API REST, monitoring |
-| **Tests et validation** | Octobre 2025 | ✅ Complété | Tests unitaires/intégration, benchmarks performance, validation sécurité |
-| **Déploiement et optimisation** | Novembre 2025 | ✅ Complété | Cache Redis, monitoring production, pipeline CI/CD |
-| **Documentation et finalisation** | Décembre 2025 | ✅ Complété | Documentation technique complète, guides utilisateur |
+| **Conception et développement des algorithmes** | Juin-Juillet 2025 | 🔄 En cours | 3 algorithmes opérationnels (Glouton, Hongrois, Génétique) |
+| **Développement système complet** | Août-Octobre 2025 | ⏳ Planifié | Application complète avec interfaces utilisateur, API REST, monitoring |
+| **Tests et validation** | Octobre-Novembre 2025 | ⏳ Planifié | Tests unitaires/intégration, benchmarks performance, validation sécurité |
+| **Déploiement et optimisation** | Novembre 2025 | ⏳ Planifié | Cache Redis, monitoring production, pipeline CI/CD |
+| **Documentation et finalisation** | Décembre 2025 | ⏳ Planifié | Documentation technique complète, guides utilisateur |
 
-Certaines phases pourront se chevaucher pour optimiser les délais, notamment le début du développement de certains modules pendant que la conception se poursuit.
+Certaines phases peuvent se chevaucher pour optimiser les délais, notamment le début du développement de certains modules pendant que la conception se poursuit.
 
 Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification précise des jalons de communication avec le tuteur.
 
 ## 5.3 Méthodes de suivi et de gestion
 
-### 5.3.1 Outils de gestion de projet utilisés
+### 5.3.1 Outils de gestion de projet
 
-- **GitHub** : Gestion du code source, versioning et pipeline CI/CD automatisé
-- **GitHub Actions** : Intégration continue avec tests automatisés
-- **Composer** : Gestion des dépendances PHP et scripts d'automatisation
-- **PHPUnit** : Framework de tests avec couverture de code
-- **Documentation intégrée** : README.md, documentation technique dans le projet
+- **GitHub** : Gestion du code source et versioning
+- **GitHub Projects** : Planification et suivi des tâches
+- **Composer** : Gestion des dépendances PHP (prévu)
+- **PHPUnit** : Framework de tests (en cours d'intégration)
+- **Documentation** : README.md et documentation technique
 
 ### 5.3.2 Communication et suivi
 
@@ -656,13 +632,13 @@ Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification pr
 ### 8.1.3 Éléments techniques
 
 - Code source documenté et versionné (GitHub)
-- Scripts de création et d'initialisation de la base de données (database/tutoring_system.sql)
-- Jeux de données de test et scripts de validation (test_*.php)
-- Tests unitaires et d'intégration (tests/Algorithm/, tests/Integration/)
-- Benchmarks de performance (tests/Algorithm/GeneticAlgorithmBenchmark.php)
-- Configuration Redis et cache (config/cache.php, config/genetic_algorithm.php)
-- Pipeline CI/CD avec GitHub Actions (.github/workflows/ci.yml)
-- Monitoring et métriques (api/monitoring/, includes/Monitor.php)
+- Scripts de création et d'initialisation de la base de données
+- Jeux de données de test et scripts de validation
+- Tests unitaires et d'intégration (en développement)
+- Benchmarks de performance (planifiés)
+- Configuration Redis et cache (en développement)
+- Pipeline CI/CD avec GitHub Actions (planifié)
+- Monitoring et métriques (planifié)
 
 ### 8.1.4 Documentation utilisateur
 
@@ -695,9 +671,21 @@ Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification pr
 - Justification des choix techniques effectués
 - Session de questions-réponses
 
-# 9. Annexes et Références
+# 9. Conclusion
 
-## 9.1 Annexes
+TutorMatch représentera une solution complète et moderne pour la gestion des stages académiques. Le développement en cours vise à atteindre tous les objectifs fixés avec :
+
+- **3 algorithmes d'affectation** en cours de développement et d'optimisation
+- **Architecture robuste** avec monitoring planifié
+- **Interface utilisateur** moderne et responsive (en conception)
+- **Tests automatisés** pour garantir la qualité (en développement)
+- **Documentation technique** en cours de rédaction
+
+Le système sera prêt pour la production fin 2025 et capable d'évoluer selon les besoins futurs des établissements d'enseignement.
+
+# 10. Annexes et Références
+
+## 10.1 Annexes
 
 - Modèle de fiche d'interview
 - Diagramme de Gantt détaillé
@@ -705,7 +693,7 @@ Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification pr
 - Format des données d'import/export
 - Exemples de cas d'utilisation complets
 
-## 9.2 Références
+## 10.2 Références
 
 - Méthodologie Agile pour la gestion de projet itérative
 - Documentation PHP 8.2+ pour le développement backend
@@ -720,3 +708,9 @@ Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification pr
 - Normes ISO/IEC 25010 pour l'évaluation de la qualité logicielle
 - Guide OWASP Top 10 pour la sécurité des applications web
 - Réglementation RGPD pour la protection des données personnelles
+
+---
+
+**Document rédigé par :** Équipe technique TutorMatch  
+**Date de dernière mise à jour :** 8 juillet 2025  
+**Version :** 3.0 - État en développement
