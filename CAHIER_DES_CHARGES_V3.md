@@ -618,7 +618,7 @@ Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification pr
 - Cahier des charges complet et validé
 - Planning détaillé (diagramme de Gantt)
 - Comptes-rendus de réunions
-- Rapports d'avancement hebdomadaires
+- Rapports d'avancement mensuels
 - Backlog produit et backlogs de sprint (conformément à la méthodologie Agile)
 
 ### 8.1.2 Documents de conception
