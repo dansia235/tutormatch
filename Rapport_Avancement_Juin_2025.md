@@ -23,13 +23,13 @@ Le mois de juin a été consacré à la finalisation du cahier des charges et au
 - [x] Setup de la base de données
 
 ### 2.2 Objectifs Atteints
-✅ **Cahier des charges V1** : Envoyé au tuteur le 9 juin 2025
-✅ **Retours tuteur** : Reçus par email le 11 juin 2025  
-✅ **Révision technologique** : Stack technique repensé et optimisé
-✅ **Cahier des charges V2** : Nouvelle version avec technologies mises à jour
-✅ **Maquettes UI** : 8 interfaces principales conçues  
-✅ **Base de données** : Schéma relationnel créé et optimisé  
-✅ **Algorithme glouton** : Implémentation initiale fonctionnelle
+- ✅ **Cahier des charges V1** : Envoyé au tuteur le 9 juin 2025 
+- ✅ **Retours tuteur** : Reçus par email le 11 juin 2025 
+- ✅ **Révision technologique** : Stack technique repensé et optimisé 
+- ✅ **Cahier des charges V2** : Nouvelle version avec technologies mises à jour 
+- ✅ **Maquettes UI** : 8 interfaces principales conçues 
+- ✅ **Base de données** : Schéma relationnel créé et optimisé 
+- ✅ **Algorithme glouton** : Implémentation initiale fonctionnelle 
 
 ## 3. Réalisations Techniques
 
@@ -135,7 +135,7 @@ Le mois de juin a été consacré à la finalisation du cahier des charges et au
 
 ### 9.2 Communication Tuteur
 - **Dernier échange** : Email reçu le 11 juin 2025
-- **Prochaine échéance** : Envoi cahier des charges V2 - 10 juillet 2025
+- **Prochaine échéance** : Envoi cahier des charges V2 & Rapport avancement mensuel - 10 juillet 2025
 - **Modalité** : Exclusivement par email avec documents structurés
 
 ## 10. Conclusion
