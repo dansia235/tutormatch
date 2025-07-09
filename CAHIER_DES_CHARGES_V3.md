@@ -3,7 +3,8 @@
 ## Système de Gestion d'Attribution des Tuteurs de Stage
 
 **Version 3.0 - Juillet 2025**  
-**Statut : En cours de développement**
+**Statut : En cours de développement**  
+**Note :** Version révisée suite aux retours tuteur sur la V2 (technologies mises à jour)
 
 # 1. Introduction
 
@@ -519,7 +520,8 @@ La communication avec le tuteur se fait exclusivement par email, avec :
 
 - Un compte-rendu d'avancement envoyé toutes les 2 semaines
 - Un partage mensuel de l'avancement de la rédaction du rapport
-- Une première version du diaporama de soutenance au moins 2 mois avant la date prévue
+- Envoi des versions du cahier des charges pour validation (V2 envoyée le 9 juin, V3 prévue le 5 juillet)
+- Une première version du diaporama de soutenance au moins 1 mois avant la soutenance (15 décembre 2025)
 
 ## 5.2 Planning et Phases du Projet
 
@@ -619,6 +621,9 @@ Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification pr
 - Planning détaillé (diagramme de Gantt)
 - Comptes-rendus de réunions
 - Rapports d'avancement mensuels
+- Rapports d'avancement Mai 2025 et Juin 2025
+- Cahier des charges V2 (envoyé au tuteur le 9 juin 2025, validé le 11 juin)
+- Cahier des charges V3 (version actuelle avec technologies mises à jour)
 - Backlog produit et backlogs de sprint (conformément à la méthodologie Agile)
 
 ### 8.1.2 Documents de conception
@@ -659,17 +664,19 @@ Un diagramme de Gantt détaillé sera fourni en annexe, avec l'identification pr
 
 ### 8.2.2 Préparation de la soutenance
 
-- Élaboration du diaporama de présentation au moins 1 mois avant la date de soutenance
+- Élaboration du diaporama de présentation au moins 1 mois avant la soutenance (15 décembre 2025)
 - Intégration rapide des retours du tuteur sur la première version du diaporama
 - Préparation de démonstrations concrètes du système
 - Répartition équilibrée du temps de parole entre les membres du binôme
+- **Date de soutenance confirmée : 15 décembre 2025**
 
-### 8.2.3 Soutenance finale
+### 8.2.3 Soutenance finale (15 décembre 2025)
 
 - Présentation formelle du projet, de ses objectifs et des résultats obtenus
 - Démonstration complète du système développé
 - Justification des choix techniques effectués
 - Session de questions-réponses
+- Remise du rapport final
 
 # 9. Conclusion
 
@@ -681,7 +688,7 @@ TutorMatch représentera une solution complète et moderne pour la gestion des s
 - **Tests automatisés** pour garantir la qualité (en développement)
 - **Documentation technique** en cours de rédaction
 
-Le système sera prêt pour la production fin 2025 et capable d'évoluer selon les besoins futurs des établissements d'enseignement.
+Le système sera prêt pour la production et présenté lors de la soutenance du **15 décembre 2025**. Il sera capable d'évoluer selon les besoins futurs des établissements d'enseignement.
 
 # 10. Annexes et Références
 
